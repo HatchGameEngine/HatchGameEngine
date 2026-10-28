@@ -8,7 +8,6 @@
 class TileLayer : public SceneLayer {
 private:
 	void SetSize(int w, int h);
-	void AllocTilesBackup();
 
 public:
 	Uint32 WidthMask = 0;
@@ -42,9 +41,10 @@ public:
 	bool RemakeTileBuffers = false;
 
 	TileLayer();
-	TileLayer(int w, int h, bool allocTilesBackupData = true);
+	TileLayer(int w, int h);
 
 	void Resize(int w, int h);
+	void MakeTilesBackup();
 
 	~TileLayer();
 };

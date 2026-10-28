@@ -322,7 +322,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		}
 		tileRow += layer->WidthData;
 	}
-	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
+	layer->MakeTilesBackup();
 
 	free(tileBoys);
 

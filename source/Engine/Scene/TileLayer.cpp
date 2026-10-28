@@ -3,7 +3,7 @@
 #include <Engine/Scene/TileLayer.h>
 
 TileLayer::TileLayer() {}
-TileLayer::TileLayer(int w, int h, bool allocTilesBackupData) {
+TileLayer::TileLayer(int w, int h) {
 	Type = SceneLayer::TYPE_TILE;
 
 	SetSize(w, h);
@@ -12,9 +12,6 @@ TileLayer::TileLayer(int w, int h, bool allocTilesBackupData) {
 	memset(DeformSetB, 0, sizeof(DeformSetB));
 
 	Tiles = (Uint32*)Memory::TrackedCalloc("TileLayer::Tiles", WidthData * HeightData, sizeof(Uint32));
-	if (allocTilesBackupData) {
-		AllocTilesBackup();
-	}
 
 	UsingScrollIndexes = false;
 }
@@ -80,9 +77,9 @@ void TileLayer::Resize(int w, int h) {
 	}
 }
 
-void TileLayer::AllocTilesBackup() {
-	TilesBackup =
-		(Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", WidthData * HeightData, sizeof(Uint32));
+void TileLayer::MakeTilesBackup() {
+	TilesBackup = (Uint32*)Memory::TrackedMalloc("TileLayer::TilesBackup", DataSize);
+	memcpy(TilesBackup, Tiles, DataSize);
 }
 
 TileLayer::~TileLayer() {

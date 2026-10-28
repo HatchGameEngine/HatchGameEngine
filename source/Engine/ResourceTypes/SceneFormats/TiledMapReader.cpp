@@ -709,7 +709,7 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer, LayerGroup* group) {
 		memcpy(&layer->Tiles[iH], &tile_buffer[i * layer_width], layer_width * sizeof(int));
 		iH += layer->WidthData;
 	}
-	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
+	layer->MakeTilesBackup();
 
 	Scene::AddLayer(layer);
 

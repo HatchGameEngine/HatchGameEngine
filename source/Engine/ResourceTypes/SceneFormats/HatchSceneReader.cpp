@@ -153,7 +153,7 @@ TileLayer* HatchSceneReader::ReadLayer(Stream* r) {
 	HatchSceneReader::ReadTileData(r, layer);
 	HatchSceneReader::ConvertTileData(layer);
 
-	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
+	layer->MakeTilesBackup();
 
 	return layer;
 }
