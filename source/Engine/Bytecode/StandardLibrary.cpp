@@ -44,6 +44,7 @@
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/Scene/SceneReader.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -13169,6 +13170,67 @@ VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.LoadIntoCurrent
+ * \ns Scene
+ */
+VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* filename = GET_ARG(0, GetString);
+	bool keepLayers = GET_ARG_OPT(1, GetInteger, true);
+	bool keepObjects = GET_ARG_OPT(2, GetInteger, true);
+	bool mergeLayers = GET_ARG_OPT(3, GetInteger, false);
+	int filter = Scene::Filter;
+	bool loadPalettes = GET_ARG_OPT(5, GetInteger, true);
+	bool loadProperties = GET_ARG_OPT(6, GetInteger, true);
+	ObjArray* layersToAddArr = nullptr;
+	ObjArray* objectsToAddArr = nullptr;
+	// int offsetX = GET_ARG_OPT(9, GetInteger, 0);
+	// int offsetY = GET_ARG_OPT(10, GetInteger, 0);
+
+	if (argCount >= 5 && !IS_NULL(args[4])) {
+		filter = GET_ARG(4, GetInteger);
+	}
+	if (argCount >= 8 && !IS_NULL(args[7])) {
+		layersToAddArr = GET_ARG(7, GetArray);
+	}
+	if (argCount >= 9 && !IS_NULL(args[8])) {
+		objectsToAddArr = GET_ARG(8, GetArray);
+	}
+
+	Stream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return INTEGER_VAL(false);
+	}
+
+	char pathParent[MAX_RESOURCE_PATH_LENGTH];
+	const char* sep = strrchr(filename, '/');
+	if (sep != nullptr) {
+		size_t length = (sep - filename) + 1;
+		memcpy(pathParent, filename, length);
+		pathParent[length] = '\0';
+	}
+	else {
+		pathParent[0] = '\0';
+	}
+
+	SceneReader* reader = SceneReader::New(stream, filename);
+	reader->Filter = filter;
+	reader->ReservedSlotIDs = Scene::ReservedSlotIDs;
+
+	// Read the map
+	bool success = reader->Read(stream, pathParent);
+
+	stream->Close();
+
+	if (success) {
+		success = reader->AddToScene(nullptr, nullptr, loadPalettes, loadProperties, keepLayers, keepObjects, mergeLayers);
+	}
+
+	delete reader;
+
+	return INTEGER_VAL(success);
+}
+/***
  * Scene.PropertyExists
  * \desc Checks if a property exists.
  * \param property (string): Name of property to check.
@@ -13218,16 +13280,7 @@ VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* layername = GET_ARG(0, GetString);
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (Scene::Layers[i] == nullptr) {
-			continue;
-		}
-
-		if (strcmp(Scene::Layers[i]->Name, layername) == 0) {
-			return INTEGER_VAL((int)i);
-		}
-	}
-	return INTEGER_VAL(-1);
+	return INTEGER_VAL(Scene::FindLayerIndex(layername));
 }
 /***
  * Scene.GetLayerName
@@ -22521,6 +22574,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, AreTileCollisionsLoaded);
 	DEF_NATIVE(Scene, AddTileset);
 	DEF_NATIVE(Scene, Restart);
+	DEF_NATIVE(Scene, LoadIntoCurrent);
 	DEF_NATIVE(Scene, PropertyExists);
 	DEF_NATIVE(Scene, GetProperty);
 	DEF_NATIVE(Scene, GetLayerCount);

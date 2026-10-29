@@ -137,8 +137,6 @@ TileLayer* HatchSceneReader::ReadLayer(Stream* r) {
 	ReadTileData(r, layer);
 	ConvertTileData(layer);
 
-	layer->MakeTilesBackup();
-
 	return layer;
 }
 
@@ -339,7 +337,12 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	int curTileCount = (int)TileSpriteInfos.size();
 
 	char tilesetFile[MAX_RESOURCE_PATH_LENGTH];
-	snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
+	if (parentFolder != nullptr) {
+		snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
+	}
+	else {
+		snprintf(tilesetFile, sizeof(tilesetFile), "Tileset.png");
+	}
 
 	ISprite* tileSprite = new ISprite();
 	Texture* spriteSheet = tileSprite->AddSpriteSheet(tilesetFile);

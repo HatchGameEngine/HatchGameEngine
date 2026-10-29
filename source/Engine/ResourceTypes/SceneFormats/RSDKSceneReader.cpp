@@ -315,7 +315,6 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		}
 		tileRow += layer->WidthData;
 	}
-	layer->MakeTilesBackup();
 
 	free(tileBoys);
 
@@ -658,6 +657,10 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	ticks = Clock::GetTicks() - ticks;
 	Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
+
+	if (parentFolder == nullptr) {
+		parentFolder = "";
+	}
 
 	snprintf(Filename16x16Tiles, sizeof Filename16x16Tiles, "%s16x16Tiles.gif", parentFolder);
 	snprintf(StageConfigFilename, sizeof StageConfigFilename, "%sStageConfig.bin", parentFolder);

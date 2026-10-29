@@ -78,6 +78,10 @@ void TileLayer::Resize(int w, int h) {
 }
 
 void TileLayer::MakeTilesBackup() {
+	if (TilesBackup) {
+		Memory::Free(TilesBackup);
+	}
+
 	TilesBackup = (Uint32*)Memory::TrackedMalloc("TileLayer::TilesBackup", DataSize);
 	memcpy(TilesBackup, Tiles, DataSize);
 }

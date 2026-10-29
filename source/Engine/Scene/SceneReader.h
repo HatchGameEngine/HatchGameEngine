@@ -9,6 +9,8 @@
 #include <Engine/Types/Tileset.h>
 #include <Engine/Scene.h>
 
+#include <unordered_set>
+
 class SceneReaderObject {
 public:
 	std::string Name;
@@ -41,6 +43,14 @@ public:
 };
 
 class SceneReader {
+private:
+	Entity* SpawnObject(SceneReaderObject* object, bool dynamic = false, bool keepDynamic = false);
+	void AddLayer(SceneLayer* layer);
+	void AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary);
+	bool AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer);
+	void MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer);
+	void RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets);
+
 protected:
 	int SceneType;
 	HashMap<Property>* Properties;
@@ -58,11 +68,19 @@ public:
 	int Filter = 0xFF;
 	int ReservedSlotIDs = 0;
 
+	static SceneReader* New(Stream* stream, const char* filename);
 	virtual bool Read(Stream* stream, const char* parentFolder);
 	virtual bool Read(const char* sourceF, const char* parentFolder);
 	virtual bool LoadIntoScene();
+	void AddPropertiesToScene();
 	virtual bool LoadPalettes();
-	Entity* SpawnObject(SceneReaderObject* object);
+	bool AddToScene(std::vector<int>* layersToAdd,
+		std::unordered_set<std::string>* objectsToAdd,
+		bool loadPalettes,
+		bool loadProperties,
+		bool keepLayers,
+		bool keepObjects,
+		bool mergeLayers);
 	virtual void Dispose();
 
 	~SceneReader();

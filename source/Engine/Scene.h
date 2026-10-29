@@ -195,6 +195,7 @@ public:
 	static size_t AddLayer(SceneLayer* layer);
 	static SceneLayer* GetFirstLayer();
 	static SceneLayer* GetFirstTileLayer();
+	static int FindLayerIndex(char* name);
 	static void SetLayerSize(SceneLayer* layer, int width, int height);
 	static void InitPriorityLists();
 	static void FreePriorityLists();
@@ -202,6 +203,8 @@ public:
 	static DrawGroupList* GetDrawGroup(int index);
 	static DrawGroupList* GetDrawGroupNoCheck(int index);
 	static bool AddTileset(char* path);
+	static void AddTilesetDirect(Tileset& otherTileset);
+	static int FindMatchingTileset(Tileset* otherTileset);
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static void UnloadTileCollisions();
 	static bool GetResourceListSpace(vector<ResourceType*>* list,

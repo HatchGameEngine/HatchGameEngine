@@ -710,7 +710,6 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer, LayerGroup* group) {
 		memcpy(&layer->Tiles[iH], &tile_buffer[i * layer_width], layer_width * sizeof(int));
 		iH += layer->WidthData;
 	}
-	layer->MakeTilesBackup();
 
 	Layers.push_back(layer);
 
@@ -1012,6 +1011,10 @@ bool TiledMapReader::Read(Stream* r, const char* parentFolder) {
 			"Not compatible with infinite maps! (Map > Map Properties > Set \"Infinite\" to unchecked)");
 		XMLParser::Free(data);
 		return false;
+	}
+
+	if (parentFolder == nullptr) {
+		parentFolder = "";
 	}
 
 	SceneType = SCENETYPE_TILED;

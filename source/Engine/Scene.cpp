@@ -22,10 +22,8 @@
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
-#include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
-#include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
-#include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/Scene/SceneReader.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Types/EntityTypes.h>
@@ -1863,9 +1861,19 @@ void Scene::Restart() {
 
 	Graphics::UnloadSceneData();
 
+	// Remove temporary layers
+	for (size_t l = 0; l < Layers.size(); l++) {
+		SceneLayer* layer = Layers[l];
+		if (layer != nullptr && layer->Temporary) {
+			Graphics::DeleteLayerTileBuffers(layer);
+			delete layer;
+			Layers[l] = nullptr;
+		}
+	}
+
 	if (Scene::AnyLayerTileChange) {
 		// Copy backup tiles into main tiles
-		for (int l = 0; l < (int)Layers.size(); l++) {
+		for (size_t l = 0; l < Layers.size(); l++) {
 			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
@@ -2234,7 +2242,6 @@ void Scene::ReadSceneFile(const char* filename) {
 	Log::Print(Log::LOG_INFO, "Starting scene \"%s\"...", filename);
 
 	// Get parent path of scene filename
-	// TODO: Just move this to the functions that actually read the scene file?
 	char pathParent[MAX_RESOURCE_PATH_LENGTH];
 	const char* sep = strrchr(filename, '/');
 	if (sep != nullptr) {
@@ -2250,37 +2257,11 @@ void Scene::ReadSceneFile(const char* filename) {
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
-		SceneReader* reader;
-
-		// Guess from the header first
-		Uint32 magic = r->ReadUInt32();
-
-		if (magic == HatchSceneReader::Magic) {
-			reader = new HatchSceneReader();
-		}
-		else if (magic == RSDKSceneReader::Magic) {
-			reader = new RSDKSceneReader();
-		}
-		else {
-			// Guess from the filename
-			if (StringUtils::StrCaseStr(filename, ".bin")) {
-				reader = new RSDKSceneReader();
-			}
-			else if (StringUtils::StrCaseStr(filename, ".hcsn")) {
-				reader = new HatchSceneReader();
-			}
-			else {
-				// Assume it's a Tiled map
-				reader = new TiledMapReader();
-			}
-		}
-
-		r->Seek(0);
-
-		// Read the map
+		SceneReader* reader = SceneReader::New(r, filename);
 		reader->Filter = Filter;
 		reader->ReservedSlotIDs = ReservedSlotIDs;
 
+		// Read the map
 		if (reader->Read(r, pathParent)) {
 			reader->LoadIntoScene();
 		}
@@ -2302,6 +2283,7 @@ void Scene::ReadSceneFile(const char* filename) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 	}
 }
+
 
 bool Scene::ChangeFromPath(const char* path, int filter) {
 	for (size_t i = 0; i < SceneInfo::Categories.size(); i++) {
@@ -2597,6 +2579,19 @@ SceneLayer* Scene::GetFirstTileLayer() {
 	}
 
 	return nullptr;
+}
+int Scene::FindLayerIndex(char* name) {
+	for (size_t i = 0; i < Layers.size(); i++) {
+		if (Layers[i] == nullptr) {
+			continue;
+		}
+
+		if (strcmp(Layers[i]->Name, name) == 0) {
+			return (int)i;
+		}
+	}
+
+	return -1;
 }
 void Scene::SetLayerSize(SceneLayer* layer, int width, int height) {
 	if (layer->Type != SceneLayer::TYPE_TILE || width < 1 || height < 1) {
@@ -3232,7 +3227,6 @@ bool Scene::AddTileset(char* path) {
 		Scene::TileSpriteInfos.size(),
 		cols * rows,
 		path);
-	Scene::Tilesets.push_back(sceneTileset);
 
 	// Add tiles
 	TileSpriteInfo info;
@@ -3254,7 +3248,14 @@ bool Scene::AddTileset(char* path) {
 
 	tileSprite->RefreshGraphicsID();
 
-	Scene::SetTileCount(Scene::TileCount + (cols * rows));
+	AddTilesetDirect(sceneTileset);
+
+	return true;
+}
+void Scene::AddTilesetDirect(Tileset& tileset) {
+	Tilesets.push_back(tileset);
+
+	SetTileCount(TileCount + tileset.TileCount);
 
 	// Remake layer tile buffers
 	if (Graphics::LayerTileBufferingEnabled) {
@@ -3269,8 +3270,18 @@ bool Scene::AddTileset(char* path) {
 			}
 		}
 	}
+}
+int Scene::FindMatchingTileset(Tileset* otherTileset) {
+	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
+		Tileset* tileset = &Scene::Tilesets[i];
 
-	return true;
+		if (tileset->TileCount == otherTileset->TileCount
+		&& strcmp(tileset->Filename, otherTileset->Filename) == 0) {
+			return (int)i;
+		}
+	}
+
+	return -1;
 }
 void Scene::SetTileCount(size_t tileCount) {
 	vector<TileConfig*> configFlipX;
