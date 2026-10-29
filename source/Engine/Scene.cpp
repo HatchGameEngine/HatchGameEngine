@@ -2275,11 +2275,14 @@ void Scene::ReadSceneFile(const char* filename) {
 			}
 		}
 
-		// Read the map
 		r->Seek(0);
 
-		if (reader->Read(r)) {
-			reader->LoadIntoScene(pathParent);
+		// Read the map
+		reader->Filter = Filter;
+		reader->ReservedSlotIDs = ReservedSlotIDs;
+
+		if (reader->Read(r, pathParent)) {
+			reader->LoadIntoScene();
 		}
 
 		r->Close();
@@ -3861,6 +3864,9 @@ void Scene::Dispose() {
 	Scene::UnloadTileCollisions();
 
 	if (Scene::Properties) {
+		Scene::Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;

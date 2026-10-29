@@ -44,13 +44,13 @@ void Tileset::RestartAnimations() {
 	}
 }
 
-void Tileset::AddTileAnimSequence(int tileID,
+bool Tileset::AddTileAnimSequence(int tileID,
 	TileSpriteInfo* tileSpriteInfo,
 	vector<int>& tileIDs,
 	vector<int>& durations) {
 	ISprite* tileSprite = Sprite;
 	if (!tileSprite) {
-		return;
+		return false;
 	}
 
 	size_t animID = 0;
@@ -72,12 +72,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	if (!tileIDs.size()) {
 		AnimatorMap.erase(tileID);
-		Scene::RefreshTileAnimations = true;
-		return;
+		return true;
 	}
 
 	if (!NumCols) {
-		return;
+		return false;
 	}
 
 	for (size_t i = 0; i < tileIDs.size(); i++) {
@@ -117,17 +116,16 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	AnimatorMap.insert({tileID, animator});
 
-	Scene::RefreshTileAnimations = true;
+	return true;
 }
 
-void Tileset::AddTileAnimSequence(int tileID,
+bool Tileset::AddTileAnimSequence(int tileID,
 	TileSpriteInfo* tileSpriteInfo,
 	ISprite* animSprite,
 	int animID) {
 	if (animSprite == nullptr) {
 		AnimatorMap.erase(tileID);
-		Scene::RefreshTileAnimations = true;
-		return;
+		return true;
 	}
 
 	TileAnimator animator(tileSpriteInfo, animSprite, animID);
@@ -137,7 +135,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	AnimatorMap.insert({tileID, animator});
 
-	Scene::RefreshTileAnimations = true;
+	return true;
 }
 
 TileAnimator* Tileset::GetTileAnimSequence(int tileID) {

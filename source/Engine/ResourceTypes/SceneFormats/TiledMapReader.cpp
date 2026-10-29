@@ -338,13 +338,13 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 		return nullptr;
 	}
 
-	int cols = spriteSheet->Width / Scene::TileWidth;
-	int rows = spriteSheet->Height / Scene::TileHeight;
+	int cols = spriteSheet->Width / TileWidth;
+	int rows = spriteSheet->Height / TileHeight;
 
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
-	size_t curTileCount = Scene::TileSpriteInfos.size();
+	size_t curTileCount = TileSpriteInfos.size();
 	size_t numEmptyTiles = firstgid - curTileCount;
 
 	if (firstgid == 1) {
@@ -357,8 +357,8 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-		info.TilesetID = Scene::Tilesets.size();
-		Scene::TileSpriteInfos.push_back(info);
+		info.TilesetID = Tilesets.size();
+		TileSpriteInfos.push_back(info);
 
 		tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
 	}
@@ -368,30 +368,30 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-		info.TilesetID = Scene::Tilesets.size();
-		Scene::TileSpriteInfos.push_back(info);
+		info.TilesetID = Tilesets.size();
+		TileSpriteInfos.push_back(info);
 
 		tileSprite->AddFrame(0,
-			(i % cols) * Scene::TileWidth,
-			(i / cols) * Scene::TileHeight,
-			Scene::TileWidth,
-			Scene::TileHeight,
-			-Scene::TileWidth / 2,
-			-Scene::TileHeight / 2);
+			(i % cols) * TileWidth,
+			(i / cols) * TileHeight,
+			TileWidth,
+			TileHeight,
+			-TileWidth / 2,
+			-TileHeight / 2);
 	}
 
 	tileSprite->RefreshGraphicsID();
 
 	Tileset sceneTileset(tileSprite,
-		Scene::TileWidth,
-		Scene::TileHeight,
+		TileWidth,
+		TileHeight,
 		firstgid,
 		curTileCount + numEmptyTiles,
 		(cols * rows) + 1,
 		resourcePath);
-	Scene::Tilesets.push_back(sceneTileset);
+	Tilesets.push_back(sceneTileset);
 
-	return &Scene::Tilesets.back();
+	return &Tilesets.back();
 }
 
 void TiledMapReader::ParseTileAnimation(int tileID,
@@ -410,15 +410,16 @@ void TiledMapReader::ParseTileAnimation(int tileID,
 			float duration =
 				ceil(XMLParser::TokenToNumber(child->attributes.Get("duration")) /
 					(1000.0 / 60));
-			if ((size_t)otherTileID < Scene::TileSpriteInfos.size()) {
+			if ((size_t)otherTileID < TileSpriteInfos.size()) {
 				tileIDs.push_back(otherTileID);
 				frameDurations.push_back((int)duration);
 			}
 		}
 	}
 
-	tilesetPtr->AddTileAnimSequence(
-		tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations);
+	if (tilesetPtr->AddTileAnimSequence(tileID, &TileSpriteInfos[tileID], tileIDs, frameDurations)) {
+		RefreshTileAnimations = true;
+	}
 }
 
 void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
@@ -433,7 +434,7 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 
 	int firstgid = tilesetPtr->FirstGlobalTileID;
 	int globalTileID = tileID + firstgid;
-	if (globalTileID < 0 || (size_t)globalTileID >= Scene::TileSpriteInfos.size()) {
+	if (globalTileID < 0 || (size_t)globalTileID >= TileSpriteInfos.size()) {
 		return;
 	}
 
@@ -711,7 +712,7 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer, LayerGroup* group) {
 	}
 	layer->MakeTilesBackup();
 
-	Scene::AddLayer(layer);
+	Layers.push_back(layer);
 
 	Memory::Free(tile_buffer);
 
@@ -786,7 +787,7 @@ bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const
 		layer->ConstantY += group->ConstantScrollY;
 	}
 
-	Scene::Layers.push_back(layer);
+	Layers.push_back(layer);
 
 	return true;
 }
@@ -836,7 +837,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 			filter = 0xFF;
 		}
 
-		if (!(filter & Scene::Filter)) {
+		if (!(filter & Filter)) {
 			continue;
 		}
 
@@ -863,16 +864,10 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 			continue;
 		}
 
-		Entity* obj = Scene::TrySpawnObject(objectList, object_x, object_y);
-		if (!obj) {
-			continue;
-		}
+		SceneReaderObject* obj = new SceneReaderObject(asStr, object_x, object_y);
 
-		Scene::AddStatic(objectList, obj);
-
-		obj->InitProperties();
 		if (slotID != -1) {
-			obj->SlotID = slotID + Scene::ReservedSlotIDs;
+			obj->SlotID = slotID + ReservedSlotIDs;
 		}
 		obj->Filter = filter;
 
@@ -932,6 +927,8 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 				obj->Properties->Put("LinePoints", Property::MakeArray(points));
 			}
 		}
+
+		Objects.push_back(obj);
 	}
 
 	return true;
@@ -997,44 +994,29 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent, const char* p
 	return true;
 }
 
-bool TiledMapReader::Read(Stream* r) {
-	Data = XMLParser::ParseFromStream(r);
-	if (!Data) {
+bool TiledMapReader::Read(Stream* r, const char* parentFolder) {
+	XMLNode* data = XMLParser::ParseFromStream(r);
+	if (!data) {
 		Log::Print(Log::LOG_ERROR, "Could not parse resource!");
 		return false;
 	}
 
-	XMLNode* map = Data->children[0];
+	XMLNode* map = data->children[0];
+	if (!map) {
+		return false;
+	}
 
 	// 'infinite' maps will not work
 	if (XMLParser::MatchToken(map->attributes.Get("infinite"), "1")) {
 		Log::Print(Log::LOG_ERROR,
 			"Not compatible with infinite maps! (Map > Map Properties > Set \"Infinite\" to unchecked)");
-		XMLParser::Free(Data);
+		XMLParser::Free(data);
 		return false;
 	}
 
+	SceneType = SCENETYPE_TILED;
 	TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
 	TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
-
-	return true;
-}
-
-bool TiledMapReader::LoadIntoScene(const char* parentFolder) {
-	XMLNode* map = Data->children[0];
-	if (!map) {
-		return false;
-	}
-
-	Scene::SceneType = SCENETYPE_TILED;
-
-	Scene::EmptyTile = 0;
-	Scene::TileWidth = TileWidth;
-	Scene::TileHeight = TileHeight;
-
-	Scene::FreePriorityLists();
-	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
-	Scene::InitPriorityLists();
 
 #if 0
     int layer_width = (int)XMLParser::TokenToNumber(map->attributes.Get("width"));
@@ -1043,8 +1025,7 @@ bool TiledMapReader::LoadIntoScene(const char* parentFolder) {
 
 	for (size_t i = 0; i < map->children.size(); i++) {
 		if (XMLParser::MatchToken(map->children[i]->name, "tileset")) {
-			XMLNode* tileset = map->children[i];
-			TiledMapReader::LoadTileset(tileset, parentFolder);
+			LoadTileset(map->children[i], parentFolder);
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "properties")) {
 			XMLNode* properties = map->children[i];
@@ -1054,12 +1035,11 @@ bool TiledMapReader::LoadIntoScene(const char* parentFolder) {
 					continue;
 				}
 
-				if (Scene::Properties == NULL) {
-					Scene::Properties = new HashMap<Property>(NULL, 4);
+				if (Properties == NULL) {
+					Properties = new HashMap<Property>(NULL, 4);
 				}
 
-				TiledMapReader::ParsePropertyNode(
-					properties->children[pr], Scene::Properties);
+				ParsePropertyNode(properties->children[pr], Properties);
 			}
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
@@ -1072,9 +1052,7 @@ bool TiledMapReader::LoadIntoScene(const char* parentFolder) {
 		}
 	}
 
-	return true;
-}
+	XMLParser::Free(data);
 
-void TiledMapReader::Dispose() {
-	XMLParser::Free(Data);
+	return true;
 }

@@ -8,23 +8,32 @@
 
 class RSDKSceneReader : public SceneReader {
 private:
-	Stream* StreamPtr = nullptr;
+	SceneReaderObject** ObjSlots = NULL;
+
+	char Filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
+	char StageConfigFilename[MAX_RESOURCE_PATH_LENGTH];
 
 	static void LoadObjectList();
 	static void LoadPropertyList();
-	TileLayer* ReadLayer();
-	static bool LoadTileset(const char* parentFolder);
+
+	TileLayer* ReadLayer(Stream* r);
+	bool ReadObjectDefinition(Stream* r);
+	bool LoadTileset();
+
+	void LoadTilesetPalette();
 
 public:
 	static Uint32 Magic;
 	static bool Initialized;
 
+	bool Read(Stream* r, const char* parentFolder);
+	bool LoadIntoScene();
+	bool LoadPalettes();
+	void Dispose();
+
+	// Used in StandardLibrary
 	static void StageConfig_GetColors(const char* filename);
 	static void GameConfig_GetColors(const char* filename);
-	bool ReadObjectDefinition(Entity** objSlots, const int maxObjSlots);
-
-	bool Read(Stream* r);
-	bool LoadIntoScene(const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H */

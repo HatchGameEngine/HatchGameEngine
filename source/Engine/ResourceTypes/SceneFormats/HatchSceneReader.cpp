@@ -22,14 +22,14 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_IDENT_MASK 0x00000FFFU // Max. 4096 tiles
 #define HSCN_FXYID_MASK (HSCN_FLIPY_MASK | HSCN_FLIPY_MASK | HSCN_IDENT_MASK)
 
-bool HatchSceneReader::Read(Stream* r) {
+bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Start reading
 	if (r->ReadUInt32() != HatchSceneReader::Magic) {
 		Log::Print(Log::LOG_ERROR, "Not a Hatch scene!");
 		return false;
 	}
 
-	Scene::SceneType = SCENETYPE_HATCH;
+	SceneType = SCENETYPE_HATCH;
 
 	// Read scene version
 	Uint8 verMajor = r->ReadByte();
@@ -47,8 +47,6 @@ bool HatchSceneReader::Read(Stream* r) {
 		return false;
 	}
 
-	StreamPtr = r;
-
 	r->ReadUInt32(); // Editor background color 1
 	r->ReadUInt32(); // Editor background color 2
 	if (verPatch >= 1) {
@@ -58,38 +56,16 @@ bool HatchSceneReader::Read(Stream* r) {
 	// Unused (number of kits)
 	r->ReadByte();
 
+	// Load the tileset first
+	LoadTileset(parentFolder);
+	EmptyTile = TileSpriteInfos.size();
+
 	// Read layer count
-	NumLayers = r->ReadByte();
-
-	LayerDataStart = r->Position();
-	for (Uint32 i = 0; i < NumLayers; i++) {
-		SkipLayer();
-	}
-
-	// Read classes
-	ReadClasses();
-
-	// Read entity count
-	NumEntities = r->ReadUInt16();
-	EntityDataStart = r->Position();
-
-	return true;
-}
-
-bool HatchSceneReader::LoadIntoScene(const char* parentFolder) {
-	Stream* r = StreamPtr;
-
-	// Load the tileset
-	HatchSceneReader::LoadTileset(parentFolder);
-
-	Scene::FreePriorityLists();
-	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
-	Scene::InitPriorityLists();
+	Uint8 numLayers = r->ReadByte();
 
 	// Read layers
-	StreamPtr->Seek(LayerDataStart);
-	for (Uint32 i = 0; i < NumLayers; i++) {
-		TileLayer* layer = ReadLayer();
+	for (Uint32 i = 0; i < numLayers; i++) {
+		TileLayer* layer = ReadLayer(r);
 
 #ifdef HSCN_READER_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
@@ -100,19 +76,18 @@ bool HatchSceneReader::LoadIntoScene(const char* parentFolder) {
 			layer->Height);
 #endif
 
-		Scene::AddLayer(layer);
+		Layers.push_back(layer);
 	}
 
-	// Read entities
-	StreamPtr->Seek(EntityDataStart);
-	ReadEntities();
+	// Read classes and entities
+	ReadClasses(r);
+	ReadEntities(r);
+	FreeClasses();
 
 	return true;
 }
 
-TileLayer* HatchSceneReader::ReadLayer() {
-	Stream* r = StreamPtr;
-
+TileLayer* HatchSceneReader::ReadLayer(Stream* r) {
 	char* name = r->ReadHeaderedString();
 	Uint8 drawBehavior = r->ReadByte();
 	Uint8 drawGroup = r->ReadByte();
@@ -156,10 +131,10 @@ TileLayer* HatchSceneReader::ReadLayer() {
 	}
 
 	// Read scroll data
-	ReadScrollData(layer);
+	ReadScrollData(r, layer);
 
 	// Read and convert tile data
-	ReadTileData(layer);
+	ReadTileData(r, layer);
 	ConvertTileData(layer);
 
 	layer->MakeTilesBackup();
@@ -167,35 +142,7 @@ TileLayer* HatchSceneReader::ReadLayer() {
 	return layer;
 }
 
-void HatchSceneReader::SkipLayer() {
-	Stream* r = StreamPtr;
-
-	r->SkipHeaderedString(); // Name
-	r->Skip(10);
-
-	Uint16 scrollInfoCount = r->ReadUInt16();
-
-	// Skip scroll info data
-	for (Uint16 i = 0; i < scrollInfoCount; i++) {
-		r->Skip(6);
-	}
-
-	// Skip scroll data
-	Uint32 compressedSize = r->ReadUInt32();
-
-	// This should skip (4 + (compressedSize - 4)) bytes, but the math cancels out
-	r->Skip(compressedSize);
-
-	// Skip tile data
-	compressedSize = r->ReadUInt32();
-
-	// See above
-	r->Skip(compressedSize);
-}
-
-void HatchSceneReader::ReadTileData(TileLayer* layer) {
-	Stream* r = StreamPtr;
-
+void HatchSceneReader::ReadTileData(Stream* r, TileLayer* layer) {
 	size_t streamPos = r->Position();
 
 	r->ReadUInt32(); // compressed size
@@ -217,14 +164,14 @@ void HatchSceneReader::ReadTileData(TileLayer* layer) {
 void HatchSceneReader::ConvertTileData(TileLayer* layer) {
 	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
-			layer->Tiles[i] = Scene::EmptyTile;
+			layer->Tiles[i] = EmptyTile;
 			continue;
 		}
 
 		Uint32 tileID = (layer->Tiles[i] & HSCN_FXYID_MASK);
 		Uint32 tile = tileID & 0xFFF;
-		if (tile >= Scene::TileSpriteInfos.size()) {
-			layer->Tiles[i] = Scene::EmptyTile;
+		if (tile >= TileSpriteInfos.size()) {
+			layer->Tiles[i] = EmptyTile;
 			continue;
 		}
 
@@ -245,9 +192,7 @@ void HatchSceneReader::ConvertTileData(TileLayer* layer) {
 	}
 }
 
-void HatchSceneReader::ReadScrollData(TileLayer* layer) {
-	Stream* r = StreamPtr;
-
+void HatchSceneReader::ReadScrollData(Stream* r, TileLayer* layer) {
 	for (int i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
@@ -313,9 +258,7 @@ void HatchSceneReader::HashString(char* string, SceneHash* hash) {
 	hash->D = final[12] + (final[13] << 8) + (final[14] << 16) + (final[15] << 24);
 }
 
-void HatchSceneReader::ReadClasses() {
-	Stream* r = StreamPtr;
-
+void HatchSceneReader::ReadClasses(Stream* r) {
 	Uint16 numClasses = r->ReadUInt16();
 
 	for (Uint16 i = 0; i < numClasses; i++) {
@@ -393,7 +336,7 @@ void HatchSceneReader::FreeClasses() {
 }
 
 bool HatchSceneReader::LoadTileset(const char* parentFolder) {
-	int curTileCount = (int)Scene::TileSpriteInfos.size();
+	int curTileCount = (int)TileSpriteInfos.size();
 
 	char tilesetFile[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
@@ -405,8 +348,8 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 		return false;
 	}
 
-	int cols = spriteSheet->Width / Scene::TileWidth;
-	int rows = spriteSheet->Height / Scene::TileHeight;
+	int cols = spriteSheet->Width / TileWidth;
+	int rows = spriteSheet->Height / TileHeight;
 
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -417,47 +360,45 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-		info.TilesetID = Scene::Tilesets.size();
-		Scene::TileSpriteInfos.push_back(info);
+		info.TilesetID = Tilesets.size();
+		TileSpriteInfos.push_back(info);
 
 		tileSprite->AddFrame(0,
-			(i % cols) * Scene::TileWidth,
-			(i / cols) * Scene::TileHeight,
-			Scene::TileWidth,
-			Scene::TileHeight,
-			-Scene::TileWidth / 2,
-			-Scene::TileHeight / 2);
+			(i % cols) * TileWidth,
+			(i / cols) * TileHeight,
+			TileWidth,
+			TileHeight,
+			-TileWidth / 2,
+			-TileHeight / 2);
 	}
-
-	Scene::EmptyTile = Scene::TileSpriteInfos.size();
 
 	// Add empty tile
 	info.Sprite = tileSprite;
 	info.AnimationIndex = 0;
 	info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-	info.TilesetID = Scene::Tilesets.size();
-	Scene::TileSpriteInfos.push_back(info);
+	info.TilesetID = Tilesets.size();
+	TileSpriteInfos.push_back(info);
 
 	tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
 
 	tileSprite->RefreshGraphicsID();
 
 	Tileset sceneTileset(tileSprite,
-		Scene::TileWidth,
-		Scene::TileHeight,
+		TileWidth,
+		TileHeight,
 		0,
 		curTileCount,
-		Scene::TileSpriteInfos.size(),
+		TileSpriteInfos.size(),
 		tilesetFile);
-	Scene::Tilesets.push_back(sceneTileset);
+	Tilesets.push_back(sceneTileset);
 
 	return true;
 }
 
-void HatchSceneReader::ReadEntities() {
-	Stream* r = StreamPtr;
+void HatchSceneReader::ReadEntities(Stream* r) {
+	Uint16 numEntities = r->ReadUInt16();
 
-	for (Uint16 i = 0; i < NumEntities; i++) {
+	for (Uint16 i = 0; i < numEntities; i++) {
 		SceneHash classHash;
 		classHash.A = r->ReadUInt32();
 		classHash.B = r->ReadUInt32();
@@ -474,7 +415,7 @@ void HatchSceneReader::ReadEntities() {
 #ifdef HSCN_READER_DEBUG
 			Log::Print(Log::LOG_WARN, "Ignoring entity with an unknown class");
 #endif
-			SkipEntityProperties(numProps);
+			SkipEntityProperties(r, numProps);
 			continue;
 		}
 
@@ -489,7 +430,7 @@ void HatchSceneReader::ReadEntities() {
 				classHash.C,
 				classHash.D);
 #endif
-			SkipEntityProperties(numProps);
+			SkipEntityProperties(r, numProps);
 			continue;
 		}
 
@@ -501,8 +442,8 @@ void HatchSceneReader::ReadEntities() {
 			filter = 0xFF;
 		}
 
-		if (!(filter & Scene::Filter)) {
-			SkipEntityProperties(numProps);
+		if (!(filter & Filter)) {
+			SkipEntityProperties(r, numProps);
 			continue;
 		}
 
@@ -518,16 +459,11 @@ void HatchSceneReader::ReadEntities() {
 			continue;
 		}
 
-		Entity* obj = Scene::TrySpawnObject(objectList, posX, posY);
-		if (!obj) {
-			SkipEntityProperties(numProps);
-			continue;
-		}
+		SceneReaderObject* obj = new SceneReaderObject(std::string(objectName), posX, posY);
 
-		Scene::AddStatic(objectList, obj);
+		Objects.push_back(obj);
 
-		obj->SlotID = (int)i + Scene::ReservedSlotIDs;
-		obj->InitProperties();
+		obj->SlotID = (int)i + ReservedSlotIDs;
 
 		// Add "filter" property
 		obj->Filter = filter;
@@ -555,7 +491,7 @@ void HatchSceneReader::ReadEntities() {
 					propHash.C,
 					propHash.D);
 #endif
-				HatchSceneReader::SkipProperty(varType);
+				HatchSceneReader::SkipProperty(r, varType);
 				continue;
 			}
 
@@ -628,18 +564,14 @@ void HatchSceneReader::ReadEntities() {
 	}
 }
 
-void HatchSceneReader::SkipEntityProperties(Uint8 numProps) {
-	Stream* r = StreamPtr;
-
+void HatchSceneReader::SkipEntityProperties(Stream* r, Uint8 numProps) {
 	for (Uint8 j = 0; j < numProps; j++) {
 		r->Skip(16);
-		HatchSceneReader::SkipProperty(r->ReadByte());
+		HatchSceneReader::SkipProperty(r, r->ReadByte());
 	}
 }
 
-void HatchSceneReader::SkipProperty(Uint8 varType) {
-	Stream* r = StreamPtr;
-
+void HatchSceneReader::SkipProperty(Stream* r, Uint8 varType) {
 	switch (varType) {
 	case HSCN_VAR_INT8:
 	case HSCN_VAR_UINT8:
@@ -664,8 +596,4 @@ void HatchSceneReader::SkipProperty(Uint8 varType) {
 		r->Skip(r->ReadUInt16() * 2);
 		break;
 	}
-}
-
-void HatchSceneReader::Dispose() {
-	FreeClasses();
 }

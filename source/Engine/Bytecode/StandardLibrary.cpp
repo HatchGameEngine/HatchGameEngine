@@ -14511,8 +14511,10 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 
 	Tileset* tileset = Scene::GetTileset(tileID);
 	if (tileset) {
-		tileset->AddTileAnimSequence(
-			tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations);
+		if (tileset->AddTileAnimSequence(
+			tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations)) {
+			Scene::RefreshTileAnimations = true;
+		}
 	}
 
 	return NULL_VAL;
@@ -14542,8 +14544,10 @@ VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 
 
 	Tileset* tileset = Scene::GetTileset(tileID);
 	if (tileset) {
-		tileset->AddTileAnimSequence(
-			tileID, &Scene::TileSpriteInfos[tileID], sprite, animationIndex);
+		if (tileset->AddTileAnimSequence(
+			tileID, &Scene::TileSpriteInfos[tileID], sprite, animationIndex)) {
+			Scene::RefreshTileAnimations = true;
+		}
 	}
 
 	return NULL_VAL;

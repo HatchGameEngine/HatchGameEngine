@@ -8,37 +8,26 @@
 
 class HatchSceneReader : public SceneReader {
 private:
-	Stream* StreamPtr = nullptr;
-
-	Uint8 NumLayers = 0;
-	Uint16 NumEntities = 0;
-
-	size_t LayerDataStart = 0;
-	size_t EntityDataStart = 0;
-
 	std::vector<SceneClass> SceneClasses;
 
-	TileLayer* ReadLayer();
-	void SkipLayer();
-	void ReadTileData(TileLayer* layer);
+	TileLayer* ReadLayer(Stream* r);
+	void ReadTileData(Stream* r, TileLayer* layer);
 	void ConvertTileData(TileLayer* layer);
-	void ReadScrollData(TileLayer* layer);
+	void ReadScrollData(Stream* r, TileLayer* layer);
 	SceneClass* FindClass(SceneHash hash);
 	SceneClassProperty* FindProperty(SceneClass* scnClass, SceneHash hash);
 	static void HashString(char* string, SceneHash* hash);
-	void ReadClasses();
+	void ReadClasses(Stream* r);
 	void FreeClasses();
-	static bool LoadTileset(const char* parentFolder);
-	void ReadEntities();
-	void SkipEntityProperties(Uint8 numProps);
-	void SkipProperty(Uint8 varType);
+	bool LoadTileset(const char* parentFolder);
+	void ReadEntities(Stream* r);
+	void SkipEntityProperties(Stream* r, Uint8 numProps);
+	void SkipProperty(Stream* r, Uint8 varType);
 
 public:
 	static Uint32 Magic;
 
-	bool Read(Stream* r);
-	bool LoadIntoScene(const char* parentFolder);
-	void Dispose();
+	bool Read(Stream* r, const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_HATCHSCENEREADER_H */

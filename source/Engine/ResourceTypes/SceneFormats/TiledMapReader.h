@@ -24,32 +24,24 @@ struct TiledLayer {
 
 class TiledMapReader : public SceneReader {
 private:
-	XMLNode* Data = nullptr;
-
 	static Property ParseProperty(XMLNode* property);
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
 	static bool GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length);
-	static Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
-	static void
-	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
-	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
+	Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
+	void ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
+	void ParseTile(Tileset* tilesetPtr, XMLNode* node);
 	static void SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value);
-	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
+	void LoadTileset(XMLNode* tileset, const char* parentFolder);
 	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
-	static bool ParseTileLayer(XMLNode* mapLayer, LayerGroup* group);
-	static bool ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
-	static bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
-	static bool ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder);
-	static bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
+	bool ParseTileLayer(XMLNode* mapLayer, LayerGroup* group);
+	bool ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
+	bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
+	bool ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder);
+	bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
 
 public:
-	int TileWidth = 0;
-	int TileHeight = 0;
-
-	bool Read(Stream* stream);
-	bool LoadIntoScene(const char* parentFolder);
-	void Dispose();
+	bool Read(Stream* stream, const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_TILEDMAPREADER_H */
