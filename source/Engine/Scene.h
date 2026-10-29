@@ -83,8 +83,6 @@ public:
 	static int TileCount;
 	static int TileWidth;
 	static int TileHeight;
-	static int BaseTileCount;
-	static int BaseTilesetCount;
 	static bool TileCfgLoaded;
 	static vector<TileConfig*> TileCfg;
 	static vector<ResourceType*> SpriteList;

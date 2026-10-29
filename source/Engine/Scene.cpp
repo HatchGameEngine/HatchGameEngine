@@ -81,8 +81,6 @@ vector<TileSpriteInfo> Scene::TileSpriteInfos;
 int Scene::TileCount = 0;
 int Scene::TileWidth = 16;
 int Scene::TileHeight = 16;
-int Scene::BaseTileCount = 0;
-int Scene::BaseTilesetCount = 0;
 bool Scene::TileCfgLoaded = false;
 vector<TileConfig*> Scene::TileCfg;
 Uint16 Scene::EmptyTile = 0x000;
@@ -1914,21 +1912,6 @@ void Scene::Restart() {
 	Scene::RemoveNonPersistentObjects(
 		&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
-	if (Scene::BaseTilesetCount != Scene::Tilesets.size()) {
-		while (Scene::Tilesets.size() > Scene::BaseTilesetCount) {
-			size_t i = Scene::Tilesets.size() - 1;
-
-			Scene::Tilesets[i].Dispose();
-
-			Scene::Tilesets.erase(Scene::Tilesets.begin() + i);
-		}
-	}
-
-	if (Scene::BaseTileCount != Scene::TileCount) {
-		Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
-		Scene::SetTileCount(Scene::BaseTileCount);
-	}
-
 	// Restart tile animations
 	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
 		Scene::TileSpriteInfos[i].IsAnimated = false;
@@ -3180,9 +3163,6 @@ void Scene::InitTileCollisions() {
 
 		Scene::TileCount = tileCount;
 	}
-
-	Scene::BaseTileCount = Scene::TileCount;
-	Scene::BaseTilesetCount = Scene::Tilesets.size();
 
 	size_t totalTileVariantCount = Scene::TileCount
 		<< 2; // multiplied by 4: For all combinations of tile
