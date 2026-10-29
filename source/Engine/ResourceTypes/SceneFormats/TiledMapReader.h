@@ -28,7 +28,7 @@ private:
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
 	static bool GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length);
-	Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
+	Tileset* ParseTilesetImage(XMLNode* node, int firstgid, int tileCount, const char* parentFolder);
 	void ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
 	void ParseTile(Tileset* tilesetPtr, XMLNode* node);
 	static void SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value);

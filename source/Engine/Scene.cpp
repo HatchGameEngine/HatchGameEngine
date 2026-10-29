@@ -3001,6 +3001,9 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 	TileConfig* tileBase = &Scene::TileCfg[0][tileStart];
 	TileConfig* maxTile = &Scene::TileCfg[0][tileStart + tilesToRead];
 
+	// Skip dummy tile
+	tileColReader->Skip(3 + tileSize);
+
 	for (tile = tileBase; tile < maxTile; tile++) {
 		tile->IsCeiling = tileColReader->ReadByte();
 		tile->AngleTop = tileColReader->ReadByte();

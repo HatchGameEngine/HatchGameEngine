@@ -147,14 +147,16 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 			// Add new tileset
 			size_t startTile = otherTileset.StartTile;
 
-			tileOffset = (int)(Scene::TileSpriteInfos.size() - startTile);
+			tileOffset = (int)Scene::TileSpriteInfos.size() - startTile;
 			otherTileset.StartTile = Scene::TileSpriteInfos.size();
 
-			Scene::AddTilesetDirect(otherTileset);
-
 			for (size_t t = startTile; t < startTile + otherTileset.TileCount; t++) {
-				Scene::TileSpriteInfos.push_back(TileSpriteInfos[t]);
+				TileSpriteInfo info = TileSpriteInfos[t];
+				info.TilesetID = Scene::Tilesets.size();
+				Scene::TileSpriteInfos.push_back(info);
 			}
+
+			Scene::AddTilesetDirect(otherTileset);
 		}
 		else {
 			// Found a matching tileset
@@ -335,18 +337,13 @@ void SceneReader::RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets) 
 		for (size_t ii = 0; ii < layer->Width; ii++) {
 			int tileID = tileRow[ii] & TILE_IDENT_MASK;
 
-			// Remap empty tile
-			if (tileID == EmptyTile) {
-				tileRow[ii] = Scene::EmptyTile;
-				continue;
-			}
-			else if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
-				// Huh?
+			// Remap empty or invalid tile
+			if (tileID == EmptyTile || tileID >= (int)TileSpriteInfos.size()) {
 				tileRow[ii] = Scene::EmptyTile;
 				continue;
 			}
 
-			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo& info = TileSpriteInfos[tileID];
 
 			tileID += tileOffsets[info.TilesetID];
 

@@ -322,7 +322,11 @@ bool TiledMapReader::GetRelativeResourcePath(Token source, const char* parentFol
 	return true;
 }
 
-Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
+Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, int tileCount, const char* parentFolder) {
+	if (tileCount == 0) {
+		return nullptr;
+	}
+
 	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 
 	Token image_source = node->attributes.Get("source");
@@ -344,16 +348,12 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
-	size_t curTileCount = TileSpriteInfos.size();
-	size_t numEmptyTiles = firstgid - curTileCount;
+	int curTileCount = (int)TileSpriteInfos.size();
+	int numEmptyTiles = std::max((int)(firstgid - curTileCount), 0);
 
-	if (firstgid == 1) {
-		numEmptyTiles = 0;
-	}
-
-	// Add empty tile
+	// Add empty tiles
 	TileSpriteInfo info;
-	for (int i = (int)curTileCount; i < firstgid; i++) {
+	for (int i = 0; i < numEmptyTiles; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
@@ -364,7 +364,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 	}
 
 	// Add tiles
-	for (int i = 0; i < cols * rows; i++) {
+	for (int i = 0; i < tileCount; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
@@ -387,7 +387,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 		TileHeight,
 		firstgid,
 		curTileCount + numEmptyTiles,
-		(cols * rows) + 1,
+		tileCount,
 		resourcePath);
 	Tilesets.push_back(sceneTileset);
 
@@ -515,10 +515,12 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 
 	Tileset* tilesetPtr = nullptr;
 
+	int tileCount = (int)XMLParser::TokenToNumber(tilesetNode->attributes.Get("tilecount"));
+
 	for (size_t e = 0; e < tilesetNode->children.size(); e++) {
 		if (XMLParser::MatchToken(tilesetNode->children[e]->name, "image")) {
 			tilesetPtr =
-				ParseTilesetImage(tilesetNode->children[e], firstgid, tilesetParentFolder);
+				ParseTilesetImage(tilesetNode->children[e], firstgid, tileCount, tilesetParentFolder);
 		}
 		else if (XMLParser::MatchToken(tilesetNode->children[e]->name, "tile")) {
 			ParseTile(tilesetPtr, tilesetNode->children[e]);
