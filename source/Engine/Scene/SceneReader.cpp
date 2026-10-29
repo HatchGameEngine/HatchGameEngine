@@ -119,14 +119,9 @@ bool SceneReader::LoadPalettes() {
 	return true;
 }
 
-bool SceneReader::AddToScene(
-	std::vector<std::string>* layersToAdd,
-	std::unordered_set<std::string>* objectsToAdd,
-	bool loadPalettes,
-	bool loadProperties,
-	bool keepLayers,
-	bool keepObjects,
-	bool mergeLayers) {
+bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers,
+	std::vector<std::string>* layersToAdd, std::unordered_set<std::string>* objectsToAdd,
+	int offsetX, int offsetY, bool loadPalettes, bool loadProperties) {
 	if (TileWidth != Scene::TileWidth || TileHeight != Scene::TileHeight) {
 		return false;
 	}
@@ -188,7 +183,7 @@ bool SceneReader::AddToScene(
 				}
 
 				RemapTileIDs((TileLayer*)layer, tileOffsets);
-				AddLayerDynamic(layer, mergeLayers, !keepLayers);
+				AddLayerDynamic(layer, mergeLayers, !keepLayers, offsetX, offsetY);
 			}
 		}
 	}
@@ -196,7 +191,7 @@ bool SceneReader::AddToScene(
 		for (size_t i = 0; i < Layers.size(); i++) {
 			SceneLayer* layer = Layers[i];
 			RemapTileIDs((TileLayer*)layer, tileOffsets);
-			AddLayerDynamic(layer, mergeLayers, !keepLayers);
+			AddLayerDynamic(layer, mergeLayers, !keepLayers, offsetX, offsetY);
 		}
 	}
 	Layers.clear();
@@ -209,7 +204,7 @@ bool SceneReader::AddToScene(
 			continue;
 		}
 
-		SpawnObject(object, true, keepObjects);
+		SpawnObject(object, true, keepObjects, offsetX, offsetY);
 	}
 
 	return true;
@@ -223,12 +218,12 @@ void SceneReader::AddLayer(SceneLayer* layer) {
 	Scene::AddLayer(layer);
 }
 
-void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary) {
+void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY) {
 	if (mergeLayers) {
 		int index = Scene::FindLayerIndex(layer->Name);
 		if (index != -1) {
 			SceneLayer* otherLayer = Scene::Layers[index];
-			if (AttemptMergeLayers(otherLayer, layer)) {
+			if (AttemptMergeLayers(otherLayer, layer, offsetX, offsetY)) {
 				delete layer;
 				return;
 			}
@@ -236,6 +231,8 @@ void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temp
 	}
 
 	AddLayer(layer);
+	layer->OffsetX -= offsetX * TileWidth;
+	layer->OffsetY -= offsetY * TileHeight;
 	layer->Temporary = temporary;
 
 	if (layer->Type == SceneLayer::TYPE_TILE && Graphics::LayerTileBufferingEnabled) {
@@ -243,12 +240,12 @@ void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temp
 	}
 }
 
-bool SceneReader::AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer) {
+bool SceneReader::AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY) {
 	if (destLayer->Type != srcLayer->Type) {
 		return false;
 	}
 	else if (destLayer->Type == SceneLayer::TYPE_TILE) {
-		SceneReader::MergeTileLayers((TileLayer*)destLayer, (TileLayer*)srcLayer);
+		SceneReader::MergeTileLayers((TileLayer*)destLayer, (TileLayer*)srcLayer, offsetX, offsetY);
 		return true;
 	}
 	else if (destLayer->Type == SceneLayer::TYPE_IMAGE) {
@@ -270,14 +267,14 @@ bool SceneReader::AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer
 	return false;
 }
 
-void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer) {
+void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY) {
 	// Delete buffers
 	if (Graphics::LayerTileBufferingEnabled) {
 		Graphics::DeleteLayerTileBuffers(destTileLayer);
 	}
 
-	int width = std::max(destTileLayer->Width, srcTileLayer->Width);
-	int height = std::max(destTileLayer->Height, srcTileLayer->Height);
+	int width = std::max(destTileLayer->Width, srcTileLayer->Width + offsetX);
+	int height = std::max(destTileLayer->Height, srcTileLayer->Height + offsetY);
 
 	// Resize layer to the largest of the two
 	if (width != destTileLayer->Width || height != destTileLayer->Height) {
@@ -292,9 +289,13 @@ void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLa
 	// Copy non-empty tiles
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
-			Uint32 tile = srcTileLayer->Tiles[x + (y << srcTileLayer->WidthInBits)];
-			if (tile != Scene::EmptyTile) {
-				destTileLayer->Tiles[x + (y << destTileLayer->WidthInBits)] = tile;
+			int destX = x + offsetX;
+			int destY = y + offsetY;
+			if (destX >= 0 && destX < width && destY >= 0 && destY < height) {
+				Uint32 tile = srcTileLayer->Tiles[x + (y << srcTileLayer->WidthInBits)];
+				if (tile != Scene::EmptyTile) {
+					destTileLayer->Tiles[destX + (destY << destTileLayer->WidthInBits)] = tile;
+				}
 			}
 		}
 	}
@@ -357,13 +358,16 @@ void SceneReader::RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets) 
 	}
 }
 
-Entity* SceneReader::SpawnObject(SceneReaderObject* object, bool dynamic, bool keepDynamic) {
+Entity* SceneReader::SpawnObject(SceneReaderObject* object, bool dynamic, bool keepDynamic, int offsetX, int offsetY) {
 	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str());
 	if (!objectList) {
 		return nullptr;
 	}
 
-	Entity* entity = Scene::TrySpawnObject(objectList, object->X, object->Y);
+	float spawnX = object->X + (offsetX * TileWidth);
+	float spawnY = object->Y + (offsetY * TileHeight);
+
+	Entity* entity = Scene::TrySpawnObject(objectList, spawnX, spawnY);
 	if (!entity) {
 		return nullptr;
 	}

@@ -13184,8 +13184,8 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	ObjArray* layersToAddArr = nullptr;
 	ObjArray* objectsToAddArr = nullptr;
 	int filter = Scene::Filter;
-	// int offsetX = GET_ARG_OPT(7, GetInteger, 0);
-	// int offsetY = GET_ARG_OPT(8, GetInteger, 0);
+	int offsetX = GET_ARG_OPT(7, GetInteger, 0);
+	int offsetY = GET_ARG_OPT(8, GetInteger, 0);
 	bool loadPalettes = GET_ARG_OPT(9, GetInteger, true);
 	bool loadProperties = GET_ARG_OPT(10, GetInteger, true);
 
@@ -13271,7 +13271,12 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 
 	// Add the map to the current scene
 	if (success) {
-		success = reader->AddToScene(layersToAdd, objectsToAdd, loadPalettes, loadProperties, keepLayers, keepObjects, mergeLayers);
+		success = reader->AddToScene(
+			keepLayers, keepObjects, mergeLayers,
+			layersToAdd, objectsToAdd,
+			offsetX, offsetY,
+			loadPalettes, loadProperties
+		);
 	}
 
 	// Delete reader

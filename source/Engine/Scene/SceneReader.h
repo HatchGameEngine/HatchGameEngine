@@ -44,11 +44,11 @@ public:
 
 class SceneReader {
 private:
-	Entity* SpawnObject(SceneReaderObject* object, bool dynamic = false, bool keepDynamic = false);
+	Entity* SpawnObject(SceneReaderObject* object, bool dynamic = false, bool keepDynamic = false, int offsetX = 0, int offsetY = 0);
 	void AddLayer(SceneLayer* layer);
-	void AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary);
-	bool AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer);
-	void MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer);
+	void AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
+	bool AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY);
+	void MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY);
 	void RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets);
 
 protected:
@@ -74,13 +74,9 @@ public:
 	virtual bool LoadIntoScene();
 	void AddPropertiesToScene();
 	virtual bool LoadPalettes();
-	bool AddToScene(std::vector<std::string>* layersToAdd,
-		std::unordered_set<std::string>* objectsToAdd,
-		bool loadPalettes,
-		bool loadProperties,
-		bool keepLayers,
-		bool keepObjects,
-		bool mergeLayers);
+	bool AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers,
+		std::vector<std::string>* layersToAdd, std::unordered_set<std::string>* objectsToAdd,
+		int offsetX, int offsetY, bool loadPalettes, bool loadProperties);
 	virtual void Dispose();
 
 	~SceneReader();
