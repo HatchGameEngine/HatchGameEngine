@@ -59,6 +59,8 @@
 
 #include <Libraries/nanoprintf.h>
 
+#include <unordered_set>
+
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
 #define CHECK_ARGCOUNT(expects) \
@@ -13179,29 +13181,72 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	bool keepLayers = GET_ARG_OPT(1, GetInteger, true);
 	bool keepObjects = GET_ARG_OPT(2, GetInteger, true);
 	bool mergeLayers = GET_ARG_OPT(3, GetInteger, false);
-	int filter = Scene::Filter;
-	bool loadPalettes = GET_ARG_OPT(5, GetInteger, true);
-	bool loadProperties = GET_ARG_OPT(6, GetInteger, true);
 	ObjArray* layersToAddArr = nullptr;
 	ObjArray* objectsToAddArr = nullptr;
-	// int offsetX = GET_ARG_OPT(9, GetInteger, 0);
-	// int offsetY = GET_ARG_OPT(10, GetInteger, 0);
+	int filter = Scene::Filter;
+	// int offsetX = GET_ARG_OPT(7, GetInteger, 0);
+	// int offsetY = GET_ARG_OPT(8, GetInteger, 0);
+	bool loadPalettes = GET_ARG_OPT(9, GetInteger, true);
+	bool loadProperties = GET_ARG_OPT(10, GetInteger, true);
 
+	if (argCount >= 7 && !IS_NULL(args[6])) {
+		filter = GET_ARG(6, GetInteger);
+	}
 	if (argCount >= 5 && !IS_NULL(args[4])) {
-		filter = GET_ARG(4, GetInteger);
+		layersToAddArr = GET_ARG(4, GetArray);
 	}
-	if (argCount >= 8 && !IS_NULL(args[7])) {
-		layersToAddArr = GET_ARG(7, GetArray);
-	}
-	if (argCount >= 9 && !IS_NULL(args[8])) {
-		objectsToAddArr = GET_ARG(8, GetArray);
+	if (argCount >= 6 && !IS_NULL(args[5])) {
+		objectsToAddArr = GET_ARG(5, GetArray);
 	}
 
+	// Get the list of layers to add
+	std::vector<std::string>* layersToAdd = nullptr;
+	if (layersToAddArr != nullptr) {
+		layersToAdd = new std::vector<std::string>();
+		for (size_t i = 0; i < layersToAddArr->Values->size(); i++) {
+			VMValue val = (*layersToAddArr->Values)[i];
+			if (!IS_STRING(val)) {
+				THROW_ERROR(
+					"Expected array index %d (argument 7) to be of type %s instead of %s.",
+					i,
+					GetObjectTypeString(OBJ_STRING),
+					GetValueTypeString(val));
+				continue;
+			}
+
+			layersToAdd->push_back(std::string(AS_CSTRING(val)));
+		}
+	}
+
+	// Get the list of objects to add
+	std::unordered_set<std::string>* objectsToAdd = nullptr;
+	if (objectsToAddArr != nullptr) {
+		objectsToAdd = new std::unordered_set<std::string>();
+		for (size_t i = 0; i < objectsToAddArr->Values->size(); i++) {
+			VMValue val = (*objectsToAddArr->Values)[i];
+			if (!IS_STRING(val)) {
+				THROW_ERROR(
+					"Expected array index %d (argument 7) to be of type %s instead of %s.",
+					i,
+					GetObjectTypeString(OBJ_STRING),
+					GetValueTypeString(val));
+				continue;
+			}
+
+			objectsToAdd->insert(std::string(AS_CSTRING(val)));
+		}
+	}
+
+	// Attempt to open the stream
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
+		delete layersToAdd;
+		delete objectsToAdd;
+		THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 		return INTEGER_VAL(false);
 	}
 
+	// Get the parent path
 	char pathParent[MAX_RESOURCE_PATH_LENGTH];
 	const char* sep = strrchr(filename, '/');
 	if (sep != nullptr) {
@@ -13213,6 +13258,7 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 		pathParent[0] = '\0';
 	}
 
+	// Get a scene reader
 	SceneReader* reader = SceneReader::New(stream, filename);
 	reader->Filter = filter;
 	reader->ReservedSlotIDs = Scene::ReservedSlotIDs;
@@ -13220,13 +13266,20 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	// Read the map
 	bool success = reader->Read(stream, pathParent);
 
+	// Close the stream. Not needed anymore past this point
 	stream->Close();
 
+	// Add the map to the current scene
 	if (success) {
-		success = reader->AddToScene(nullptr, nullptr, loadPalettes, loadProperties, keepLayers, keepObjects, mergeLayers);
+		success = reader->AddToScene(layersToAdd, objectsToAdd, loadPalettes, loadProperties, keepLayers, keepObjects, mergeLayers);
 	}
 
+	// Delete reader
 	delete reader;
+
+	// Delete lists
+	delete layersToAdd;
+	delete objectsToAdd;
 
 	return INTEGER_VAL(success);
 }

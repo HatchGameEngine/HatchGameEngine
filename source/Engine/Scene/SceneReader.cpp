@@ -120,7 +120,7 @@ bool SceneReader::LoadPalettes() {
 }
 
 bool SceneReader::AddToScene(
-	std::vector<int>* layersToAdd,
+	std::vector<std::string>* layersToAdd,
 	std::unordered_set<std::string>* objectsToAdd,
 	bool loadPalettes,
 	bool loadProperties,
@@ -180,9 +180,13 @@ bool SceneReader::AddToScene(
 	// Add layers
 	if (layersToAdd != nullptr) {
 		for (size_t i = 0; i < layersToAdd->size(); i++) {
-			int layerIndex = (*layersToAdd)[i];
-			if (layerIndex >= 0 && layerIndex < (int)Layers.size()) {
-				SceneLayer* layer = Layers[layerIndex];
+			for (size_t l = 0; l < Layers.size(); l++) {
+				SceneLayer* layer = Layers[i];
+
+				if (strcmp(layer->Name, (*layersToAdd)[i].c_str()) != 0) {
+					continue;
+				}
+
 				RemapTileIDs((TileLayer*)layer, tileOffsets);
 				AddLayerDynamic(layer, mergeLayers, !keepLayers);
 			}

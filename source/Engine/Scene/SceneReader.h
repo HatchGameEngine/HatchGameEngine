@@ -74,7 +74,7 @@ public:
 	virtual bool LoadIntoScene();
 	void AddPropertiesToScene();
 	virtual bool LoadPalettes();
-	bool AddToScene(std::vector<int>* layersToAdd,
+	bool AddToScene(std::vector<std::string>* layersToAdd,
 		std::unordered_set<std::string>* objectsToAdd,
 		bool loadPalettes,
 		bool loadProperties,
