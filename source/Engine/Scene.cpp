@@ -1913,10 +1913,6 @@ void Scene::Restart() {
 		&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
 	// Restart tile animations
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		Scene::TileSpriteInfos[i].IsAnimated = false;
-	}
-
 	for (Tileset& tileset : Scene::Tilesets) {
 		tileset.RestartAnimations();
 	}
