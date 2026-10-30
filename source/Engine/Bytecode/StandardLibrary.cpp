@@ -13263,7 +13263,7 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	reader->Filter = filter;
 	reader->ReservedSlotIDs = Scene::ReservedSlotIDs;
 
-	// Read the map
+	// Read the scene file
 	bool success = reader->Read(stream, pathParent);
 
 	// Close the stream. Not needed anymore past this point

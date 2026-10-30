@@ -2240,7 +2240,7 @@ void Scene::ReadSceneFile(const char* filename) {
 		reader->Filter = Filter;
 		reader->ReservedSlotIDs = ReservedSlotIDs;
 
-		// Read the map
+		// Read the scene file
 		if (reader->Read(r, pathParent)) {
 			reader->LoadIntoScene();
 		}

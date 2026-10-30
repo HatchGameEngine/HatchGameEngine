@@ -95,7 +95,12 @@ bool SceneReader::LoadIntoScene() {
 
 	// Spawn objects
 	for (size_t i = 0; i < Objects.size(); i++) {
-		SpawnObject(Objects[i]);
+		SceneReaderObject* object = Objects[i];
+
+		float spawnX = object->X;
+		float spawnY = object->Y;
+
+		SpawnObject(Objects[i], spawnX, spawnY);
 	}
 
 	return true;
@@ -206,7 +211,10 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 			continue;
 		}
 
-		SpawnObject(object, true, keepObjects, offsetX, offsetY);
+		float spawnX = object->X + (offsetX * TileWidth);
+		float spawnY = object->Y + (offsetY * TileHeight);
+
+		SpawnObject(object, spawnX, spawnY, true, keepObjects);
 	}
 
 	return true;
@@ -355,17 +363,39 @@ void SceneReader::RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets) 
 	}
 }
 
-Entity* SceneReader::SpawnObject(SceneReaderObject* object, bool dynamic, bool keepDynamic, int offsetX, int offsetY) {
-	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str());
-	if (!objectList) {
+SceneReaderObject* SceneReader::GetObject(size_t index) {
+	if (index < 0 || index >= (int)Objects.size()) {
 		return nullptr;
 	}
 
-	float spawnX = object->X + (offsetX * TileWidth);
-	float spawnY = object->Y + (offsetY * TileHeight);
+	return Objects[index];
+}
 
-	Entity* entity = Scene::TrySpawnObject(objectList, spawnX, spawnY);
-	if (!entity) {
+int SceneReader::GetObjectCount() {
+	return (int)Objects.size();
+}
+int SceneReader::GetObjectCount(const char* name) {
+	int count = 0;
+
+	for (size_t i = 0; i < Objects.size(); i++) {
+		SceneReaderObject* object = Objects[i];
+
+		if (strcmp(object->Name.c_str(), name) == 0) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+Entity* SceneReader::CreateObject(SceneReaderObject* object, float x, float y) {
+	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str());
+	if (objectList == nullptr) {
+		return nullptr;
+	}
+
+	Entity* entity = Scene::TrySpawnObject(objectList, x, y);
+	if (entity == nullptr) {
 		return nullptr;
 	}
 
@@ -374,8 +404,17 @@ Entity* SceneReader::SpawnObject(SceneReaderObject* object, bool dynamic, bool k
 		entity->Properties->Put(hash, Property::Duplicate(property));
 	});
 
-	entity->SlotID = object->SlotID + Scene::ReservedSlotIDs;
+	entity->SlotID = object->SlotID;
 	entity->Filter = object->Filter;
+
+	return entity;
+}
+
+Entity* SceneReader::SpawnObject(SceneReaderObject* object, float x, float y, bool dynamic, bool keepDynamic) {
+	Entity* entity = CreateObject(object, x, y);
+	if (entity == nullptr) {
+		return nullptr;
+	}
 
 	if (dynamic) {
 		// Call the initializer
@@ -400,7 +439,7 @@ Entity* SceneReader::SpawnObject(SceneReaderObject* object, bool dynamic, bool k
 		}
 	}
 	else {
-		Scene::AddStatic(objectList, entity);
+		Scene::AddStatic(entity->List, entity);
 	}
 
 	return entity;

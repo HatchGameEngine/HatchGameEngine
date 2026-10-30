@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/SceneLoaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
@@ -20,6 +21,7 @@ void TypeImpl::Init() {
 	FunctionImpl::Init();
 	MaterialImpl::Init();
 	MapImpl::Init();
+	SceneLoaderImpl::Init();
 	ShaderImpl::Init();
 	StreamImpl::Init();
 	StringImpl::Init();
