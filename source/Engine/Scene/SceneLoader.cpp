@@ -174,6 +174,7 @@ bool SceneLoader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 
 	// Add tilesets and tile sprite infos
 	LoadTilesets();
+	Tilesets.clear();
 
 	// Load palettes
 	if (loadPalettes) {
@@ -319,8 +320,12 @@ size_t SceneLoader::AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, 
 	layer->OffsetY -= offsetY * TileHeight;
 	layer->Temporary = temporary;
 
-	if (layer->Type == SceneLayer::TYPE_TILE && Graphics::LayerTileBufferingEnabled) {
-		Graphics::MakeLayerTileBuffers(layer);
+	if (layer->Type == SceneLayer::TYPE_TILE) {
+		RemapLayerTileIDs((TileLayer*)layer);
+
+		if (Graphics::LayerTileBufferingEnabled) {
+			Graphics::MakeLayerTileBuffers(layer);
+		}
 	}
 
 	return index;
@@ -539,10 +544,6 @@ int SceneLoader::AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int o
 	}
 
 	SceneLayer* copy = layer->Duplicate();
-
-	if (layer->Type == SceneLayer::TYPE_TILE) {
-		RemapLayerTileIDs((TileLayer*)copy);
-	}
 
 	return AddLayerToSceneDynamic(copy, false, !keepInScene, offsetX, offsetY);
 }
