@@ -238,12 +238,28 @@ int SceneLoader::AddTileset(size_t index) {
 		// Add new tileset
 		found = Scene::Tilesets.size();
 
+		// Add empty tile if there is not one
+		TileSpriteInfo info;
+		if (Scene::TileSpriteInfos.size() == 0) {
+			ISprite* sprite = otherTileset.Sprite;
+			info.Sprite = sprite;
+			info.AnimationIndex = 0;
+			info.FrameIndex = 0;
+			info.TilesetID = found;
+			Scene::TileSpriteInfos.push_back(info);
+		}
+
+		// Adjust tileset
+		size_t firstgid = otherTileset.FirstGlobalTileID;
 		size_t startTile = otherTileset.StartTile;
+
 		tileOffset = (int)Scene::TileSpriteInfos.size() - startTile;
 		otherTileset.StartTile = Scene::TileSpriteInfos.size();
+		otherTileset.FirstGlobalTileID += tileOffset;
 
+		// Copy tiles
 		for (size_t t = startTile; t < startTile + otherTileset.TileCount; t++) {
-			TileSpriteInfo info = TileSpriteInfos[t];
+			info = TileSpriteInfos[t];
 			info.TilesetID = found;
 			Scene::TileSpriteInfos.push_back(info);
 		}
