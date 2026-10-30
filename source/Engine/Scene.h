@@ -184,6 +184,7 @@ public:
 	static Entity* SpawnObject(const char* objectName, float x, float y);
 	static Entity* TrySpawnObject(ObjectList* list, float x, float y);
 	static Entity* TrySpawnObject(const char* objectName, float x, float y);
+	static bool LoadObjectClass(const char* objectName);
 	static ObjectList* NewObjectList(const char* objectName);
 	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);
 	static ObjectList* GetObjectList(const char* objectName);

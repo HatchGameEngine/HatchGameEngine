@@ -4,7 +4,6 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
-#include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileLayer.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
@@ -850,8 +849,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 		std::string asStr = object_type.ToString();
 		const char* objectName = asStr.c_str();
 
-		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
-		if (!objectList) {
+		if (!AddObjectClass(objectName)) {
 			Log::Print(Log::LOG_WARN,
 				"Class \"%s\" does not exist! (ID: %d, X: %f, Y: %f)",
 				objectName,

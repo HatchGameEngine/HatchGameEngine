@@ -327,7 +327,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r) {
 	Uint32 objectNameHash = CRC32::EncryptData(hashTemp, 16);
 	Uint32 objectNameHash2 = objectNameHash;
 
-	const char* objectName = NULL;
+	const char* objectName = nullptr;
 	std::string objectNameStr;
 	if (ObjectHashes->Exists(objectNameHash)) {
 		objectName = ObjectHashes->Get(objectNameHash);
@@ -339,13 +339,13 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r) {
 			objectNameHash);
 	}
 
-	ObjectList* objectList = nullptr;
+	bool hasObjectList = false;
 	if (objectName) {
 		objectNameStr = std::string(objectName);
-		objectList = Scene::GetStaticObjectList(objectName);
+		hasObjectList = AddObjectClass(objectName);
 	}
-	if (!objectList) {
-		if (objectName != NULL) {
+	if (!hasObjectList) {
+		if (objectName != nullptr) {
 			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
 		}
 		else {
@@ -369,7 +369,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r) {
 	}
 
 #if 0
-    if (objectList) {
+    if (hasObjectList) {
         Log::Print(Log::LOG_VERBOSE, "Object Hash: 0x%08XU (0x%08XU) Count: %d Argument Count: %d (%s)", objectNameHash, 3, entityCount, argumentCount, objectName);
 
         for (int a = 1; a < argumentCount; a++) {
@@ -397,7 +397,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r) {
 
 	int entityCount = r->ReadUInt16();
 	for (int n = 0; n < entityCount; n++) {
-		bool doAdd = objectList != nullptr;
+		bool doAdd = hasObjectList;
 		int slotID = r->ReadUInt16();
 		if (doAdd && slotID >= MAX_OBJ_SLOTS && objectNameHash2 != HACK_PlayerNameHash) {
 			Log::Print(Log::LOG_ERROR,

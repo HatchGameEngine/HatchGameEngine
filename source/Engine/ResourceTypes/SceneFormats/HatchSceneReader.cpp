@@ -6,7 +6,6 @@
 #include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/MD5.h>
-#include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileLayer.h>
 #include <Engine/Types/Entity.h>
@@ -451,8 +450,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		}
 
 		// Spawn the object, if the class exists
-		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
-		if (!objectList) {
+		if (!AddObjectClass(objectName)) {
 			Log::Print(Log::LOG_WARN,
 				"Class \"%s\" does not exist! (ID: %d, X: %f, Y: %f)",
 				objectName,

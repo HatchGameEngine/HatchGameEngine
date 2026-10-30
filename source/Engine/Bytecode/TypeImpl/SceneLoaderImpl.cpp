@@ -21,6 +21,10 @@ void SceneLoaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetTileWidth", VM_GetTileWidth);
 	ScriptManager::DefineNative(Class, "GetTileHeight", VM_GetTileHeight);
 
+	ScriptManager::DefineNative(Class, "GetClassCount", VM_GetClassCount);
+	ScriptManager::DefineNative(Class, "GetClassName", VM_GetClassName);
+	ScriptManager::DefineNative(Class, "HasClass", VM_HasClass);
+
 	ScriptManager::DefineNative(Class, "GetObjectCount", VM_GetObjectCount);
 	ScriptManager::DefineNative(Class, "GetObjectClass", VM_GetObjectClass);
 	ScriptManager::DefineNative(Class, "GetObjectX", VM_GetObjectX);
@@ -166,6 +170,66 @@ VMValue SceneLoaderImpl::VM_GetTileHeight(int argCount, VMValue* args, Uint32 th
 	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
 	return INTEGER_VAL(loader->TileHeight);
+}
+
+/***
+ * \method GetClassCount
+ * \desc Gets the amount of classes.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetClassCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	char* objectName = GET_ARG_OPT(1, GetString, nullptr);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	return INTEGER_VAL(loader->GetObjectClassCount());
+}
+/***
+ * \method GetClassName
+ * \desc Gets the name of a class.
+ * \param classIndex (integer): Index of class.
+ * \return string Returns a string value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetClassName(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	if (!loader->IsObjectClassValid(index)) {
+		OUT_OF_RANGE_ERROR("Class index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(loader->GetObjectClass(index));
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+	return NULL_VAL;
+}
+/***
+ * \method HasClass
+ * \desc Checks whether the given class exists.
+ * \param className (string): Name of class.
+ * \return boolean Returns a boolean value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_HasClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	char* className = GET_ARG(1, GetString);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	return INTEGER_VAL(loader->HasObjectClass(className));
 }
 
 /***
@@ -359,6 +423,13 @@ VMValue SceneLoaderImpl::VM_SpawnObject(int argCount, VMValue* args, Uint32 thre
 		y = object->Y;
 	}
 
+	// Try to load the object class here.
+	// If it doesn't exist, fail silently
+	if (!Scene::LoadObjectClass(object->Name.c_str())) {
+		return NULL_VAL;
+	}
+
+	// Attempt to create it
 	ScriptEntity* entity = (ScriptEntity*)loader->CreateObject(object, x, y);
 	if (entity == nullptr) {
 		return NULL_VAL;

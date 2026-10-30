@@ -2237,6 +2237,7 @@ void Scene::ReadSceneFile(const char* filename) {
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
 		SceneLoader* loader = SceneLoader::New(r, filename);
+		loader->UseSceneObjectLists = true;
 		loader->Filter = Filter;
 		loader->ReservedSlotIDs = ReservedSlotIDs;
 
@@ -2344,7 +2345,7 @@ Entity* Scene::SpawnObject(ObjectList* list, float x, float y) {
 	return entity;
 }
 
-// Finds an object list through its name, and attempts to spawn one.
+// Finds an object list through the object's name, and attempts to spawn an entity.
 Entity* Scene::SpawnObject(const char* objectName, float x, float y) {
 	ObjectList* objectList = Scene::GetObjectList(objectName);
 	if (!objectList) {
@@ -2374,7 +2375,7 @@ Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
 	}
 }
 
-ObjectList* Scene::NewObjectList(const char* objectName) {
+bool Scene::LoadObjectClass(const char* objectName) {
 #ifdef SCRIPTABLE_ENTITY
 	// Load the bytecode for this class if it exists
 	if (ScriptManager::ClassExists(objectName) && !ScriptManager::IsClassLoaded(objectName)) {
@@ -2384,9 +2385,17 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 	// The above must have loaded the given scripted class if there is one.
 	// If there is still no class, then it doesn't exist natively or script-side.
 	if (!ScriptManager::GetClass(objectName)) {
-		return nullptr;
+		return false;
 	}
 #endif
+
+	return true;
+}
+
+ObjectList* Scene::NewObjectList(const char* objectName) {
+	if (!LoadObjectClass(objectName)) {
+		return nullptr;
+	}
 
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
 	if (!objectList) {

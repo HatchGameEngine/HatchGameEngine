@@ -5,6 +5,7 @@
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileSpriteInfo.h>
+#include <Engine/Types/ObjectList.h>
 #include <Engine/Types/Property.h>
 #include <Engine/Types/Tileset.h>
 #include <Engine/Scene.h>
@@ -44,6 +45,8 @@ public:
 
 class SceneLoader {
 private:
+	std::vector<std::string> ObjectClasses;
+
 	Entity* SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic = false, bool keepDynamic = false);
 	size_t AddLayerToScene(SceneLayer* layer);
 	size_t AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
@@ -74,10 +77,17 @@ public:
 	int TileHeight = 16;
 	int Filter = 0xFF;
 	int ReservedSlotIDs = 0;
+	bool UseSceneObjectLists = false;
 
 	static SceneLoader* New(Stream* stream, const char* filename);
 	virtual bool Read(Stream* stream, const char* parentFolder);
 	virtual bool Read(const char* sourceF, const char* parentFolder);
+
+	bool AddObjectClass(const char* objectName);
+	bool HasObjectClass(const char* objectName);
+	std::string GetObjectClass(size_t index);
+	int GetObjectClassCount();
+	bool IsObjectClassValid(size_t index);
 
 	virtual bool LoadIntoScene();
 	virtual bool LoadPalettes();

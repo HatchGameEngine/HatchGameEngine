@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Hashing/CombinedHash.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
@@ -40,7 +41,6 @@ SceneLoader* SceneLoader::New(Stream* stream, const char* filename) {
 bool SceneLoader::Read(Stream* stream, const char* parentFolder) {
 	throw std::runtime_error("SceneLoader::Read() called without an implementation");
 }
-
 bool SceneLoader::Read(const char* filename, const char* parentFolder) {
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
@@ -53,6 +53,38 @@ bool SceneLoader::Read(const char* filename, const char* parentFolder) {
 	stream->Close();
 
 	return result;
+}
+
+bool SceneLoader::AddObjectClass(const char* objectName) {
+	if (UseSceneObjectLists) {
+		return Scene::GetStaticObjectList(objectName) != nullptr;
+	}
+
+	// We pretend that it exists
+	std::string className = std::string(objectName);
+	auto it = std::find(ObjectClasses.begin(), ObjectClasses.end(), className);
+	if (it == ObjectClasses.end()) {
+		ObjectClasses.push_back(className);
+	}
+
+	return true;
+}
+bool SceneLoader::HasObjectClass(const char* objectName) {
+	if (UseSceneObjectLists) {
+		return Scene::StaticObjectLists->Exists(objectName);
+	}
+
+	auto it = std::find(ObjectClasses.begin(), ObjectClasses.end(), std::string(objectName));
+	return it != ObjectClasses.end();
+}
+std::string SceneLoader::GetObjectClass(size_t index) {
+	return ObjectClasses[index];
+}
+int SceneLoader::GetObjectClassCount() {
+	return (int)ObjectClasses.size();
+}
+bool SceneLoader::IsObjectClassValid(size_t index) {
+	return index >= 0 && index < ObjectClasses.size();
 }
 
 bool SceneLoader::LoadIntoScene() {
@@ -200,8 +232,8 @@ int SceneLoader::AddTileset(size_t index) {
 	int tileOffset = 0;
 
 	Tileset& otherTileset = Tilesets[index];
-	found = Scene::FindMatchingTileset(&otherTileset);
 
+	found = Scene::FindMatchingTileset(&otherTileset);
 	if (found == -1) {
 		// Add new tileset
 		found = Scene::Tilesets.size();
@@ -245,7 +277,7 @@ Tileset* SceneLoader::GetTileset(size_t index) {
 	return &Tilesets[index];
 }
 bool SceneLoader::IsValidTilesetIndex(size_t index) {
-	return index >= 0 && index < (int)Tilesets.size();
+	return index >= 0 && index < Tilesets.size();
 }
 int SceneLoader::GetTilesetCount() {
 	return (int)Tilesets.size();
@@ -392,7 +424,7 @@ int SceneLoader::RemapTileID(int tileID) {
 }
 
 SceneLoaderObject* SceneLoader::GetObject(size_t index) {
-	if (index < 0 || index >= (int)Objects.size()) {
+	if (index < 0 || index >= Objects.size()) {
 		return nullptr;
 	}
 
@@ -473,7 +505,7 @@ Entity* SceneLoader::SpawnObject(SceneLoaderObject* object, float x, float y, bo
 }
 
 SceneLayer* SceneLoader::GetLayer(size_t index) {
-	if (index < 0 || index >= (int)Layers.size()) {
+	if (index < 0 || index >= Layers.size()) {
 		return nullptr;
 	}
 
