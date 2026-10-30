@@ -13173,6 +13173,19 @@ VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.LoadIntoCurrent
+ * \desc Loads another scene into the current scene.
+ * \param filename (string): Filename of scene.
+ * \paramOpt keepLayers (boolean): Whether to keep added layers in the scene.
+ * \paramOpt keepObjects (boolean): Whether to keep spawned objects in the scene.
+ * \paramOpt mergeLayers (boolean): Whether to merge layers that have the same name.
+ * \paramOpt layersToAdd (array): List of layers to add by name. Pass `null` to load all layers.
+ * \paramOpt objectsToAdd (array): List of objects to add by class name. Pass `null` to load all objects.
+ * \paramOpt filter (integer): The object filter. Pass `null` to use the default. (default: `0xFF`)
+ * \paramOpt offsetX (integer): Horizontal offset in tiles. (default: `0`)
+ * \paramOpt offsetY (integer): Vertical offset in tiles. (default: `0`)
+ * \paramOpt loadPalettes (boolean): Whether to load palettes. (default: `true`)
+ * \paramOpt loadSceneProperties (boolean): Whether to load scene properties. (default: `true`)
+ * \return boolean Returns whether the scene was loaded.
  * \ns Scene
  */
 VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
@@ -13183,20 +13196,20 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	bool mergeLayers = GET_ARG_OPT(3, GetInteger, false);
 	ObjArray* layersToAddArr = nullptr;
 	ObjArray* objectsToAddArr = nullptr;
-	int filter = Scene::Filter;
+	int filter = 0xFF;
 	int offsetX = GET_ARG_OPT(7, GetInteger, 0);
 	int offsetY = GET_ARG_OPT(8, GetInteger, 0);
 	bool loadPalettes = GET_ARG_OPT(9, GetInteger, true);
-	bool loadProperties = GET_ARG_OPT(10, GetInteger, true);
+	bool loadSceneProperties = GET_ARG_OPT(10, GetInteger, true);
 
-	if (argCount >= 7 && !IS_NULL(args[6])) {
-		filter = GET_ARG(6, GetInteger);
-	}
 	if (argCount >= 5 && !IS_NULL(args[4])) {
 		layersToAddArr = GET_ARG(4, GetArray);
 	}
 	if (argCount >= 6 && !IS_NULL(args[5])) {
 		objectsToAddArr = GET_ARG(5, GetArray);
+	}
+	if (argCount >= 7 && !IS_NULL(args[6])) {
+		filter = GET_ARG(6, GetInteger);
 	}
 
 	// Get the list of layers to add
@@ -13275,7 +13288,7 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 			keepLayers, keepObjects, mergeLayers,
 			layersToAdd, objectsToAdd,
 			offsetX, offsetY,
-			loadPalettes, loadProperties
+			loadPalettes, loadSceneProperties
 		);
 	}
 
