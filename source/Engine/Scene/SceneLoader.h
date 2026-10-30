@@ -1,5 +1,5 @@
-#ifndef ENGINE_RESOURCETYPES_SCENE_SCENEREADER_H
-#define ENGINE_RESOURCETYPES_SCENE_SCENEREADER_H
+#ifndef ENGINE_RESOURCETYPES_SCENE_SCENELOADER_H
+#define ENGINE_RESOURCETYPES_SCENE_SCENELOADER_H
 
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -11,7 +11,7 @@
 
 #include <unordered_set>
 
-class SceneReaderObject {
+class SceneLoaderObject {
 public:
 	std::string Name;
 	float X = 0.0f;
@@ -20,21 +20,21 @@ public:
 	int Filter = 0xFF;
 	HashMap<Property>* Properties = nullptr;
 
-	SceneReaderObject(std::string name, float x, float y) {
+	SceneLoaderObject(std::string name, float x, float y) {
 		Name = name;
 		X = x;
 		Y = y;
 		Properties = new HashMap<Property>(nullptr, 4);
 	}
 
-	SceneReaderObject(std::string name, float x, float y, HashMap<Property>* properties) {
+	SceneLoaderObject(std::string name, float x, float y, HashMap<Property>* properties) {
 		Name = name;
 		X = x;
 		Y = y;
 		Properties = properties;
 	}
 
-	~SceneReaderObject() {
+	~SceneLoaderObject() {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);
 		});
@@ -42,9 +42,9 @@ public:
 	}
 };
 
-class SceneReader {
+class SceneLoader {
 private:
-	Entity* SpawnObject(SceneReaderObject* object, float x, float y, bool dynamic = false, bool keepDynamic = false);
+	Entity* SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic = false, bool keepDynamic = false);
 	size_t AddLayerToScene(SceneLayer* layer);
 	size_t AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
 	bool TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY);
@@ -57,7 +57,7 @@ private:
 protected:
 	int SceneType;
 	HashMap<Property>* Properties;
-	std::vector<SceneReaderObject*> Objects;
+	std::vector<SceneLoaderObject*> Objects;
 	std::vector<SceneLayer*> Layers;
 	std::vector<Tileset> Tilesets;
 	std::vector<TileSpriteInfo> TileSpriteInfos;
@@ -75,7 +75,7 @@ public:
 	int Filter = 0xFF;
 	int ReservedSlotIDs = 0;
 
-	static SceneReader* New(Stream* stream, const char* filename);
+	static SceneLoader* New(Stream* stream, const char* filename);
 	virtual bool Read(Stream* stream, const char* parentFolder);
 	virtual bool Read(const char* sourceF, const char* parentFolder);
 
@@ -93,10 +93,10 @@ public:
 		std::vector<std::string>* layersToAdd, std::unordered_set<std::string>* objectsToAdd,
 		int offsetX, int offsetY, bool loadPalettes, bool loadProperties);
 
-	SceneReaderObject* GetObject(size_t index);
+	SceneLoaderObject* GetObject(size_t index);
 	int GetObjectCount();
 	int GetObjectCount(const char* name);
-	Entity* CreateObject(SceneReaderObject* object, float x, float y);
+	Entity* CreateObject(SceneLoaderObject* object, float x, float y);
 
 	SceneLayer* GetLayer(size_t index);
 	int GetLayerCount();
@@ -105,7 +105,7 @@ public:
 
 	virtual void Dispose();
 
-	~SceneReader();
+	~SceneLoader();
 };
 
-#endif /* ENGINE_RESOURCETYPES_SCENE_SCENEREADER_H */
+#endif /* ENGINE_RESOURCETYPES_SCENE_SCENELOADER_H */

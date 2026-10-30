@@ -462,7 +462,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			continue;
 		}
 
-		SceneReaderObject* obj = new SceneReaderObject(std::string(objectName), posX, posY);
+		SceneLoaderObject* obj = new SceneLoaderObject(std::string(objectName), posX, posY);
 
 		Objects.push_back(obj);
 

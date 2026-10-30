@@ -5,7 +5,7 @@
 #include <Engine/Includes/HashMap.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Scene/LayerGroup.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/Property.h>
 #include <Engine/Types/Tileset.h>
@@ -22,7 +22,7 @@ struct TiledLayer {
 	HashMap<Property>* Properties = nullptr;
 };
 
-class TiledMapReader : public SceneReader {
+class TiledMapReader : public SceneLoader {
 private:
 	static Property ParseProperty(XMLNode* property);
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);

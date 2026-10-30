@@ -4,7 +4,7 @@
 #include <Engine/Bytecode/TypeImpl/SceneLoaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 
 /***
 * \class SceneLoader
@@ -98,11 +98,11 @@ VMValue SceneLoaderImpl::VM_Initializer(int argCount, VMValue* args, Uint32 thre
 		pathParent[0] = '\0';
 	}
 
-	// Get a scene reader
-	SceneReader* reader = SceneReader::New(stream, filename);
+	// Get a scene loader
+	SceneLoader* loader = SceneLoader::New(stream, filename);
 
 	// Read the scene file
-	bool success = reader->Read(stream, pathParent);
+	bool success = loader->Read(stream, pathParent);
 
 	// Close the stream. Not needed anymore past this point
 	stream->Close();
@@ -115,15 +115,15 @@ VMValue SceneLoaderImpl::VM_Initializer(int argCount, VMValue* args, Uint32 thre
 	}
 
 	// Add to registry
-	ScriptManager::RegistryAdd(reader, (Obj*)instance);
+	ScriptManager::RegistryAdd(loader, (Obj*)instance);
 
 	// Return the instance
 	return OBJECT_VAL(instance);
 }
 void SceneLoaderImpl::Dispose(Obj* object) {
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(object);
-	if (reader != nullptr) {
-		delete reader;
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(object);
+	if (loader != nullptr) {
+		delete loader;
 	}
 }
 
@@ -148,9 +148,9 @@ VMValue SceneLoaderImpl::VM_GetTileWidth(int argCount, VMValue* args, Uint32 thr
 
 	Obj* obj = AS_OBJECT(args[0]);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	return INTEGER_VAL(reader->TileWidth);
+	return INTEGER_VAL(loader->TileWidth);
 }
 /***
  * \method GetTileHeight
@@ -163,9 +163,9 @@ VMValue SceneLoaderImpl::VM_GetTileHeight(int argCount, VMValue* args, Uint32 th
 
 	Obj* obj = AS_OBJECT(args[0]);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	return INTEGER_VAL(reader->TileHeight);
+	return INTEGER_VAL(loader->TileHeight);
 }
 
 /***
@@ -181,14 +181,14 @@ VMValue SceneLoaderImpl::VM_GetObjectCount(int argCount, VMValue* args, Uint32 t
 	Obj* obj = AS_OBJECT(args[0]);
 	char* objectName = GET_ARG_OPT(1, GetString, nullptr);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
 	int count;
 	if (objectName != nullptr) {
-		count = reader->GetObjectCount(objectName);
+		count = loader->GetObjectCount(objectName);
 	}
 	else {
-		count = reader->GetObjectCount();
+		count = loader->GetObjectCount();
 	}
 
 	return INTEGER_VAL(count);
@@ -206,11 +206,11 @@ VMValue SceneLoaderImpl::VM_GetObjectClass(int argCount, VMValue* args, Uint32 t
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	if (ScriptManager::Lock()) {
@@ -233,11 +233,11 @@ VMValue SceneLoaderImpl::VM_GetObjectX(int argCount, VMValue* args, Uint32 threa
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	return DECIMAL_VAL(object->X);
@@ -255,11 +255,11 @@ VMValue SceneLoaderImpl::VM_GetObjectY(int argCount, VMValue* args, Uint32 threa
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	return DECIMAL_VAL(object->Y);
@@ -279,11 +279,11 @@ VMValue SceneLoaderImpl::VM_GetObjectProperty(int argCount, VMValue* args, Uint3
 	int index = GET_ARG(1, GetInteger);
 	char* property = GET_ARG(2, GetString);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	if (object->Properties && object->Properties->Exists(property)) {
@@ -306,11 +306,11 @@ VMValue SceneLoaderImpl::VM_ObjectHasProperty(int argCount, VMValue* args, Uint3
 	int index = GET_ARG(1, GetInteger);
 	char* property = GET_ARG(2, GetString);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	if (object->Properties && object->Properties->Exists(property)) {
@@ -339,11 +339,11 @@ VMValue SceneLoaderImpl::VM_SpawnObject(int argCount, VMValue* args, Uint32 thre
 	VMValue flag = argCount == 5 ? args[4] : INTEGER_VAL(0);
 	bool keepInScene = GET_ARG_OPT(5, GetInteger, true);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneReaderObject* object = reader->GetObject(index);
+	SceneLoaderObject* object = loader->GetObject(index);
 	if (object == nullptr) {
-		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
 	if (argCount >= 3 && !IS_NULL(args[2])) {
@@ -359,7 +359,7 @@ VMValue SceneLoaderImpl::VM_SpawnObject(int argCount, VMValue* args, Uint32 thre
 		y = object->Y;
 	}
 
-	ScriptEntity* entity = (ScriptEntity*)reader->CreateObject(object, x, y);
+	ScriptEntity* entity = (ScriptEntity*)loader->CreateObject(object, x, y);
 	if (entity == nullptr) {
 		return NULL_VAL;
 	}
@@ -399,9 +399,9 @@ VMValue SceneLoaderImpl::VM_GetTilesetCount(int argCount, VMValue* args, Uint32 
 
 	Obj* obj = AS_OBJECT(args[0]);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	return INTEGER_VAL(reader->GetTilesetCount());
+	return INTEGER_VAL(loader->GetTilesetCount());
 }
 /***
  * \method GetTilesetImagePath
@@ -416,10 +416,10 @@ VMValue SceneLoaderImpl::VM_GetTilesetImagePath(int argCount, VMValue* args, Uin
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
-	Tileset* tileset = reader->GetTileset(index);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+	Tileset* tileset = loader->GetTileset(index);
 	if (tileset == nullptr) {
-		OUT_OF_RANGE_ERROR("Tileset index", index, 0, reader->GetTilesetCount() - 1);
+		OUT_OF_RANGE_ERROR("Tileset index", index, 0, loader->GetTilesetCount() - 1);
 	}
 
 	if (ScriptManager::Lock()) {
@@ -442,12 +442,12 @@ VMValue SceneLoaderImpl::VM_AddTileset(int argCount, VMValue* args, Uint32 threa
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
-	if (!reader->IsValidTilesetIndex(index)) {
-		OUT_OF_RANGE_ERROR("Tileset index", index, 0, reader->GetTilesetCount() - 1);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+	if (!loader->IsValidTilesetIndex(index)) {
+		OUT_OF_RANGE_ERROR("Tileset index", index, 0, loader->GetTilesetCount() - 1);
 	}
 
-	int tilesetIndex = reader->AddTileset(index);
+	int tilesetIndex = loader->AddTileset(index);
 	return INTEGER_VAL(tilesetIndex);
 }
 
@@ -456,10 +456,10 @@ VMValue SceneLoaderImpl::VM_GetLayer##name(int argCount, VMValue* args, Uint32 t
 	StandardLibrary::CheckArgCount(argCount, 2); \
 	Obj* obj = AS_OBJECT(args[0]); \
 	int index = GET_ARG(1, GetInteger); \
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj); \
-	SceneLayer* layer = reader->GetLayer(index); \
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj); \
+	SceneLayer* layer = loader->GetLayer(index); \
 	if (layer == nullptr) { \
-		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1); \
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, loader->GetLayerCount() - 1); \
 	} \
 	return val(layer->field); \
 }
@@ -475,9 +475,9 @@ VMValue SceneLoaderImpl::VM_GetLayerCount(int argCount, VMValue* args, Uint32 th
 
 	Obj* obj = AS_OBJECT(args[0]);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	return INTEGER_VAL(reader->GetLayerCount());
+	return INTEGER_VAL(loader->GetLayerCount());
 }
 /***
  * \method GetLayerName
@@ -492,11 +492,11 @@ VMValue SceneLoaderImpl::VM_GetLayerName(int argCount, VMValue* args, Uint32 thr
 	Obj* obj = AS_OBJECT(args[0]);
 	int index = GET_ARG(1, GetInteger);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneLayer* layer = reader->GetLayer(index);
+	SceneLayer* layer = loader->GetLayer(index);
 	if (layer == nullptr) {
-		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, loader->GetLayerCount() - 1);
 	}
 
 	if (ScriptManager::Lock()) {
@@ -605,11 +605,11 @@ VMValue SceneLoaderImpl::VM_GetLayerProperty(int argCount, VMValue* args, Uint32
 	int index = GET_ARG(1, GetInteger);
 	char* property = GET_ARG(2, GetString);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneLayer* layer = reader->GetLayer(index);
+	SceneLayer* layer = loader->GetLayer(index);
 	if (layer == nullptr) {
-		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, loader->GetLayerCount() - 1);
 	}
 
 	if (layer->Properties && layer->Properties->Exists(property)) {
@@ -632,11 +632,11 @@ VMValue SceneLoaderImpl::VM_LayerHasProperty(int argCount, VMValue* args, Uint32
 	int index = GET_ARG(1, GetInteger);
 	char* property = GET_ARG(2, GetString);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneLayer* layer = reader->GetLayer(index);
+	SceneLayer* layer = loader->GetLayer(index);
 	if (layer == nullptr) {
-		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, loader->GetLayerCount() - 1);
 	}
 
 	if (layer->Properties && layer->Properties->Exists(property)) {
@@ -663,14 +663,14 @@ VMValue SceneLoaderImpl::VM_AddLayer(int argCount, VMValue* args, Uint32 threadI
 	int offsetX = GET_ARG_OPT(3, GetInteger, 0);
 	int offsetY = GET_ARG_OPT(4, GetInteger, 0);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneLayer* layer = reader->GetLayer(index);
+	SceneLayer* layer = loader->GetLayer(index);
 	if (layer == nullptr) {
-		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, loader->GetLayerCount() - 1);
 	}
 
-	int layerIndex = reader->AddLayer(layer, keepInScene, false, offsetX, offsetY);
+	int layerIndex = loader->AddLayer(layer, keepInScene, false, offsetX, offsetY);
 	return INTEGER_VAL(layerIndex);
 }
 /***
@@ -692,11 +692,11 @@ VMValue SceneLoaderImpl::VM_MergeLayer(int argCount, VMValue* args, Uint32 threa
 	int offsetX = GET_ARG_OPT(3, GetInteger, 0);
 	int offsetY = GET_ARG_OPT(4, GetInteger, 0);
 
-	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
-	SceneLayer* layer = reader->GetLayer(index);
+	SceneLayer* layer = loader->GetLayer(index);
 	if (layer == nullptr) {
-		OUT_OF_RANGE_ERROR("Loaded layer index", index, 0, reader->GetLayerCount() - 1);
+		OUT_OF_RANGE_ERROR("Loaded layer index", index, 0, loader->GetLayerCount() - 1);
 	}
 
 	if (destLayerIndex < 0 || destLayerIndex >= (int)Scene::Layers.size()) {
@@ -708,7 +708,7 @@ VMValue SceneLoaderImpl::VM_MergeLayer(int argCount, VMValue* args, Uint32 threa
 		throw ScriptException(errorString);
 	}
 
-	if (reader->AddLayerIfCanMerge(layer, Scene::Layers[destLayerIndex], offsetX, offsetY)) {
+	if (loader->AddLayerIfCanMerge(layer, Scene::Layers[destLayerIndex], offsetX, offsetY)) {
 		return INTEGER_VAL(true);
 	}
 	return INTEGER_VAL(false);

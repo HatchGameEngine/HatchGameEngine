@@ -571,7 +571,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r) {
 		}
 
 		// Spawn the entity
-		SceneReaderObject* obj = new SceneReaderObject(objectNameStr, posX / 65536.f, posY / 65536.f, properties);
+		SceneLoaderObject* obj = new SceneLoaderObject(objectNameStr, posX / 65536.f, posY / 65536.f, properties);
 		obj->SlotID = slotID + ReservedSlotIDs;
 		obj->Filter = filter;
 
@@ -642,7 +642,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	int objectDefinitionCount = r->ReadByte();
 	Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
 
-	ObjSlots = (SceneReaderObject**)calloc(MAX_OBJ_SLOTS, sizeof(SceneReaderObject*));
+	ObjSlots = (SceneLoaderObject**)calloc(MAX_OBJ_SLOTS, sizeof(SceneLoaderObject*));
 	if (!ObjSlots) {
 		Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
 		return false;
@@ -682,7 +682,7 @@ bool RSDKSceneReader::LoadIntoScene() {
 		}
 	}
 
-	return SceneReader::LoadIntoScene();
+	return SceneLoader::LoadIntoScene();
 }
 bool RSDKSceneReader::LoadPalettes() {
 	// Load tileset palette

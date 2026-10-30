@@ -23,7 +23,7 @@
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Types/EntityTypes.h>
@@ -2236,18 +2236,18 @@ void Scene::ReadSceneFile(const char* filename) {
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
-		SceneReader* reader = SceneReader::New(r, filename);
-		reader->Filter = Filter;
-		reader->ReservedSlotIDs = ReservedSlotIDs;
+		SceneLoader* loader = SceneLoader::New(r, filename);
+		loader->Filter = Filter;
+		loader->ReservedSlotIDs = ReservedSlotIDs;
 
 		// Read the scene file
-		if (reader->Read(r, pathParent)) {
-			reader->LoadIntoScene();
+		if (loader->Read(r, pathParent)) {
+			loader->LoadIntoScene();
 		}
 
 		r->Close();
 
-		delete reader;
+		delete loader;
 
 		InitTileCollisions();
 		SetInfoFromCurrentID();

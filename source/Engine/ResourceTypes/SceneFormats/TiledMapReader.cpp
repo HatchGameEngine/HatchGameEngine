@@ -865,7 +865,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 			continue;
 		}
 
-		SceneReaderObject* obj = new SceneReaderObject(asStr, object_x, object_y);
+		SceneLoaderObject* obj = new SceneLoaderObject(asStr, object_x, object_y);
 
 		if (slotID != -1) {
 			obj->SlotID = slotID + ReservedSlotIDs;

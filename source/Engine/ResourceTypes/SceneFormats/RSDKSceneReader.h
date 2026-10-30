@@ -3,12 +3,12 @@
 
 #include <Engine/IO/Stream.h>
 #include <Engine/Scene/TileLayer.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/Types/Entity.h>
 
-class RSDKSceneReader : public SceneReader {
+class RSDKSceneReader : public SceneLoader {
 private:
-	SceneReaderObject** ObjSlots = NULL;
+	SceneLoaderObject** ObjSlots = NULL;
 
 	char Filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
 	char StageConfigFilename[MAX_RESOURCE_PATH_LENGTH];

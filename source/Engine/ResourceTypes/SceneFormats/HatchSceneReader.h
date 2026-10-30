@@ -3,10 +3,10 @@
 
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/Scene/TileLayer.h>
 
-class HatchSceneReader : public SceneReader {
+class HatchSceneReader : public SceneLoader {
 private:
 	std::vector<SceneClass> SceneClasses;
 

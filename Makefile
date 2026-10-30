@@ -44,6 +44,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/InstanceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/SceneLoaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
@@ -160,7 +161,7 @@ CPPFILES := \
 	source/Engine/Scene/ImageLayer.cpp \
 	source/Engine/Scene/SceneInfo.cpp \
 	source/Engine/Scene/SceneLayer.cpp \
-	source/Engine/Scene/SceneReader.cpp \
+	source/Engine/Scene/SceneLoader.cpp \
 	source/Engine/Scene/TileLayer.cpp \
 	source/Engine/Scene/View.cpp \
 	source/Engine/TextFormats/INI/INI.cpp \
@@ -350,6 +351,7 @@ PRVHFILES := \
 	source/Engine/Bytecode/ScriptEntity.h \
 	source/Engine/Bytecode/Value.h \
 	source/Engine/Bytecode/TypeImpl/StringImpl.h \
+	source/Engine/Bytecode/TypeImpl/SceneLoaderImpl.h \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.h \
 	source/Engine/Bytecode/TypeImpl/InstanceImpl.h \
@@ -405,7 +407,7 @@ PRVHFILES := \
 	source/Engine/Scene/TileConfig.h \
 	source/Engine/Scene/ScrollingInfo.h \
 	source/Engine/Scene/SceneLayer.h \
-	source/Engine/Scene/SceneReader.h \
+	source/Engine/Scene/SceneLoader.h \
 	source/Engine/Scene/View.h \
 	source/Engine/Scene/SceneEnums.h \
 	source/Engine/Scene/TileSpriteInfo.h \

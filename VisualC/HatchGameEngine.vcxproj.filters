@@ -42,6 +42,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\SceneLoaderImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -393,7 +396,7 @@
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\scene\SceneReader.cpp">
+    <ClCompile Include="..\source\engine\scene\SceneLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\scene\View.cpp">

@@ -3,45 +3,45 @@
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/Graphics.h>
 
-SceneReader* SceneReader::New(Stream* stream, const char* filename) {
-	SceneReader* reader = nullptr;
+SceneLoader* SceneLoader::New(Stream* stream, const char* filename) {
+	SceneLoader* loader = nullptr;
 
 	// Guess from the header first
 	Uint32 magic = stream->ReadUInt32();
 	stream->Skip(-4);
 
 	if (magic == HatchSceneReader::Magic) {
-		reader = new HatchSceneReader();
+		loader = new HatchSceneReader();
 	}
 	else if (magic == RSDKSceneReader::Magic) {
-		reader = new RSDKSceneReader();
+		loader = new RSDKSceneReader();
 	}
 	else if (filename != nullptr) {
 		// Guess from the filename
 		if (StringUtils::StrCaseStr(filename, ".bin")) {
-			reader = new RSDKSceneReader();
+			loader = new RSDKSceneReader();
 		}
 		else if (StringUtils::StrCaseStr(filename, ".hcsn")) {
-			reader = new HatchSceneReader();
+			loader = new HatchSceneReader();
 		}
 	}
 
 	// Assume it's a Tiled map
-	if (reader == nullptr) {
-		reader = new TiledMapReader();
+	if (loader == nullptr) {
+		loader = new TiledMapReader();
 	}
 
-	return reader;
+	return loader;
 }
 
-bool SceneReader::Read(Stream* stream, const char* parentFolder) {
-	throw std::runtime_error("SceneReader::Read() called without an implementation");
+bool SceneLoader::Read(Stream* stream, const char* parentFolder) {
+	throw std::runtime_error("SceneLoader::Read() called without an implementation");
 }
 
-bool SceneReader::Read(const char* filename, const char* parentFolder) {
+bool SceneLoader::Read(const char* filename, const char* parentFolder) {
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -55,7 +55,7 @@ bool SceneReader::Read(const char* filename, const char* parentFolder) {
 	return result;
 }
 
-bool SceneReader::LoadIntoScene() {
+bool SceneLoader::LoadIntoScene() {
 	Scene::SceneType = SceneType;
 
 	Scene::TileWidth = TileWidth;
@@ -95,7 +95,7 @@ bool SceneReader::LoadIntoScene() {
 
 	// Spawn objects
 	for (size_t i = 0; i < Objects.size(); i++) {
-		SceneReaderObject* object = Objects[i];
+		SceneLoaderObject* object = Objects[i];
 
 		float spawnX = object->X;
 		float spawnY = object->Y;
@@ -106,7 +106,7 @@ bool SceneReader::LoadIntoScene() {
 	return true;
 }
 
-void SceneReader::AddPropertiesToScene() {
+void SceneLoader::AddPropertiesToScene() {
 	if (Properties == NULL) {
 		return;
 	}
@@ -120,11 +120,11 @@ void SceneReader::AddPropertiesToScene() {
 	});
 }
 
-bool SceneReader::LoadPalettes() {
+bool SceneLoader::LoadPalettes() {
 	return true;
 }
 
-bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers,
+bool SceneLoader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers,
 	std::vector<std::string>* layersToAdd, std::unordered_set<std::string>* objectsToAdd,
 	int offsetX, int offsetY, bool loadPalettes, bool loadProperties) {
 	if (TileWidth != Scene::TileWidth || TileHeight != Scene::TileHeight) {
@@ -171,7 +171,7 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 
 	// Spawn objects
 	for (size_t i = 0; i < Objects.size(); i++) {
-		SceneReaderObject* object = Objects[i];
+		SceneLoaderObject* object = Objects[i];
 
 		if (objectsToAdd != nullptr && objectsToAdd->find(object->Name) == objectsToAdd->end()) {
 			continue;
@@ -186,12 +186,12 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 	return true;
 }
 
-void SceneReader::LoadTilesets() {
+void SceneLoader::LoadTilesets() {
 	for (size_t i = 0; i < Tilesets.size(); i++) {
 		AddTileset(i);
 	}
 }
-int SceneReader::AddTileset(size_t index) {
+int SceneLoader::AddTileset(size_t index) {
 	int found = GetLoadedTilesetIndex(index);
 	if (found != -1) {
 		return found;
@@ -230,35 +230,35 @@ int SceneReader::AddTileset(size_t index) {
 
 	return found;
 }
-int SceneReader::GetLoadedTilesetIndex(size_t index) {
+int SceneLoader::GetLoadedTilesetIndex(size_t index) {
 	if (index >= 0 && index < Tilesets.size()) {
 		return LoadedTilesets[index];
 	}
 
 	return -1;
 }
-Tileset* SceneReader::GetTileset(size_t index) {
+Tileset* SceneLoader::GetTileset(size_t index) {
 	if (index < 0 || index >= Tilesets.size()) {
 		return nullptr;
 	}
 
 	return &Tilesets[index];
 }
-bool SceneReader::IsValidTilesetIndex(size_t index) {
+bool SceneLoader::IsValidTilesetIndex(size_t index) {
 	return index >= 0 && index < (int)Tilesets.size();
 }
-int SceneReader::GetTilesetCount() {
+int SceneLoader::GetTilesetCount() {
 	return (int)Tilesets.size();
 }
 
-size_t SceneReader::AddLayerToScene(SceneLayer* layer) {
+size_t SceneLoader::AddLayerToScene(SceneLayer* layer) {
 	if (layer->Type == SceneLayer::TYPE_TILE) {
 		((TileLayer*)layer)->MakeTilesBackup();
 	}
 
 	return Scene::AddLayer(layer);
 }
-size_t SceneReader::AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY) {
+size_t SceneLoader::AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY) {
 	if (mergeLayers) {
 		int index = Scene::FindLayerIndex(layer->Name);
 		if (index != -1 && TryMergeLayerWhenAdding(layer, Scene::Layers[index], offsetX, offsetY)) {
@@ -278,7 +278,7 @@ size_t SceneReader::AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, 
 	return index;
 }
 
-bool SceneReader::AttemptMergeNonTileLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY) {
+bool SceneLoader::AttemptMergeNonTileLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY) {
 	if (destLayer->Type == SceneLayer::TYPE_IMAGE) {
 		ImageLayer* destImageLayer = (ImageLayer*)destLayer;
 		if (!destImageLayer->ImagePtr) {
@@ -297,7 +297,7 @@ bool SceneReader::AttemptMergeNonTileLayers(SceneLayer* destLayer, SceneLayer* s
 
 	return false;
 }
-void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY) {
+void SceneLoader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY) {
 	// Delete buffers
 	if (Graphics::LayerTileBufferingEnabled) {
 		Graphics::DeleteLayerTileBuffers(destTileLayer);
@@ -362,7 +362,7 @@ void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLa
 		Graphics::MakeLayerTileBuffers(destTileLayer);
 	}
 }
-void SceneReader::RemapLayerTileIDs(TileLayer* layer) {
+void SceneLoader::RemapLayerTileIDs(TileLayer* layer) {
 	for (size_t i = 0, iH = 0; i < layer->Height; i++) {
 		Uint32* tileRow = &layer->Tiles[iH];
 
@@ -375,7 +375,7 @@ void SceneReader::RemapLayerTileIDs(TileLayer* layer) {
 		iH += layer->WidthData;
 	}
 }
-int SceneReader::RemapTileID(int tileID) {
+int SceneLoader::RemapTileID(int tileID) {
 	// Remap empty or invalid tile
 	if (tileID == EmptyTile || tileID >= (int)TileSpriteInfos.size()) {
 		return Scene::EmptyTile;
@@ -391,21 +391,21 @@ int SceneReader::RemapTileID(int tileID) {
 	return tileID + TileOffsets[info.TilesetID];
 }
 
-SceneReaderObject* SceneReader::GetObject(size_t index) {
+SceneLoaderObject* SceneLoader::GetObject(size_t index) {
 	if (index < 0 || index >= (int)Objects.size()) {
 		return nullptr;
 	}
 
 	return Objects[index];
 }
-int SceneReader::GetObjectCount() {
+int SceneLoader::GetObjectCount() {
 	return (int)Objects.size();
 }
-int SceneReader::GetObjectCount(const char* name) {
+int SceneLoader::GetObjectCount(const char* name) {
 	int count = 0;
 
 	for (size_t i = 0; i < Objects.size(); i++) {
-		SceneReaderObject* object = Objects[i];
+		SceneLoaderObject* object = Objects[i];
 
 		if (strcmp(object->Name.c_str(), name) == 0) {
 			count++;
@@ -415,7 +415,7 @@ int SceneReader::GetObjectCount(const char* name) {
 	return count;
 }
 
-Entity* SceneReader::CreateObject(SceneReaderObject* object, float x, float y) {
+Entity* SceneLoader::CreateObject(SceneLoaderObject* object, float x, float y) {
 	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str());
 	if (objectList == nullptr) {
 		return nullptr;
@@ -437,7 +437,7 @@ Entity* SceneReader::CreateObject(SceneReaderObject* object, float x, float y) {
 	return entity;
 }
 
-Entity* SceneReader::SpawnObject(SceneReaderObject* object, float x, float y, bool dynamic, bool keepDynamic) {
+Entity* SceneLoader::SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic, bool keepDynamic) {
 	Entity* entity = CreateObject(object, x, y);
 	if (entity == nullptr) {
 		return nullptr;
@@ -472,17 +472,17 @@ Entity* SceneReader::SpawnObject(SceneReaderObject* object, float x, float y, bo
 	return entity;
 }
 
-SceneLayer* SceneReader::GetLayer(size_t index) {
+SceneLayer* SceneLoader::GetLayer(size_t index) {
 	if (index < 0 || index >= (int)Layers.size()) {
 		return nullptr;
 	}
 
 	return Layers[index];
 }
-int SceneReader::GetLayerCount() {
+int SceneLoader::GetLayerCount() {
 	return (int)Layers.size();
 }
-int SceneReader::AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int offsetX, int offsetY) {
+int SceneLoader::AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int offsetX, int offsetY) {
 	if (merge) {
 		int index = Scene::FindLayerIndex(layer->Name);
 		if (index != -1 && TryMergeLayerWhenAdding(layer, Scene::Layers[index], offsetX, offsetY)) {
@@ -498,10 +498,10 @@ int SceneReader::AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int o
 
 	return AddLayerToSceneDynamic(copy, false, !keepInScene, offsetX, offsetY);
 }
-bool SceneReader::AddLayerIfCanMerge(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
+bool SceneLoader::AddLayerIfCanMerge(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
 	return TryMergeLayerWhenAdding(srcLayer, destLayer, offsetX, offsetY);
 }
-bool SceneReader::TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
+bool SceneLoader::TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
 	if (destLayer->Type != srcLayer->Type) {
 		return false;
 	}
@@ -516,15 +516,15 @@ bool SceneReader::TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* dest
 	return true;
 }
 
-void SceneReader::AddTilesetToList(Tileset tileset) {
+void SceneLoader::AddTilesetToList(Tileset tileset) {
 	Tilesets.push_back(tileset);
 	TileOffsets.push_back(0);
 	LoadedTilesets.push_back(-1);
 }
 
-void SceneReader::Dispose() {}
+void SceneLoader::Dispose() {}
 
-SceneReader::~SceneReader() {
+SceneLoader::~SceneLoader() {
 	Dispose();
 
 	for (size_t i = 0; i < Layers.size(); i++) {

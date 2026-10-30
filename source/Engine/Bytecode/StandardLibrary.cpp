@@ -44,7 +44,7 @@
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
-#include <Engine/Scene/SceneReader.h>
+#include <Engine/Scene/SceneLoader.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -13258,20 +13258,20 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 		pathParent[0] = '\0';
 	}
 
-	// Get a scene reader
-	SceneReader* reader = SceneReader::New(stream, filename);
-	reader->Filter = filter;
-	reader->ReservedSlotIDs = Scene::ReservedSlotIDs;
+	// Get a scene loader
+	SceneLoader* loader = SceneLoader::New(stream, filename);
+	loader->Filter = filter;
+	loader->ReservedSlotIDs = Scene::ReservedSlotIDs;
 
 	// Read the scene file
-	bool success = reader->Read(stream, pathParent);
+	bool success = loader->Read(stream, pathParent);
 
 	// Close the stream. Not needed anymore past this point
 	stream->Close();
 
 	// Add the map to the current scene
 	if (success) {
-		success = reader->AddToScene(
+		success = loader->AddToScene(
 			keepLayers, keepObjects, mergeLayers,
 			layersToAdd, objectsToAdd,
 			offsetX, offsetY,
@@ -13279,10 +13279,7 @@ VMValue Scene_LoadIntoCurrent(int argCount, VMValue* args, Uint32 threadID) {
 		);
 	}
 
-	// Delete reader
-	delete reader;
-
-	// Delete lists
+	delete loader;
 	delete layersToAdd;
 	delete objectsToAdd;
 

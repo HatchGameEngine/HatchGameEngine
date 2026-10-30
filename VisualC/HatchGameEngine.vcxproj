@@ -176,6 +176,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\SceneLoaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
@@ -300,7 +301,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\Engine\Scene\ImageLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
-    <ClCompile Include="..\source\engine\scene\SceneReader.cpp" />
+    <ClCompile Include="..\source\engine\scene\SceneLoader.cpp" />
     <ClCompile Include="..\source\Engine\Scene\TileLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
