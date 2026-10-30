@@ -14,46 +14,14 @@
 ObjClass* SceneLoaderImpl::Class = nullptr;
 
 void SceneLoaderImpl::Init() {
-	Class = NewClass(CLASS_SCENELOADER);
+	Class = NewClass("SceneLoader");
 	Class->NewFn = Constructor;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
-	ScriptManager::DefineNative(Class, "GetTileWidth", VM_GetTileWidth);
-	ScriptManager::DefineNative(Class, "GetTileHeight", VM_GetTileHeight);
-
-	ScriptManager::DefineNative(Class, "GetClassCount", VM_GetClassCount);
-	ScriptManager::DefineNative(Class, "GetClassName", VM_GetClassName);
-	ScriptManager::DefineNative(Class, "HasClass", VM_HasClass);
-	ScriptManager::DefineNative(Class, "LoadClass", VM_LoadClass);
-
-	ScriptManager::DefineNative(Class, "GetObjectCount", VM_GetObjectCount);
-	ScriptManager::DefineNative(Class, "GetObjectClass", VM_GetObjectClass);
-	ScriptManager::DefineNative(Class, "GetObjectX", VM_GetObjectX);
-	ScriptManager::DefineNative(Class, "GetObjectY", VM_GetObjectY);
-	ScriptManager::DefineNative(Class, "GetObjectProperty", VM_GetObjectProperty);
-	ScriptManager::DefineNative(Class, "ObjectHasProperty", VM_ObjectHasProperty);
-	ScriptManager::DefineNative(Class, "SpawnObject", VM_SpawnObject);
-
-	ScriptManager::DefineNative(Class, "GetTilesetCount", VM_GetTilesetCount);
-	ScriptManager::DefineNative(Class, "GetTilesetImagePath", VM_GetTilesetImagePath);
-	ScriptManager::DefineNative(Class, "AddTileset", VM_AddTileset);
-
-	ScriptManager::DefineNative(Class, "GetLayerCount", VM_GetLayerCount);
-	ScriptManager::DefineNative(Class, "GetLayerName", VM_GetLayerName);
-	ScriptManager::DefineNative(Class, "GetLayerWidth", VM_GetLayerWidth);
-	ScriptManager::DefineNative(Class, "GetLayerHeight", VM_GetLayerHeight);
-	ScriptManager::DefineNative(Class, "GetLayerType", VM_GetLayerType);
-	ScriptManager::DefineNative(Class, "GetLayerDrawGroup", VM_GetLayerDrawGroup);
-	ScriptManager::DefineNative(Class, "GetLayerOffsetX", VM_GetLayerOffsetX);
-	ScriptManager::DefineNative(Class, "GetLayerOffsetY", VM_GetLayerOffsetY);
-	ScriptManager::DefineNative(Class, "GetLayerHorizontalParallaxFactor", VM_GetLayerHorizontalParallaxFactor);
-	ScriptManager::DefineNative(Class, "GetLayerVerticalParallaxFactor", VM_GetLayerVerticalParallaxFactor);
-	ScriptManager::DefineNative(Class, "GetLayerHorizontalConstantScroll", VM_GetLayerHorizontalConstantScroll);
-	ScriptManager::DefineNative(Class, "GetLayerVerticalConstantScroll", VM_GetLayerVerticalConstantScroll);
-	ScriptManager::DefineNative(Class, "GetLayerProperty", VM_GetLayerProperty);
-	ScriptManager::DefineNative(Class, "LayerHasProperty", VM_LayerHasProperty);
-	ScriptManager::DefineNative(Class, "AddLayer", VM_AddLayer);
-	ScriptManager::DefineNative(Class, "MergeLayer", VM_MergeLayer);
+#define IMPL_FN(name) \
+	ScriptManager::DefineNative(Class, #name, VM_##name);
+	SCENELOADERIMPL_FN_LIST
+#undef IMPL_FN
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);

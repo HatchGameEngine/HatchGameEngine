@@ -4,7 +4,39 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
-#define CLASS_SCENELOADER "SceneLoader"
+#define SCENELOADERIMPL_FN_LIST \
+	IMPL_FN(GetTileWidth) \
+	IMPL_FN(GetTileHeight) \
+	IMPL_FN(GetClassCount) \
+	IMPL_FN(GetClassName) \
+	IMPL_FN(HasClass) \
+	IMPL_FN(LoadClass) \
+	IMPL_FN(GetObjectCount) \
+	IMPL_FN(GetObjectClass) \
+	IMPL_FN(GetObjectX) \
+	IMPL_FN(GetObjectY) \
+	IMPL_FN(GetObjectProperty) \
+	IMPL_FN(ObjectHasProperty) \
+	IMPL_FN(SpawnObject) \
+	IMPL_FN(GetTilesetCount) \
+	IMPL_FN(GetTilesetImagePath) \
+	IMPL_FN(AddTileset) \
+	IMPL_FN(GetLayerCount) \
+	IMPL_FN(GetLayerName) \
+	IMPL_FN(GetLayerWidth) \
+	IMPL_FN(GetLayerHeight) \
+	IMPL_FN(GetLayerType) \
+	IMPL_FN(GetLayerDrawGroup) \
+	IMPL_FN(GetLayerOffsetX) \
+	IMPL_FN(GetLayerOffsetY) \
+	IMPL_FN(GetLayerHorizontalParallaxFactor) \
+	IMPL_FN(GetLayerVerticalParallaxFactor) \
+	IMPL_FN(GetLayerHorizontalConstantScroll) \
+	IMPL_FN(GetLayerVerticalConstantScroll) \
+	IMPL_FN(GetLayerProperty) \
+	IMPL_FN(LayerHasProperty) \
+	IMPL_FN(AddLayer) \
+	IMPL_FN(MergeLayer)
 
 class SceneLoaderImpl {
 public:
@@ -16,42 +48,10 @@ public:
 	static VMValue VM_Initializer(int argCount, VMValue* args, Uint32 threadID);
 	static void Dispose(Obj* object);
 
-	static VMValue VM_GetTileWidth(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetTileHeight(int argCount, VMValue* args, Uint32 threadID);
-
-	static VMValue VM_GetClassCount(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetClassName(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_HasClass(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_LoadClass(int argCount, VMValue* args, Uint32 threadID);
-
-	static VMValue VM_GetObjectCount(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetObjectClass(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetObjectX(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetObjectY(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetObjectProperty(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ObjectHasProperty(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SpawnObject(int argCount, VMValue* args, Uint32 threadID);
-
-	static VMValue VM_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetTilesetImagePath(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_AddTileset(int argCount, VMValue* args, Uint32 threadID);
-
-	static VMValue VM_GetLayerCount(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerName(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerType(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerHorizontalParallaxFactor(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerHorizontalConstantScroll(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_LayerHasProperty(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_AddLayer(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_MergeLayer(int argCount, VMValue* args, Uint32 threadID);
+#define IMPL_FN(name) \
+	static VMValue VM_##name(int argCount, VMValue* args, Uint32 threadID);
+	SCENELOADERIMPL_FN_LIST
+#undef IMPL_FN
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_SCENELOADERIMPL_H */
