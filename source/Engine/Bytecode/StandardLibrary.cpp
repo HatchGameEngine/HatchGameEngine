@@ -13594,7 +13594,7 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerWidth
- * \desc Gets the width of a layer index (in tiles).
+ * \desc Gets the width of a layer. For tile layers, returns the width in tiles.
  * \param layerIndex (integer): Index of layer.
  * \return integer Returns an integer value.
  * \ns Scene
@@ -13607,7 +13607,7 @@ VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerHeight
- * \desc Gets the height of a layer index (in tiles).
+ * \desc Gets the height of a layer. For tile layers, returns the height in tiles.
  * \param layerIndex (integer): Index of layer.
  * \return integer Returns an integer value.
  * \ns Scene

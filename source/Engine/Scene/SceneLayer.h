@@ -53,6 +53,10 @@ public:
 	bool PropertyExists(char* property);
 	Property PropertyGet(char* property);
 	~SceneLayer();
+
+	void CopyFields(SceneLayer* dest);
+
+	virtual SceneLayer* Duplicate() = 0;
 };
 
 #endif /* ENGINE_SCENE_SCENELAYER_H */

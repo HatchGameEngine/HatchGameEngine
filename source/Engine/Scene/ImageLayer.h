@@ -10,6 +10,9 @@ public:
 
 	ImageLayer();
 	ImageLayer(int w, int h);
+
+	SceneLayer* Duplicate();
+
 	~ImageLayer();
 };
 

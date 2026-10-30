@@ -389,7 +389,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, int tile
 		curTileCount + numEmptyTiles,
 		tileCount,
 		resourcePath);
-	Tilesets.push_back(sceneTileset);
+	AddTilesetToList(sceneTileset);
 
 	return &Tilesets.back();
 }

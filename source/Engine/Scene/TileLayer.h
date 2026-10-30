@@ -46,6 +46,8 @@ public:
 	void Resize(int w, int h);
 	void MakeTilesBackup();
 
+	SceneLayer* Duplicate();
+
 	~TileLayer();
 };
 

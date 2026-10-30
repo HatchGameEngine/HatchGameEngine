@@ -45,11 +45,13 @@ public:
 class SceneReader {
 private:
 	Entity* SpawnObject(SceneReaderObject* object, float x, float y, bool dynamic = false, bool keepDynamic = false);
-	void AddLayer(SceneLayer* layer);
-	void AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
-	bool AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY);
+	size_t AddLayerToScene(SceneLayer* layer);
+	size_t AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
+	bool TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY);
+	bool AttemptMergeNonTileLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY);
 	void MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY);
-	void RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets);
+	void RemapLayerTileIDs(TileLayer* layer);
+	int RemapTileID(int tileID);
 	void AddPropertiesToScene();
 
 protected:
@@ -62,6 +64,10 @@ protected:
 	int EmptyTile = 0;
 	int PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
 	bool RefreshTileAnimations = false;
+	std::vector<int> TileOffsets;
+	std::vector<int> LoadedTilesets;
+
+	void AddTilesetToList(Tileset tileset);
 
 public:
 	int TileWidth = 16;
@@ -76,6 +82,13 @@ public:
 	virtual bool LoadIntoScene();
 	virtual bool LoadPalettes();
 
+	void LoadTilesets();
+	int AddTileset(size_t index);
+	int GetLoadedTilesetIndex(size_t index);
+	Tileset* GetTileset(size_t index);
+	bool IsValidTilesetIndex(size_t index);
+	int GetTilesetCount();
+
 	bool AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers,
 		std::vector<std::string>* layersToAdd, std::unordered_set<std::string>* objectsToAdd,
 		int offsetX, int offsetY, bool loadPalettes, bool loadProperties);
@@ -84,6 +97,11 @@ public:
 	int GetObjectCount();
 	int GetObjectCount(const char* name);
 	Entity* CreateObject(SceneReaderObject* object, float x, float y);
+
+	SceneLayer* GetLayer(size_t index);
+	int GetLayerCount();
+	int AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int offsetX, int offsetY);
+	bool AddLayerIfCanMerge(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY);
 
 	virtual void Dispose();
 

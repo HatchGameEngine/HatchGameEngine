@@ -89,7 +89,7 @@ bool SceneReader::LoadIntoScene() {
 
 	// Add layers
 	for (size_t i = 0; i < Layers.size(); i++) {
-		AddLayer(Layers[i]);
+		AddLayerToScene(Layers[i]);
 	}
 	Layers.clear();
 
@@ -141,38 +141,7 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 	}
 
 	// Add tilesets and tile sprite infos
-	std::vector<int> tileOffsets;
-	for (size_t i = 0; i < Tilesets.size(); i++) {
-		Tileset& otherTileset = Tilesets[i];
-
-		int tileOffset = 0;
-
-		int index = Scene::FindMatchingTileset(&otherTileset);
-		if (index == -1) {
-			// Add new tileset
-			size_t startTile = otherTileset.StartTile;
-
-			tileOffset = (int)Scene::TileSpriteInfos.size() - startTile;
-			otherTileset.StartTile = Scene::TileSpriteInfos.size();
-
-			for (size_t t = startTile; t < startTile + otherTileset.TileCount; t++) {
-				TileSpriteInfo info = TileSpriteInfos[t];
-				info.TilesetID = Scene::Tilesets.size();
-				Scene::TileSpriteInfos.push_back(info);
-			}
-
-			Scene::AddTilesetDirect(otherTileset);
-		}
-		else {
-			// Found a matching tileset
-			tileOffset = (int)otherTileset.StartTile - (int)Scene::Tilesets[index].StartTile;
-
-			otherTileset.Dispose();
-		}
-
-		tileOffsets.push_back(tileOffset);
-	}
-	Tilesets.clear();
+	LoadTilesets();
 
 	// Load palettes
 	if (loadPalettes) {
@@ -189,16 +158,13 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 					continue;
 				}
 
-				RemapTileIDs((TileLayer*)layer, tileOffsets);
-				AddLayerDynamic(layer, mergeLayers, !keepLayers, offsetX, offsetY);
+				AddLayerToSceneDynamic(layer, mergeLayers, !keepLayers, offsetX, offsetY);
 			}
 		}
 	}
 	else {
 		for (size_t i = 0; i < Layers.size(); i++) {
-			SceneLayer* layer = Layers[i];
-			RemapTileIDs((TileLayer*)layer, tileOffsets);
-			AddLayerDynamic(layer, mergeLayers, !keepLayers, offsetX, offsetY);
+			AddLayerToSceneDynamic(Layers[i], mergeLayers, !keepLayers, offsetX, offsetY);
 		}
 	}
 	Layers.clear();
@@ -220,27 +186,87 @@ bool SceneReader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 	return true;
 }
 
-void SceneReader::AddLayer(SceneLayer* layer) {
+void SceneReader::LoadTilesets() {
+	for (size_t i = 0; i < Tilesets.size(); i++) {
+		AddTileset(i);
+	}
+}
+int SceneReader::AddTileset(size_t index) {
+	int found = GetLoadedTilesetIndex(index);
+	if (found != -1) {
+		return found;
+	}
+
+	int tileOffset = 0;
+
+	Tileset& otherTileset = Tilesets[index];
+	found = Scene::FindMatchingTileset(&otherTileset);
+
+	if (found == -1) {
+		// Add new tileset
+		found = Scene::Tilesets.size();
+
+		size_t startTile = otherTileset.StartTile;
+		tileOffset = (int)Scene::TileSpriteInfos.size() - startTile;
+		otherTileset.StartTile = Scene::TileSpriteInfos.size();
+
+		for (size_t t = startTile; t < startTile + otherTileset.TileCount; t++) {
+			TileSpriteInfo info = TileSpriteInfos[t];
+			info.TilesetID = found;
+			Scene::TileSpriteInfos.push_back(info);
+		}
+
+		Scene::AddTilesetDirect(otherTileset);
+	}
+	else {
+		// Found a matching tileset
+		tileOffset = (int)Scene::Tilesets[found].StartTile - (int)otherTileset.StartTile;
+
+		otherTileset.Dispose();
+	}
+
+	TileOffsets[index] = tileOffset;
+	LoadedTilesets[index] = found;
+
+	return found;
+}
+int SceneReader::GetLoadedTilesetIndex(size_t index) {
+	if (index >= 0 && index < Tilesets.size()) {
+		return LoadedTilesets[index];
+	}
+
+	return -1;
+}
+Tileset* SceneReader::GetTileset(size_t index) {
+	if (index < 0 || index >= Tilesets.size()) {
+		return nullptr;
+	}
+
+	return &Tilesets[index];
+}
+bool SceneReader::IsValidTilesetIndex(size_t index) {
+	return index >= 0 && index < (int)Tilesets.size();
+}
+int SceneReader::GetTilesetCount() {
+	return (int)Tilesets.size();
+}
+
+size_t SceneReader::AddLayerToScene(SceneLayer* layer) {
 	if (layer->Type == SceneLayer::TYPE_TILE) {
 		((TileLayer*)layer)->MakeTilesBackup();
 	}
 
-	Scene::AddLayer(layer);
+	return Scene::AddLayer(layer);
 }
-
-void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY) {
+size_t SceneReader::AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY) {
 	if (mergeLayers) {
 		int index = Scene::FindLayerIndex(layer->Name);
-		if (index != -1) {
-			SceneLayer* otherLayer = Scene::Layers[index];
-			if (AttemptMergeLayers(otherLayer, layer, offsetX, offsetY)) {
-				delete layer;
-				return;
-			}
+		if (index != -1 && TryMergeLayerWhenAdding(layer, Scene::Layers[index], offsetX, offsetY)) {
+			return (size_t)index;
 		}
 	}
 
-	AddLayer(layer);
+	size_t index = AddLayerToScene(layer);
 	layer->OffsetX -= offsetX * TileWidth;
 	layer->OffsetY -= offsetY * TileHeight;
 	layer->Temporary = temporary;
@@ -248,17 +274,12 @@ void SceneReader::AddLayerDynamic(SceneLayer* layer, bool mergeLayers, bool temp
 	if (layer->Type == SceneLayer::TYPE_TILE && Graphics::LayerTileBufferingEnabled) {
 		Graphics::MakeLayerTileBuffers(layer);
 	}
+
+	return index;
 }
 
-bool SceneReader::AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY) {
-	if (destLayer->Type != srcLayer->Type) {
-		return false;
-	}
-	else if (destLayer->Type == SceneLayer::TYPE_TILE) {
-		SceneReader::MergeTileLayers((TileLayer*)destLayer, (TileLayer*)srcLayer, offsetX, offsetY);
-		return true;
-	}
-	else if (destLayer->Type == SceneLayer::TYPE_IMAGE) {
+bool SceneReader::AttemptMergeNonTileLayers(SceneLayer* destLayer, SceneLayer* srcLayer, int offsetX, int offsetY) {
+	if (destLayer->Type == SceneLayer::TYPE_IMAGE) {
 		ImageLayer* destImageLayer = (ImageLayer*)destLayer;
 		if (!destImageLayer->ImagePtr) {
 			return false;
@@ -276,7 +297,6 @@ bool SceneReader::AttemptMergeLayers(SceneLayer* destLayer, SceneLayer* srcLayer
 
 	return false;
 }
-
 void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLayer, int offsetX, int offsetY) {
 	// Delete buffers
 	if (Graphics::LayerTileBufferingEnabled) {
@@ -303,6 +323,14 @@ void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLa
 			int destY = y + offsetY;
 			if (destX >= 0 && destX < width && destY >= 0 && destY < height) {
 				Uint32 tile = srcTileLayer->Tiles[x + (y << srcTileLayer->WidthInBits)];
+				if (tile == EmptyTile) {
+					continue;
+				}
+
+				int tileID = RemapTileID(tile & TILE_IDENT_MASK);
+				tile &= ~TILE_IDENT_MASK;
+				tile |= tileID;
+
 				if (tile != Scene::EmptyTile) {
 					destTileLayer->Tiles[destX + (destY << destTileLayer->WidthInBits)] = tile;
 				}
@@ -313,15 +341,12 @@ void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLa
 	destTileLayer->MakeTilesBackup();
 
 	// Copy scroll info
-	Memory::Free(destTileLayer->TileBufferIndexes);
 	Memory::Free(destTileLayer->ScrollIndexes);
 	Memory::Free(destTileLayer->ScrollInfos);
 
-	destTileLayer->TileBufferIndexes = srcTileLayer->TileBufferIndexes;
 	destTileLayer->ScrollIndexes = srcTileLayer->ScrollIndexes;
 	destTileLayer->ScrollInfos = srcTileLayer->ScrollInfos;
 
-	srcTileLayer->TileBufferIndexes = nullptr;
 	srcTileLayer->ScrollIndexes = nullptr;
 	srcTileLayer->ScrollInfos = nullptr;
 
@@ -337,30 +362,33 @@ void SceneReader::MergeTileLayers(TileLayer* destTileLayer, TileLayer* srcTileLa
 		Graphics::MakeLayerTileBuffers(destTileLayer);
 	}
 }
-
-void SceneReader::RemapTileIDs(TileLayer* layer, std::vector<int>& tileOffsets) {
+void SceneReader::RemapLayerTileIDs(TileLayer* layer) {
 	for (size_t i = 0, iH = 0; i < layer->Height; i++) {
 		Uint32* tileRow = &layer->Tiles[iH];
 
 		for (size_t ii = 0; ii < layer->Width; ii++) {
 			int tileID = tileRow[ii] & TILE_IDENT_MASK;
-
-			// Remap empty or invalid tile
-			if (tileID == EmptyTile || tileID >= (int)TileSpriteInfos.size()) {
-				tileRow[ii] = Scene::EmptyTile;
-				continue;
-			}
-
-			TileSpriteInfo& info = TileSpriteInfos[tileID];
-
-			tileID += tileOffsets[info.TilesetID];
-
 			tileRow[ii] &= ~TILE_IDENT_MASK;
-			tileRow[ii] |= tileID;
+			tileRow[ii] |= RemapTileID(tileID);
 		}
 
 		iH += layer->WidthData;
 	}
+}
+int SceneReader::RemapTileID(int tileID) {
+	// Remap empty or invalid tile
+	if (tileID == EmptyTile || tileID >= (int)TileSpriteInfos.size()) {
+		return Scene::EmptyTile;
+	}
+
+	TileSpriteInfo& info = TileSpriteInfos[tileID];
+
+	// Tileset wasn't loaded
+	if (LoadedTilesets[info.TilesetID] == -1) {
+		return Scene::EmptyTile;
+	}
+
+	return tileID + TileOffsets[info.TilesetID];
 }
 
 SceneReaderObject* SceneReader::GetObject(size_t index) {
@@ -370,7 +398,6 @@ SceneReaderObject* SceneReader::GetObject(size_t index) {
 
 	return Objects[index];
 }
-
 int SceneReader::GetObjectCount() {
 	return (int)Objects.size();
 }
@@ -443,6 +470,56 @@ Entity* SceneReader::SpawnObject(SceneReaderObject* object, float x, float y, bo
 	}
 
 	return entity;
+}
+
+SceneLayer* SceneReader::GetLayer(size_t index) {
+	if (index < 0 || index >= (int)Layers.size()) {
+		return nullptr;
+	}
+
+	return Layers[index];
+}
+int SceneReader::GetLayerCount() {
+	return (int)Layers.size();
+}
+int SceneReader::AddLayer(SceneLayer* layer, bool keepInScene, bool merge, int offsetX, int offsetY) {
+	if (merge) {
+		int index = Scene::FindLayerIndex(layer->Name);
+		if (index != -1 && TryMergeLayerWhenAdding(layer, Scene::Layers[index], offsetX, offsetY)) {
+			return index;
+		}
+	}
+
+	SceneLayer* copy = layer->Duplicate();
+
+	if (layer->Type == SceneLayer::TYPE_TILE) {
+		RemapLayerTileIDs((TileLayer*)copy);
+	}
+
+	return AddLayerToSceneDynamic(copy, false, !keepInScene, offsetX, offsetY);
+}
+bool SceneReader::AddLayerIfCanMerge(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
+	return TryMergeLayerWhenAdding(srcLayer, destLayer, offsetX, offsetY);
+}
+bool SceneReader::TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY) {
+	if (destLayer->Type != srcLayer->Type) {
+		return false;
+	}
+
+	if (srcLayer->Type == SceneLayer::TYPE_TILE) {
+		MergeTileLayers((TileLayer*)destLayer, (TileLayer*)srcLayer, offsetX, offsetY);
+	}
+	else if (!AttemptMergeNonTileLayers(destLayer, srcLayer, offsetX, offsetY)) {
+		return false;
+	}
+
+	return true;
+}
+
+void SceneReader::AddTilesetToList(Tileset tileset) {
+	Tilesets.push_back(tileset);
+	TileOffsets.push_back(0);
+	LoadedTilesets.push_back(-1);
 }
 
 void SceneReader::Dispose() {}

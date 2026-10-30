@@ -393,7 +393,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 		curTileCount,
 		TileSpriteInfos.size(),
 		tilesetFile);
-	Tilesets.push_back(sceneTileset);
+	AddTilesetToList(sceneTileset);
 
 	return true;
 }

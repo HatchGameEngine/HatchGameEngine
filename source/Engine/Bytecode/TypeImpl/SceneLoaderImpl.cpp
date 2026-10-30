@@ -20,6 +20,7 @@ void SceneLoaderImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "GetTileWidth", VM_GetTileWidth);
 	ScriptManager::DefineNative(Class, "GetTileHeight", VM_GetTileHeight);
+
 	ScriptManager::DefineNative(Class, "GetObjectCount", VM_GetObjectCount);
 	ScriptManager::DefineNative(Class, "GetObjectClass", VM_GetObjectClass);
 	ScriptManager::DefineNative(Class, "GetObjectX", VM_GetObjectX);
@@ -27,6 +28,27 @@ void SceneLoaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetObjectProperty", VM_GetObjectProperty);
 	ScriptManager::DefineNative(Class, "ObjectHasProperty", VM_ObjectHasProperty);
 	ScriptManager::DefineNative(Class, "SpawnObject", VM_SpawnObject);
+
+	ScriptManager::DefineNative(Class, "GetTilesetCount", VM_GetTilesetCount);
+	ScriptManager::DefineNative(Class, "GetTilesetImagePath", VM_GetTilesetImagePath);
+	ScriptManager::DefineNative(Class, "AddTileset", VM_AddTileset);
+
+	ScriptManager::DefineNative(Class, "GetLayerCount", VM_GetLayerCount);
+	ScriptManager::DefineNative(Class, "GetLayerName", VM_GetLayerName);
+	ScriptManager::DefineNative(Class, "GetLayerWidth", VM_GetLayerWidth);
+	ScriptManager::DefineNative(Class, "GetLayerHeight", VM_GetLayerHeight);
+	ScriptManager::DefineNative(Class, "GetLayerType", VM_GetLayerType);
+	ScriptManager::DefineNative(Class, "GetLayerDrawGroup", VM_GetLayerDrawGroup);
+	ScriptManager::DefineNative(Class, "GetLayerOffsetX", VM_GetLayerOffsetX);
+	ScriptManager::DefineNative(Class, "GetLayerOffsetY", VM_GetLayerOffsetY);
+	ScriptManager::DefineNative(Class, "GetLayerHorizontalParallaxFactor", VM_GetLayerHorizontalParallaxFactor);
+	ScriptManager::DefineNative(Class, "GetLayerVerticalParallaxFactor", VM_GetLayerVerticalParallaxFactor);
+	ScriptManager::DefineNative(Class, "GetLayerHorizontalConstantScroll", VM_GetLayerHorizontalConstantScroll);
+	ScriptManager::DefineNative(Class, "GetLayerVerticalConstantScroll", VM_GetLayerVerticalConstantScroll);
+	ScriptManager::DefineNative(Class, "GetLayerProperty", VM_GetLayerProperty);
+	ScriptManager::DefineNative(Class, "LayerHasProperty", VM_LayerHasProperty);
+	ScriptManager::DefineNative(Class, "AddLayer", VM_AddLayer);
+	ScriptManager::DefineNative(Class, "MergeLayer", VM_MergeLayer);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -105,6 +127,16 @@ void SceneLoaderImpl::Dispose(Obj* object) {
 	}
 }
 
+#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) { \
+	char errorString[256]; \
+	snprintf(errorString, sizeof errorString, \
+		eType " %d out of range. (%d - %d)", \
+		eIdx, \
+		eMin, \
+		eMax); \
+	throw ScriptException(errorString); \
+}
+
 /***
  * \method GetTileWidth
  * \desc Gets the width of tiles.
@@ -135,6 +167,7 @@ VMValue SceneLoaderImpl::VM_GetTileHeight(int argCount, VMValue* args, Uint32 th
 
 	return INTEGER_VAL(reader->TileHeight);
 }
+
 /***
  * \method GetObjectCount
  * \desc Gets the amount of objects.
@@ -163,7 +196,7 @@ VMValue SceneLoaderImpl::VM_GetObjectCount(int argCount, VMValue* args, Uint32 t
 /***
  * \method GetObjectClass
  * \desc Gets the class name of an object.
- * \param index (integer): Index of the object to check.
+ * \param objectIndex (integer): Index of object.
  * \return string Returns a string value.
  * \ns SceneLoader
  */
@@ -177,12 +210,7 @@ VMValue SceneLoaderImpl::VM_GetObjectClass(int argCount, VMValue* args, Uint32 t
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	if (ScriptManager::Lock()) {
@@ -195,7 +223,7 @@ VMValue SceneLoaderImpl::VM_GetObjectClass(int argCount, VMValue* args, Uint32 t
 /***
  * \method GetObjectX
  * \desc Gets the X position of an object.
- * \param index (integer): Index of the object to check.
+ * \param objectIndex (integer): Index of object.
  * \return decimal Returns a decimal value.
  * \ns SceneLoader
  */
@@ -209,12 +237,7 @@ VMValue SceneLoaderImpl::VM_GetObjectX(int argCount, VMValue* args, Uint32 threa
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	return DECIMAL_VAL(object->X);
@@ -222,7 +245,7 @@ VMValue SceneLoaderImpl::VM_GetObjectX(int argCount, VMValue* args, Uint32 threa
 /***
  * \method GetObjectY
  * \desc Gets the Y position of an object.
- * \param index (integer): Index of the object to check.
+ * \param objectIndex (integer): Index of object.
  * \return decimal Returns a decimal value.
  * \ns SceneLoader
  */
@@ -236,12 +259,7 @@ VMValue SceneLoaderImpl::VM_GetObjectY(int argCount, VMValue* args, Uint32 threa
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	return DECIMAL_VAL(object->Y);
@@ -249,7 +267,7 @@ VMValue SceneLoaderImpl::VM_GetObjectY(int argCount, VMValue* args, Uint32 threa
 /***
  * \method GetObjectProperty
  * \desc Gets a property from an object.
- * \param index (integer): Index of the object to check.
+ * \param objectIndex (integer): Index of object.
  * \param property (string): The property name.
  * \return value Returns the property, if it exists, or `null` if the property does not exist.
  * \ns SceneLoader
@@ -265,12 +283,7 @@ VMValue SceneLoaderImpl::VM_GetObjectProperty(int argCount, VMValue* args, Uint3
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	if (object->Properties && object->Properties->Exists(property)) {
@@ -281,7 +294,7 @@ VMValue SceneLoaderImpl::VM_GetObjectProperty(int argCount, VMValue* args, Uint3
 /***
  * \method ObjectHasProperty
  * \desc Checks if a property exists in an object.
- * \param index (integer): Index of the object to check.
+ * \param objectIndex (integer): Index of object.
  * \param property (string): The property name.
  * \return boolean Returns a boolean value.
  * \ns SceneLoader
@@ -297,12 +310,7 @@ VMValue SceneLoaderImpl::VM_ObjectHasProperty(int argCount, VMValue* args, Uint3
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	if (object->Properties && object->Properties->Exists(property)) {
@@ -313,11 +321,11 @@ VMValue SceneLoaderImpl::VM_ObjectHasProperty(int argCount, VMValue* args, Uint3
 /***
  * \method SpawnObject
  * \desc Spawns an object by its index.
- * \param index (integer): Index of the object to spawn.
+ * \param objectIndex (integer): Index of object.
  * \paramOpt x (number): X position of where to place the new entity.
  * \paramOpt y (number): Y position of where to place the new entity.
  * \paramOpt flag (value): Value to pass to the `Create` event. (default: `0`)
- * \paramOpt keepInScene (boolean): Whether to keep the entity in the scene.
+ * \paramOpt keepInScene (boolean): Whether to keep the entity in the scene. (default: `true`)
  * \return integer Returns an integer value.
  * \ns SceneLoader
  */
@@ -335,12 +343,7 @@ VMValue SceneLoaderImpl::VM_SpawnObject(int argCount, VMValue* args, Uint32 thre
 
 	SceneReaderObject* object = reader->GetObject(index);
 	if (object == nullptr) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Object %d out of range. (%d - %d)",
-			index,
-			0,
-			reader->GetObjectCount() - 1);
-		return NULL_VAL;
+		OUT_OF_RANGE_ERROR("Object index", index, 0, reader->GetObjectCount() - 1);
 	}
 
 	if (argCount >= 3 && !IS_NULL(args[2])) {
@@ -385,5 +388,334 @@ VMValue SceneLoaderImpl::VM_SpawnObject(int argCount, VMValue* args, Uint32 thre
 	return OBJECT_VAL(entity->Instance);
 }
 
+/***
+ * \method GetTilesetCount
+ * \desc Gets the amount of tilesets.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	Obj* obj = AS_OBJECT(args[0]);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	return INTEGER_VAL(reader->GetTilesetCount());
+}
+/***
+ * \method GetTilesetImagePath
+ * \desc Gets the Resource path of the image used by a tileset.
+ * \param tilesetIndex (integer): Index of tileset.
+ * \return string Returns a string value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetTilesetImagePath(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	Tileset* tileset = reader->GetTileset(index);
+	if (tileset == nullptr) {
+		OUT_OF_RANGE_ERROR("Tileset index", index, 0, reader->GetTilesetCount() - 1);
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(tileset->Filename);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+	return NULL_VAL;
+}
+/***
+ * \method AddTileset
+ * \desc Adds a tileset to the scene.
+ * \param tilesetIndex (integer): Index of tileset.
+ * \return integer Returns the index of the added tileset.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+	if (!reader->IsValidTilesetIndex(index)) {
+		OUT_OF_RANGE_ERROR("Tileset index", index, 0, reader->GetTilesetCount() - 1);
+	}
+
+	int tilesetIndex = reader->AddTileset(index);
+	return INTEGER_VAL(tilesetIndex);
+}
+
+#define GET_LAYER_PROPERTY(name, field, val) \
+VMValue SceneLoaderImpl::VM_GetLayer##name(int argCount, VMValue* args, Uint32 threadID) { \
+	StandardLibrary::CheckArgCount(argCount, 2); \
+	Obj* obj = AS_OBJECT(args[0]); \
+	int index = GET_ARG(1, GetInteger); \
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj); \
+	SceneLayer* layer = reader->GetLayer(index); \
+	if (layer == nullptr) { \
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1); \
+	} \
+	return val(layer->field); \
+}
+
+/***
+ * \method GetLayerCount
+ * \desc Gets the amount of layers.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	Obj* obj = AS_OBJECT(args[0]);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	return INTEGER_VAL(reader->GetLayerCount());
+}
+/***
+ * \method GetLayerName
+ * \desc Gets the name of a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return string Returns a string value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	SceneLayer* layer = reader->GetLayer(index);
+	if (layer == nullptr) {
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(layer->Name);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+	return NULL_VAL;
+}
+/***
+ * \method GetLayerWidth
+ * \desc Gets the width of a layer. For tile layers, returns the width in tiles.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(Width, Width, INTEGER_VAL)
+/***
+ * \method GetLayerHeight
+ * \desc Gets the height of a layer. For tile layers, returns the height in tiles.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(Height, Height, INTEGER_VAL)
+/***
+ * \method GetLayerType
+ * \desc Gets the type of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return <ref LAYERTYPE_*> Returns the type of the layer.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(Type, Type, INTEGER_VAL)
+/***
+ * \method GetLayerDrawGroup
+ * \desc Gets the draw group of the specified layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(DrawGroup, DrawGroup, INTEGER_VAL)
+
+/***
+ * \method GetLayerOffsetX
+ * \desc Gets the X offset of a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(OffsetX, OffsetX, DECIMAL_VAL)
+/***
+ * \method GetLayerOffsetY
+ * \desc Gets the Y offset of a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(OffsetY, OffsetY, DECIMAL_VAL)
+
+/***
+ * \method GetLayerHorizontalParallaxFactor
+ * \desc Gets the horizontal parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(HorizontalParallaxFactor, RelativeX, DECIMAL_VAL)
+/***
+ * \method GetLayerVerticalParallaxFactor
+ * \desc Gets the vertical parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(VerticalParallaxFactor, RelativeY, DECIMAL_VAL)
+
+/***
+ * \method GetLayerHorizontalConstantScroll
+ * \desc Gets the horizontal constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(HorizontalConstantScroll, ConstantX, DECIMAL_VAL)
+/***
+ * \method GetLayerVerticalConstantScroll
+ * \desc Gets the vertical constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns SceneLoader
+ */
+GET_LAYER_PROPERTY(VerticalConstantScroll, ConstantY, DECIMAL_VAL)
+
+/***
+ * \method GetLayerProperty
+ * \desc Gets a property from a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param property (string): The property name.
+ * \return value Returns the property, if it exists, or `null` if the property does not exist.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	char* property = GET_ARG(2, GetString);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	SceneLayer* layer = reader->GetLayer(index);
+	if (layer == nullptr) {
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+	}
+
+	if (layer->Properties && layer->Properties->Exists(property)) {
+		return Value::FromProperty(layer->Properties->Get(property));
+	}
+	return NULL_VAL;
+}
+/***
+ * \method LayerHasProperty
+ * \desc Checks if a property exists in a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param property (string): The property name.
+ * \return boolean Returns a boolean value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_LayerHasProperty(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	char* property = GET_ARG(2, GetString);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	SceneLayer* layer = reader->GetLayer(index);
+	if (layer == nullptr) {
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+	}
+
+	if (layer->Properties && layer->Properties->Exists(property)) {
+		return INTEGER_VAL(true);
+	}
+	return INTEGER_VAL(false);
+}
+/***
+ * \method AddLayer
+ * \desc Adds a layer to the scene.
+ * \param layerIndex (integer): Index of layer.
+ * \paramOpt keepInScene (boolean): Whether to keep the layer in the scene. (default: `true`)
+ * \paramOpt offsetX (integer): X offset of the layer. If adding a tile layer, the given offset is in tiles.
+ * \paramOpt offsetY (integer): Y offset of the layer. If adding a tile layer, the given offset is in tiles.
+ * \return integer Returns the index of the added layer.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_AddLayer(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	bool keepInScene = GET_ARG_OPT(2, GetInteger, true);
+	int offsetX = GET_ARG_OPT(3, GetInteger, 0);
+	int offsetY = GET_ARG_OPT(4, GetInteger, 0);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	SceneLayer* layer = reader->GetLayer(index);
+	if (layer == nullptr) {
+		OUT_OF_RANGE_ERROR("Layer index", index, 0, reader->GetLayerCount() - 1);
+	}
+
+	int layerIndex = reader->AddLayer(layer, keepInScene, false, offsetX, offsetY);
+	return INTEGER_VAL(layerIndex);
+}
+/***
+ * \method MergeLayer
+ * \desc Adds a layer to the scene, by merging it with another layer in the current scene.
+ * \param layerIndex (integer): Index of layer.
+ * \param destLayerIndex (integer): Index of the destination layer in the current scene.
+ * \paramOpt offsetX (integer): X offset of the layer. If it'sa tile layer, the given offset is in tiles.
+ * \paramOpt offsetY (integer): Y offset of the layer. If it's a tile layer, the given offset is in tiles.
+ * \return boolean Returns whether the layer could be merged.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_MergeLayer(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	int destLayerIndex = GET_ARG(2, GetInteger);
+	int offsetX = GET_ARG_OPT(3, GetInteger, 0);
+	int offsetY = GET_ARG_OPT(4, GetInteger, 0);
+
+	SceneReader* reader = (SceneReader*)ScriptManager::RegistryGet(obj);
+
+	SceneLayer* layer = reader->GetLayer(index);
+	if (layer == nullptr) {
+		OUT_OF_RANGE_ERROR("Loaded layer index", index, 0, reader->GetLayerCount() - 1);
+	}
+
+	if (destLayerIndex < 0 || destLayerIndex >= (int)Scene::Layers.size()) {
+		OUT_OF_RANGE_ERROR("Destination layer index", destLayerIndex, 0, (int)Scene::Layers.size() - 1);
+	}
+	if (Scene::Layers[destLayerIndex] == nullptr) {
+		char errorString[64];
+		snprintf(errorString, sizeof errorString, "Destination layer index %d is invalid.", destLayerIndex);
+		throw ScriptException(errorString);
+	}
+
+	if (reader->AddLayerIfCanMerge(layer, Scene::Layers[destLayerIndex], offsetX, offsetY)) {
+		return INTEGER_VAL(true);
+	}
+	return INTEGER_VAL(false);
+}
+
+#undef GET_LAYER_INTEGER_PROPERTY
+
 #undef GET_ARG
 #undef GET_ARG_OPT
+#undef OUT_OF_RANGE_ERROR

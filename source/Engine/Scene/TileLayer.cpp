@@ -86,6 +86,54 @@ void TileLayer::MakeTilesBackup() {
 	memcpy(TilesBackup, Tiles, DataSize);
 }
 
+SceneLayer* TileLayer::Duplicate() {
+	TileLayer* copy = new TileLayer(Width, Height);
+
+	// Copy properties
+	CopyFields(copy);
+
+	// Copy tile data
+	memcpy(copy->Tiles, Tiles, DataSize);
+
+	if (TilesBackup) {
+		copy->TilesBackup = (Uint32*)Memory::TrackedMalloc("TileLayer::TilesBackup", DataSize);
+		memcpy(copy->TilesBackup, TilesBackup, DataSize);
+	}
+
+	// Copy scroll info
+	if (UsingScrollIndexes) {
+		int length16 = HeightData * 16;
+		if (WidthData > HeightData) {
+			length16 = WidthData * 16;
+		}
+
+		copy->UsingScrollIndexes = true;
+		copy->ScrollIndexCount = ScrollIndexCount;
+		copy->ScrollIndexes = (Uint8*)Memory::Malloc(ScrollIndexCount * 16);
+		memcpy(copy->ScrollIndexes, ScrollIndexes, ScrollIndexCount * 16);
+	}
+
+	if (ScrollInfos) {
+		copy->ScrollInfoCount = ScrollInfoCount;
+		copy->ScrollInfos = (ScrollingInfo*)Memory::Malloc(ScrollInfoCount * sizeof(ScrollingInfo));
+		memcpy(copy->ScrollInfos, ScrollInfos, ScrollInfoCount * sizeof(ScrollingInfo));
+	}
+
+	// Copy deformation data
+	copy->DeformOffsetA = DeformOffsetA;
+	copy->DeformOffsetB = DeformOffsetB;
+	copy->DeformSplitLine = DeformSplitLine;
+
+	memcpy(copy->DeformSetA, DeformSetA, sizeof(DeformSetA));
+	memcpy(copy->DeformSetB, DeformSetB, sizeof(DeformSetB));
+
+	// Copy custom scanline function
+	copy->UsingCustomScanlineFunction = UsingCustomScanlineFunction;
+	copy->CustomScanlineFunction = CustomScanlineFunction;
+
+	return (SceneLayer*)copy;
+}
+
 TileLayer::~TileLayer() {
 	Memory::Free(Tiles);
 	Memory::Free(TilesBackup);

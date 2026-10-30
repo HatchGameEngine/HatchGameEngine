@@ -754,7 +754,7 @@ bool RSDKSceneReader::LoadTileset() {
 		0,
 		TileSpriteInfos.size(),
 		Filename16x16Tiles);
-	Tilesets.push_back(sceneTileset);
+	AddTilesetToList(sceneTileset);
 
 	return true;
 }
