@@ -24,6 +24,7 @@ void SceneLoaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetClassCount", VM_GetClassCount);
 	ScriptManager::DefineNative(Class, "GetClassName", VM_GetClassName);
 	ScriptManager::DefineNative(Class, "HasClass", VM_HasClass);
+	ScriptManager::DefineNative(Class, "LoadClass", VM_LoadClass);
 
 	ScriptManager::DefineNative(Class, "GetObjectCount", VM_GetObjectCount);
 	ScriptManager::DefineNative(Class, "GetObjectClass", VM_GetObjectClass);
@@ -230,6 +231,25 @@ VMValue SceneLoaderImpl::VM_HasClass(int argCount, VMValue* args, Uint32 threadI
 	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
 
 	return INTEGER_VAL(loader->HasObjectClass(className));
+}
+/***
+ * \method LoadClass
+ * \desc Loads the given class by name.
+ * \param className (string): Name of class.
+ * \return boolean Returns whether the class was loaded.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_LoadClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	char* className = GET_ARG(1, GetString);
+
+	ObjectList* list = Scene::GetStaticObjectList(className, true);
+	if (list != nullptr) {
+		return INTEGER_VAL(true);
+	}
+
+	return INTEGER_VAL(false);
 }
 
 /***

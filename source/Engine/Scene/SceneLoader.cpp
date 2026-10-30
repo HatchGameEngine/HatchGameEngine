@@ -212,7 +212,7 @@ bool SceneLoader::AddToScene(bool keepLayers, bool keepObjects, bool mergeLayers
 		float spawnX = object->X + (offsetX * TileWidth);
 		float spawnY = object->Y + (offsetY * TileHeight);
 
-		SpawnObject(object, spawnX, spawnY, true, keepObjects);
+		SpawnObject(object, spawnX, spawnY, true, keepObjects, true);
 	}
 
 	return true;
@@ -463,8 +463,8 @@ int SceneLoader::GetObjectCount(const char* name) {
 	return count;
 }
 
-Entity* SceneLoader::CreateObject(SceneLoaderObject* object, float x, float y) {
-	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str());
+Entity* SceneLoader::CreateObject(SceneLoaderObject* object, float x, float y, bool callListLoadFunction) {
+	ObjectList* objectList = Scene::GetStaticObjectList(object->Name.c_str(), callListLoadFunction);
 	if (objectList == nullptr) {
 		return nullptr;
 	}
@@ -485,8 +485,8 @@ Entity* SceneLoader::CreateObject(SceneLoaderObject* object, float x, float y) {
 	return entity;
 }
 
-Entity* SceneLoader::SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic, bool keepDynamic) {
-	Entity* entity = CreateObject(object, x, y);
+Entity* SceneLoader::SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic, bool keepDynamic, bool callListLoadFunction) {
+	Entity* entity = CreateObject(object, x, y, callListLoadFunction);
 	if (entity == nullptr) {
 		return nullptr;
 	}

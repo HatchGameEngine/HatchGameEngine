@@ -188,7 +188,7 @@ public:
 	static ObjectList* NewObjectList(const char* objectName);
 	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);
 	static ObjectList* GetObjectList(const char* objectName);
-	static ObjectList* GetStaticObjectList(const char* objectName);
+	static ObjectList* GetStaticObjectList(const char* objectName, bool callListLoadFunction = false);
 	static void AddManagers();
 	static std::vector<ObjectList*> GetObjectListPerformance();
 	static size_t AddLayer(SceneLayer* layer);

@@ -47,7 +47,8 @@ class SceneLoader {
 private:
 	std::vector<std::string> ObjectClasses;
 
-	Entity* SpawnObject(SceneLoaderObject* object, float x, float y, bool dynamic = false, bool keepDynamic = false);
+	Entity* SpawnObject(SceneLoaderObject* object, float x, float y,
+		bool dynamic = false, bool keepDynamic = false, bool callListLoadFunction = false);
 	size_t AddLayerToScene(SceneLayer* layer);
 	size_t AddLayerToSceneDynamic(SceneLayer* layer, bool mergeLayers, bool temporary, int offsetX, int offsetY);
 	bool TryMergeLayerWhenAdding(SceneLayer* srcLayer, SceneLayer* destLayer, int offsetX, int offsetY);
@@ -106,7 +107,7 @@ public:
 	SceneLoaderObject* GetObject(size_t index);
 	int GetObjectCount();
 	int GetObjectCount(const char* name);
-	Entity* CreateObject(SceneLoaderObject* object, float x, float y);
+	Entity* CreateObject(SceneLoaderObject* object, float x, float y, bool callListLoadFunction = false);
 
 	SceneLayer* GetLayer(size_t index);
 	int GetLayerCount();

@@ -22,6 +22,7 @@ public:
 	static VMValue VM_GetClassCount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetClassName(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasClass(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_LoadClass(int argCount, VMValue* args, Uint32 threadID);
 
 	static VMValue VM_GetObjectCount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetObjectClass(int argCount, VMValue* args, Uint32 threadID);

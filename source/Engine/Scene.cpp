@@ -2469,7 +2469,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 ObjectList* Scene::GetObjectList(const char* objectName) {
 	return GetObjectList(objectName, true);
 }
-ObjectList* Scene::GetStaticObjectList(const char* objectName) {
+ObjectList* Scene::GetStaticObjectList(const char* objectName, bool callListLoadFunction) {
 	ObjectList* objectList;
 
 	if (Scene::StaticObjectLists->Exists(objectName)) {
@@ -2490,6 +2490,10 @@ ObjectList* Scene::GetStaticObjectList(const char* objectName) {
 		if (objectList) {
 			Scene::StaticObjectLists->Put(objectName, objectList);
 			Scene::ObjectLists->Put(objectName, objectList);
+
+			if (callListLoadFunction) {
+				ScriptManager::CallGlobalFunction(objectList->LoadFunctionName.c_str());
+			}
 		}
 	}
 
