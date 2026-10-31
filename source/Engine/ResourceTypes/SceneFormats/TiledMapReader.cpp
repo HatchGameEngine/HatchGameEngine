@@ -257,7 +257,7 @@ Property TiledMapReader::ParseProperty(XMLNode* property) {
 	return val;
 }
 
-void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<Property>* properties) {
+void TiledMapReader::ParsePropertyNode(XMLNode* node, PropertyMap* properties) {
 	if (!node->attributes.Exists("name")) {
 		return;
 	}
@@ -457,7 +457,7 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 				}
 
 				if (tilesetPtr->PropertiesPerTile[tileID] == nullptr) {
-					tilesetPtr->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+					tilesetPtr->PropertiesPerTile[tileID] = new PropertyMap();
 				}
 
 				TiledMapReader::ParsePropertyNode(
@@ -472,7 +472,7 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 
 void TiledMapReader::SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value) {
 	if (tileset->PropertiesPerTile[tileID] == nullptr) {
-		tileset->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+		tileset->PropertiesPerTile[tileID] = new PropertyMap();
 	}
 
 	tileset->PropertiesPerTile[tileID]->Put(name, value);
@@ -540,7 +540,7 @@ void TiledMapReader::ParseSharedLayerFields(TiledLayer* layer, XMLNode* node) {
 				}
 
 				if (layer->Properties == NULL) {
-					layer->Properties = new HashMap<Property>(NULL, 4);
+					layer->Properties = new PropertyMap();
 				}
 
 				TiledMapReader::ParsePropertyNode(
@@ -1043,7 +1043,7 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 				}
 
 				if (Scene::Properties == NULL) {
-					Scene::Properties = new HashMap<Property>(NULL, 4);
+					Scene::Properties = new PropertyMap();
 				}
 
 				TiledMapReader::ParsePropertyNode(

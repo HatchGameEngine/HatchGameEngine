@@ -19069,7 +19069,7 @@ VMValue TileInfo_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	PropertyMap* properties = tileset->PropertiesPerTile[tileID];
 	if (!properties || !properties->Exists(property)) {
 		return NULL_VAL;
 	}
@@ -19098,7 +19098,7 @@ VMValue TileInfo_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(false);
 	}
 
-	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	PropertyMap* properties = tileset->PropertiesPerTile[tileID];
 	if (!properties) {
 		return INTEGER_VAL(false);
 	}

@@ -7,6 +7,7 @@
 #include <Engine/Scene/LayerGroup.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/Property.h>
+#include <Engine/Types/PropertyMap.h>
 #include <Engine/Types/Tileset.h>
 
 struct TiledLayer {
@@ -18,13 +19,13 @@ struct TiledLayer {
 	float ParallaxY = 1.0;
 	float ConstantScrollX = 0.0;
 	float ConstantScrollY = 0.0;
-	HashMap<Property>* Properties = nullptr;
+	PropertyMap* Properties = nullptr;
 };
 
 class TiledMapReader {
 private:
 	static Property ParseProperty(XMLNode* property);
-	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
+	static void ParsePropertyNode(XMLNode* node, PropertyMap* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
 	static bool GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length);
 	static Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);

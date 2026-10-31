@@ -12,6 +12,7 @@ class ObjectList;
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/Property.h>
+#include <Engine/Types/PropertyMap.h>
 
 #ifdef SCRIPTABLE_ENTITY
 #define ENTITY_PARENT_CLASS ScriptEntity
@@ -153,7 +154,7 @@ public:
 	Entity* PrevSceneEntity = NULL;
 	Entity* NextSceneEntity = NULL;
 
-	HashMap<Property>* Properties = NULL;
+	PropertyMap* Properties = NULL;
 
 	static HashMap<EntitySpawnFunction>* SpawnFunctions;
 	static bool DisableAutoAnimate;
