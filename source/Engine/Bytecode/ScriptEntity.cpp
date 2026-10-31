@@ -908,7 +908,7 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 		other->InitProperties();
 
 		Properties->WithAll([other](Uint32 key, Property value) -> void {
-			other->Properties->Put(key, value);
+			other->Properties->Put(key, Property::Duplicate(value));
 		});
 	}
 }

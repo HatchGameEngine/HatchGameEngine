@@ -39,6 +39,7 @@ struct Property {
 	static Property MakeString(const char* value);
 	static Property MakeString(const char* value, int length);
 	static Property MakeArray(PropertyArray value);
+	static Property Duplicate(Property property);
 	static void Delete(Property value);
 };
 
