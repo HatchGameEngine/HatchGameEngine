@@ -768,6 +768,10 @@ VMValue EntityImpl::VM_GetPropertyNames(int argCount, VMValue* args, Uint32 thre
 	StandardLibrary::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 
+	if (!ScriptManager::Lock()) {
+		return NULL_VAL;
+	}
+
 	ObjArray* array = NewArray();
 	if (self && self->Properties) {
 		self->Properties->WithAll([array](char* key, Property) -> void {
@@ -779,7 +783,7 @@ VMValue EntityImpl::VM_GetPropertyNames(int argCount, VMValue* args, Uint32 thre
 			array->Values->push_back(OBJECT_VAL(CopyString(key)));
 		});
 	}
-
+	ScriptManager::Unlock();
 	return OBJECT_VAL(array);
 }
 
