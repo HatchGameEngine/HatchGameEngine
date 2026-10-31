@@ -31,7 +31,7 @@ void EntityImpl::Init() {
 
 #define ENTITY_NATIVE_FN(name) \
 	{ \
-		ObjNative* native = NewNative(EntityImpl::VM_##name); \
+		ObjNativeFunction* native = NewNative(EntityImpl::VM_##name); \
 		Class->Methods->Put(#name, OBJECT_VAL(native)); \
 		ParentClass->Methods->Put(#name, OBJECT_VAL(native)); \
 	}
