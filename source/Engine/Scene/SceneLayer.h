@@ -5,6 +5,7 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Types/Property.h>
+#include <Engine/Types/PropertyMap.h>
 
 class SceneLayer {
 public:
@@ -37,7 +38,7 @@ public:
 	int DrawGroup = 0;
 	Uint8 DrawBehavior = 0;
 
-	HashMap<Property>* Properties = NULL;
+	PropertyMap* Properties = NULL;
 
 	bool UseBlending = false;
 	Uint8 BlendMode = BlendMode_NORMAL;

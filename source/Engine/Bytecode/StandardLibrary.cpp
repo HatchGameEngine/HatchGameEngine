@@ -13195,6 +13195,28 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 	return Value::FromProperty(Scene::Properties->Get(property));
 }
 /***
+ * Scene.GetPropertyNames
+ * \desc Gets the names of all properties in the scene.
+ * \return array Returns an array value.
+ * \ns Scene
+ */
+VMValue Scene_GetPropertyNames(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!ScriptManager::Lock()) {
+		return NULL_VAL;
+	}
+
+	ObjArray* array = NewArray();
+	if (Scene::Properties) {
+		Scene::Properties->WithAll([array](char* key, Property) -> void {
+			array->Values->push_back(OBJECT_VAL(CopyString(key)));
+		});
+	}
+	ScriptManager::Unlock();
+	return OBJECT_VAL(array);
+}
+/***
  * Scene.GetLayerCount
  * \desc Gets the amount of layers in the active scene.
  * \return integer Returns the amount of layers in the active scene.
@@ -13306,6 +13328,33 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
 	return Value::FromProperty(Scene::Layers[index]->PropertyGet(property));
+}
+/***
+ * Scene.GetLayerPropertyNames
+ * \desc Gets the names of all properties in the specified layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return array Returns an array value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerPropertyNames(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	if (!ScriptManager::Lock()) {
+		return NULL_VAL;
+	}
+
+	SceneLayer* layer = Scene::Layers[index];
+
+	ObjArray* array = NewArray();
+	if (layer->Properties) {
+		layer->Properties->WithAll([array](char* key, Property) -> void {
+			array->Values->push_back(OBJECT_VAL(CopyString(key)));
+		});
+	}
+	ScriptManager::Unlock();
+	return OBJECT_VAL(array);
 }
 /***
  * Scene.GetLayerExists
@@ -19069,7 +19118,7 @@ VMValue TileInfo_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	PropertyMap* properties = tileset->PropertiesPerTile[tileID];
 	if (!properties || !properties->Exists(property)) {
 		return NULL_VAL;
 	}
@@ -19098,7 +19147,7 @@ VMValue TileInfo_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(false);
 	}
 
-	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	PropertyMap* properties = tileset->PropertiesPerTile[tileID];
 	if (!properties) {
 		return INTEGER_VAL(false);
 	}
@@ -22395,6 +22444,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, Restart);
 	DEF_NATIVE(Scene, PropertyExists);
 	DEF_NATIVE(Scene, GetProperty);
+	DEF_NATIVE(Scene, GetPropertyNames);
 	DEF_NATIVE(Scene, GetLayerCount);
 	DEF_NATIVE(Scene, GetLayerIndex);
 	DEF_NATIVE(Scene, GetLayerName);
@@ -22403,6 +22453,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
+	DEF_NATIVE(Scene, GetLayerPropertyNames);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
 	DEF_NATIVE(Scene, GetLayerDeformSplitLine);
 	DEF_NATIVE(Scene, GetLayerDeformOffsetA);
