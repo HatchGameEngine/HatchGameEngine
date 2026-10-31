@@ -928,7 +928,7 @@ void Graphics::DoScreenPostProcess() {
 	Graphics::UpdateOrthoFlipped(ww, wh);
 	Graphics::SetDepthTesting(false);
 	Graphics::SetBlendMode(BlendMode_NORMAL);
-	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 	Graphics::TextureBlend = false;
 
 	Graphics::SetUserShader(Graphics::PostProcessShader);
@@ -939,8 +939,8 @@ void Graphics::DoScreenPostProcess() {
 		Graphics::FramebufferTexture->Height,
 		0.0,
 		0.0,
-		Application::WindowWidth,
-		Application::WindowHeight);
+		ww,
+		wh);
 	Graphics::SetUserShader(nullptr);
 }
 void Graphics::CopyFramebuffer(int sourceX,
