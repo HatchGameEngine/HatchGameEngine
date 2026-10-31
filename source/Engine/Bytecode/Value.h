@@ -28,6 +28,7 @@ public:
 	static bool Falsey(VMValue a);
 	static VMValue Delink(VMValue val);
 	static VMValue FromProperty(Property property);
+	static Property ToProperty(VMValue value);
 };
 
 #endif /* ENGINE_BYTECODE_VALUES_H */

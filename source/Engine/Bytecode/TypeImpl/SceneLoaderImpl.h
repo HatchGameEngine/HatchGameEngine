@@ -17,6 +17,11 @@
 	IMPL_FN(GetObjectY) \
 	IMPL_FN(GetObjectProperty) \
 	IMPL_FN(ObjectHasProperty) \
+	IMPL_FN(SetObjectClass) \
+	IMPL_FN(SetObjectX) \
+	IMPL_FN(SetObjectY) \
+	IMPL_FN(SetObjectProperty) \
+	IMPL_FN(RemoveObjectProperty) \
 	IMPL_FN(SpawnObject) \
 	IMPL_FN(GetTilesetCount) \
 	IMPL_FN(GetTilesetImagePath) \

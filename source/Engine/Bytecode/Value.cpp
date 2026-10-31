@@ -335,3 +335,39 @@ VMValue Value::FromProperty(Property property) {
 
 	return NULL_VAL;
 }
+
+Property Value::ToProperty(VMValue value) {
+	switch (value.Type) {
+	case VAL_NULL:
+		return Property::MakeNull();
+	case VAL_INTEGER:
+		return Property::MakeInteger(AS_INTEGER(value));
+	case VAL_DECIMAL:
+		return Property::MakeDecimal(AS_DECIMAL(value));
+	case VAL_OBJECT: {
+		switch (OBJECT_TYPE(value)) {
+		case OBJ_STRING:
+			return Property::MakeString(AS_CSTRING(value));
+		case OBJ_ARRAY: {
+			PropertyArray propArray;
+			PropertyArray::Init(&propArray);
+
+			ObjArray* array = AS_ARRAY(value);
+			for (size_t i = 0; i < array->Values->size(); i++) {
+				VMValue arrValue = (*array->Values)[i];
+				AddPropertyToArray(&propArray, Value::ToProperty(arrValue));
+			}
+
+			return Property::MakeArray(propArray);
+		}
+		default:
+			break;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+
+	return Property::MakeNull();
+}

@@ -338,7 +338,7 @@ VMValue SceneLoaderImpl::VM_GetObjectProperty(int argCount, VMValue* args, Uint3
 		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
-	if (object->Properties && object->Properties->Exists(property)) {
+	if (object->Properties->Exists(property)) {
 		return Value::FromProperty(object->Properties->Get(property));
 	}
 	return NULL_VAL;
@@ -365,10 +365,137 @@ VMValue SceneLoaderImpl::VM_ObjectHasProperty(int argCount, VMValue* args, Uint3
 		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
 	}
 
-	if (object->Properties && object->Properties->Exists(property)) {
+	if (object->Properties->Exists(property)) {
 		return INTEGER_VAL(true);
 	}
 	return INTEGER_VAL(false);
+}
+/***
+ * \method SetObjectClass
+ * \desc Sets the class of an object.
+ * \param objectIndex (integer): Index of object.
+ * \param class (decimal): The class.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_SetObjectClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	char* objectClass = GET_ARG(2, GetString);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	SceneLoaderObject* object = loader->GetObject(index);
+	if (object == nullptr) {
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	object->Name = std::string(objectClass);
+
+	return NULL_VAL;
+}
+/***
+ * \method SetObjectX
+ * \desc Sets the X position of an object.
+ * \param objectIndex (integer): Index of object.
+ * \param x (decimal): X position.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_SetObjectX(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	float x = GET_ARG(2, GetDecimal);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	SceneLoaderObject* object = loader->GetObject(index);
+	if (object == nullptr) {
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	object->X = x;
+
+	return NULL_VAL;
+}
+/***
+ * \method SetObjectY
+ * \desc Sets the Y position of an object.
+ * \param objectIndex (integer): Index of object.
+ * \param y (decimal): Y position.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_SetObjectY(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	float y = GET_ARG(2, GetDecimal);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	SceneLoaderObject* object = loader->GetObject(index);
+	if (object == nullptr) {
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	object->Y = y;
+
+	return NULL_VAL;
+}
+/***
+ * \method SetObjectProperty
+ * \desc Sets a property of an object.
+ * \param objectIndex (integer): Index of object.
+ * \param propertyName (string): The property name.
+ * \param propertyValue (value): The property value.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_SetObjectProperty(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	char* propertyName = GET_ARG(2, GetString);
+	VMValue propertyValue = args[3];
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	SceneLoaderObject* object = loader->GetObject(index);
+	if (object == nullptr) {
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	object->Properties->Put(propertyName, Value::ToProperty(propertyValue));
+
+	return NULL_VAL;
+}
+/***
+ * \method RemoveObjectProperty
+ * \desc Removes a property from an object.
+ * \param objectIndex (integer): Index of object.
+ * \param propertyName (string): The property name.
+ * \ns SceneLoader
+ */
+VMValue SceneLoaderImpl::VM_RemoveObjectProperty(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Obj* obj = AS_OBJECT(args[0]);
+	int index = GET_ARG(1, GetInteger);
+	char* propertyName = GET_ARG(2, GetString);
+
+	SceneLoader* loader = (SceneLoader*)ScriptManager::RegistryGet(obj);
+
+	SceneLoaderObject* object = loader->GetObject(index);
+	if (object == nullptr) {
+		OUT_OF_RANGE_ERROR("Object index", index, 0, loader->GetObjectCount() - 1);
+	}
+
+	object->Properties->Remove(propertyName);
+
+	return NULL_VAL;
 }
 /***
  * \method SpawnObject
