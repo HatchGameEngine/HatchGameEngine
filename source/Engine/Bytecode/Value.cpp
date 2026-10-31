@@ -97,8 +97,15 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 	switch (OBJECT_TYPE(value)) {
 	case OBJ_CLASS:
 		return AS_CLASS(value)->Name;
-	case OBJ_BOUND_METHOD:
-		return AS_BOUND_METHOD(value)->Method->Name;
+	case OBJ_BOUND_METHOD: {
+		ObjBoundMethod* bound = AS_BOUND_METHOD(value);
+
+		if (bound->IsBoundToNative()) {
+			return "native";
+		}
+
+		return ((ObjFunction*)bound->Method)->Name;
+	}
 	case OBJ_CLOSURE:
 		return AS_CLOSURE(value)->Function->Name;
 	case OBJ_FUNCTION:

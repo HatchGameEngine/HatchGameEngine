@@ -322,7 +322,7 @@ enum ObjType {
 #define AS_CLOSURE(value) ((ObjClosure*)AS_OBJECT(value))
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJECT(value))
 #define AS_INSTANCE(value) ((ObjInstance*)AS_OBJECT(value))
-#define AS_NATIVE_FUNCTION(value) (((ObjNative*)AS_OBJECT(value))->Function)
+#define AS_NATIVE_FUNCTION(value) (((ObjNativeFunction*)AS_OBJECT(value))->Function)
 #define AS_STRING(value) ((ObjString*)AS_OBJECT(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
@@ -362,7 +362,7 @@ struct ObjFunction {
 	struct ObjClass* Class;
 	size_t Index;
 };
-struct ObjNative {
+struct ObjNativeFunction {
 	Obj Object;
 	NativeFn Function;
 };
@@ -403,10 +403,14 @@ struct ObjInstance {
 };
 struct ObjBoundMethod {
 	Obj Object;
-	ObjFunction* Method;
+	Obj* Method; // Can be either an ObjFunction or an ObjNativeFunction
 	VMValue* Arguments;
 	Uint8 ArgumentCount;
 	bool HasReceiver;
+
+	bool IsBoundToNative() {
+		return Method->Type == OBJ_NATIVE_FUNCTION;
+	}
 };
 struct ObjArray {
 	Obj Object;
@@ -472,14 +476,14 @@ ObjString* CopyString(const char* chars);
 ObjString* CopyString(std::string path);
 ObjString* CopyString(ObjString* string);
 ObjFunction* NewFunction();
-ObjNative* NewNative(NativeFn function);
+ObjNativeFunction* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
 ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
 ObjClass* NewClass(const char* className);
 ObjInstance* NewInstance(ObjClass* klass);
 ObjEntity* NewEntity(ObjClass* klass);
-ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount);
+ObjBoundMethod* NewBoundMethod(Obj* method, VMValue* args, Uint8 argCount);
 ObjArray* NewArray();
 ObjMap* NewMap();
 ObjNamespace* NewNamespace(Uint32 hash);

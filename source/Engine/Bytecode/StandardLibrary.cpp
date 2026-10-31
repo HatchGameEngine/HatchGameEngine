@@ -288,6 +288,24 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjNativeFunction* GetNativeFunction(VMValue* args, int index, Uint32 threadID) {
+	ObjNativeFunction* value = NULL;
+	if (ScriptManager::Lock()) {
+		if (IS_NATIVE_FUNCTION(args[index])) {
+			value = (ObjNativeFunction*)(AS_OBJECT(args[index]));
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    GetObjectTypeString(OBJ_NATIVE_FUNCTION),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
 	VMValue value = NULL_VAL;
 	if (ScriptManager::Lock()) {
@@ -617,6 +635,9 @@ ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID)
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+ObjNativeFunction* StandardLibrary::GetNativeFunction(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetNativeFunction(args, index, threadID);
 }
 ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetShader(args, index, threadID);
@@ -19152,7 +19173,10 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjFunction* callback = NULL;
 	if (IS_BOUND_METHOD(args[0])) {
-		callback = GET_ARG(0, GetBoundMethod)->Method;
+		ObjBoundMethod* bound = GET_ARG(0, GetBoundMethod);
+		if (!bound->IsBoundToNative()) {
+			callback = (ObjFunction*)bound->Method;
+		}
 	}
 	else if (IS_FUNCTION(args[0])) {
 		callback = AS_FUNCTION(args[0]);
