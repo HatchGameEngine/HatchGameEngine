@@ -223,7 +223,7 @@ void RSDKSceneReader::LoadPropertyList() {
 		nameHead++;
 	}
 	PropertyHashes->Put(nameStart, nameStart);
-	FilterHash = PropertyHashes->HashFunction("filter", 6);
+	FilterHash = PropertyHashes->HashFunction(ENTITY_FILTER_PROPERTY_NAME, strlen(ENTITY_FILTER_PROPERTY_NAME));
 
 	r->Close();
 }
@@ -557,7 +557,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		// Determine whether to spawn the entity
 		int filter = 0xFF;
 		if (PropertyHashes->Exists(FilterHash)) {
-			Property prop = properties->Get("filter");
+			Property prop = properties->Get(ENTITY_FILTER_PROPERTY_NAME);
 			if (prop.Type == PROPERTY_INTEGER) {
 				filter = prop.as.Integer;
 			}

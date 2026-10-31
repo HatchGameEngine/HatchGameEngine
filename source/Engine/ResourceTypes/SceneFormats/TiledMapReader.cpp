@@ -828,8 +828,8 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 		object_x += offsetX;
 		object_y += offsetY;
 
-		int filter = object->attributes.Exists("filter")
-			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
+		int filter = object->attributes.Exists(ENTITY_FILTER_PROPERTY_NAME)
+			? (int)XMLParser::TokenToNumber(object->attributes.Get(ENTITY_FILTER_PROPERTY_NAME))
 			: 0xFF;
 
 		if (!filter) {
@@ -876,8 +876,8 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 		}
 		obj->Filter = filter;
 
-		if (!object->attributes.Exists("filter")) {
-			obj->Properties->Put("filter", Property::MakeInteger(filter));
+		if (!object->attributes.Exists(ENTITY_FILTER_PROPERTY_NAME)) {
+			obj->Properties->Put(ENTITY_FILTER_PROPERTY_NAME, Property::MakeInteger(filter));
 		}
 
 		if (object->attributes.Exists("width") && object->attributes.Exists("height")) {

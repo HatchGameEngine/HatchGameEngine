@@ -20,6 +20,8 @@ class ObjectList;
 #define ENTITY_PARENT_CLASS Entity
 #endif
 
+#define ENTITY_FILTER_PROPERTY_NAME "filter"
+
 typedef Entity* (*EntitySpawnFunction)();
 typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 

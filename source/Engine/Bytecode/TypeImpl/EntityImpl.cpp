@@ -758,6 +758,30 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
 	}
 	return NULL_VAL;
 }
+/***
+ * \method GetPropertyNames
+ * \desc Gets the names of all properties in the entity.
+ * \return array Returns an array value.
+ * \ns Entity
+ */
+VMValue EntityImpl::VM_GetPropertyNames(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptEntity* self = GET_ENTITY(0);
+
+	ObjArray* array = NewArray();
+	if (self && self->Properties) {
+		self->Properties->WithAll([array](char* key, Property) -> void {
+			// Ignore "filter"
+			if (strcmp(key, ENTITY_FILTER_PROPERTY_NAME) == 0) {
+				return;
+			}
+
+			array->Values->push_back(OBJECT_VAL(CopyString(key)));
+		});
+	}
+
+	return OBJECT_VAL(array);
+}
 
 /***
  * \method SetViewVisibility
