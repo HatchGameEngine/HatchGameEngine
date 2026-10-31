@@ -3785,7 +3785,11 @@ void Scene::Dispose() {
 
 	Scene::UnloadTileCollisions();
 
+	// Dispose of properties
 	if (Scene::Properties) {
+		Scene::Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
