@@ -4336,6 +4336,13 @@ void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 		return;
 	}
 
+	// If replacing a tile with EmptyTile, remake the tile buffers
+	if (tile == Scene::EmptyTile) {
+		layer->RemakeTileBuffers = true;
+		return;
+	}
+
+	// If there is currently no tile in this position, remake the tile buffers
 	size_t tileBufferIndex = layer->TileBufferIndexes[tileIndex];
 	if (tileBufferIndex == SIZE_MAX) {
 		layer->RemakeTileBuffers = true;
