@@ -1018,7 +1018,7 @@ VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
 
 		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
-			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return INTEGER_VAL(0);
 		}
 
@@ -1051,7 +1051,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		if (animator->CurrentFrame >=
-			sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return NULL_VAL;
 		}
 
