@@ -2773,7 +2773,7 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
 	int cPlane = GET_ARG(3, GetInteger);
 	int xOffset = GET_ARG(4, GetInteger);
 	int yOffset = GET_ARG(5, GetInteger);
-	int setPos = GET_ARG(6, GetInteger);
+	int setPos = !!GET_ARG(6, GetInteger);
 
 	if (!entity->EntityPtr) {
 		return INTEGER_VAL(false);
