@@ -15156,7 +15156,7 @@ VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32
 	CHECK_SCENE_LAYER_INDEX(index);
 	CHECK_IS_TILE_LAYER(index);
 	TileLayer* layer = (TileLayer*)Scene::Layers[index];
-	if (args[0].Type == VAL_NULL) {
+	if (args[1].Type == VAL_NULL) {
 		layer->UsingCustomScanlineFunction = false;
 	}
 	else {
