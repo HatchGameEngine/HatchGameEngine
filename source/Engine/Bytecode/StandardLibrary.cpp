@@ -15024,6 +15024,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		layer->ScrollInfos[g].RelativeParallax = BufferedScrollInfos[g].relative;
 		layer->ScrollInfos[g].ConstantParallax = BufferedScrollInfos[g].constant;
 		layer->ScrollInfos[g].CanDeform = BufferedScrollInfos[g].canDeform;
+		layer->ScrollInfos[g].Offset = 0.0f;
 	}
 
 	int length16 = layer->HeightData * 16;
