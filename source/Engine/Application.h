@@ -72,6 +72,7 @@ private:
 	static void MainLoopCallback(void* p);
 	static void TakeScreenshotCallback(OperationResult result);
 	static void DrawPerformance();
+	static void DrawPaletteViewer();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
@@ -92,6 +93,13 @@ private:
 	static void RunDevMenu();
 	static void DevMenu_DrawMainMenu();
 	static void DevMenu_DrawTitleBar();
+	static void DevMenu_ScrollToSelection();
+	static bool DevMenu_IsActionPressed(const char* action);
+	static bool DevMenu_IsActionHeld(const char* action);
+	static bool DevMenu_IsActionRepeated(const char* action);
+	static bool DevMenu_IsConfirmPressed();
+	static void DevMenu_UpdateTimer();
+	static bool DevMenu_MoveSelection(int& selection, int count);
 	static void DevMenu_MainMenu();
 	static void DevMenu_CategorySelectMenu();
 	static void DevMenu_OpenResourcesBrowser();

@@ -20695,6 +20695,11 @@ They require the Game SDK library to be present.
 	*/
 	DEF_ENUM_CLASS(KeyBind, DevViewHitboxes);
 	/***
+	* \enum KeyBind_DevPaletteViewer
+	* \desc Palette viewer keybind, which steps through the palettes 8 at a time. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevPaletteViewer);
+	/***
 	* \enum KeyBind_DevMenuToggle
 	* \desc Open/close dev menu keybind. (dev)
 	*/
