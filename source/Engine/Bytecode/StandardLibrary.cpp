@@ -11192,7 +11192,7 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
 	int scaleZ = GET_ARG(3, GetDecimal);
 	MatrixHelper helper;
 	memset(&helper, 0, sizeof(helper));
-	helper[0][0] = scaleZ;
+	helper[0][0] = scaleX;
 	helper[1][0] = 0.0;
 	helper[2][0] = 0.0;
 	helper[3][0] = 0.0;
@@ -11332,14 +11332,14 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 	memset(&helper, 0, sizeof(helper));
 	double sineX = Math::Sin1024(rotationX) / 4.0;
 	double cosineX = Math::Cos1024(rotationX) / 4.0;
-	double sineY = Math::Sin1024(rotationX) / 4.0;
-	double cosineY = Math::Cos1024(rotationX) / 4.0;
-	double sineZ = Math::Sin1024(rotationX) / 4.0;
-	double cosineZ = Math::Cos1024(rotationX) / 4.0;
+	double sineY = Math::Sin1024(rotationY) / 4.0;
+	double cosineY = Math::Cos1024(rotationY) / 4.0;
+	double sineZ = Math::Sin1024(rotationZ) / 4.0;
+	double cosineZ = Math::Cos1024(rotationZ) / 4.0;
 
 	helper[0][0] = (cosineZ * cosineY / 256.0) + (sineZ * (sineY * sineX / 256.0) / 256.0);
 	helper[0][1] = -(sineZ * cosineX) / 256.0;
-	helper[0][2] = (sineZ * (cosineY * cosineX / 256.0) / 256.0) - (cosineZ * cosineY / 256.0);
+	helper[0][2] = (sineZ * (cosineY * sineX / 256.0) / 256.0) - (cosineZ * sineY / 256.0);
 	helper[0][3] = 0.0;
 	helper[1][0] = (sineZ * cosineY / 256.0) - (cosineZ * (sineY * sineX / 256.0) / 256.0);
 	helper[1][1] = cosineZ * cosineX / 256.0;
