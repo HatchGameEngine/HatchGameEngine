@@ -14231,6 +14231,8 @@ VMValue Scene_CopyTiles(int argCount, VMValue* args, Uint32 threadID) {
 			if (dstLayer->UsingTileBuffers) {
 				dstLayer->RemakeTileBuffers = true;
 			}
+
+			Scene::AnyLayerTileChange = true;
 		}
 	}
 
