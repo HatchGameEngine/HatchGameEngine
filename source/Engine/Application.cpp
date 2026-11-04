@@ -2006,11 +2006,9 @@ void Application::DrawPaletteViewer() {
 		float bankX = startX + (bank % 4) * bankWidth;
 		float bankY = startY + (bank / 4) * bankHeight;
 		for (int c = 0; c < 256; c++) {
-			Uint32 color = ColorUtils::Convert(Graphics::PaletteColors[bank][c], Graphics::PreferredPixelFormat, PixelFormat_RGB888);
-#if HATCH_LITTLE_ENDIAN
-			color = ((color & 0xFF) << 16) | (color & 0x00FF00) | ((color >> 16) & 0xFF);
-#endif
-			Application::SetBlendColor((int)color);
+			float rgb[3];
+			ColorUtils::SeparateRGB(Graphics::PaletteColors[bank][c], rgb);
+			Graphics::SetBlendColor(rgb[0], rgb[1], rgb[2], 1.0);
 			Graphics::FillRectangle(bankX + (c & 0xF) * cellWidth, bankY + (c >> 4) * cellHeight, cellWidth, cellHeight);
 		}
 	}
