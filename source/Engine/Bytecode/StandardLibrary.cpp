@@ -5036,6 +5036,32 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
+
+#define TEXTARRAY_GET_CHAR(index) \
+	int curChar = 0; \
+	{ \
+		VMValue charVal = (*string->Values)[index]; \
+		if (IS_INTEGER(charVal)) \
+			curChar = AS_INTEGER(charVal); \
+	}
+
+#define TEXTARRAY_GET_OFFSET(offsets, index, out) \
+	float out = 0.0f; \
+	if (useCharOffsets && (index) >= 0 && (index) < (int)(offsets)->Values->size()) { \
+		VMValue offsetVal = (*(offsets)->Values)[index]; \
+		if (IS_DECIMAL(offsetVal)) \
+			out = std::floor(AS_DECIMAL(offsetVal)); \
+		else if (IS_INTEGER(offsetVal)) \
+			out = (float)AS_INTEGER(offsetVal); \
+	}
+
+#define TEXTARRAY_DRAW_CHAR(left, offsetIndex) \
+	{ \
+		TEXTARRAY_GET_OFFSET(charOffsetsX, offsetIndex, offsetX); \
+		TEXTARRAY_GET_OFFSET(charOffsetsY, offsetIndex, offsetY); \
+		Graphics::DrawSprite(sprite, animation, curChar, (left) - anim.Frames[curChar].OffsetX + offsetX, y + offsetY, false, false, 1.0f, 1.0f, 0.0f, paletteID); \
+	}
+
 /***
  * Draw.TextArray
  * \desc Draws a series of sprites based on a converted sprite string.
@@ -5068,281 +5094,91 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
 		int paletteID = GET_ARG_OPT(11, GetInteger, 0);
-
+		
 		CHECK_PALETTE_INDEX(paletteID);
-
-		if (sprite && string && animation >= 0 &&
+		
+		if (sprite && string && string->Values->size() > 0 && animation >= 0 &&
 			animation < (int)sprite->Animations.size()) {
-			startFrame =
-				(int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
-
-			if (endFrame <= 0 || endFrame > (int)string->Values->size()) {
-				endFrame = (int)string->Values->size();
+			Animation& anim = sprite->Animations[animation];
+			int length = (int)string->Values->size();
+			
+			startFrame = (int)Math::Clamp(startFrame, 0, length - 1);
+			
+			if (endFrame <= 0 || endFrame > length) {
+				endFrame = length;
 			}
-
-			int charOffsetIndex = 0;
+			
+			bool useCharOffsets = charOffsetsX && charOffsetsY &&
+				charOffsetsX->Values->size() >= (size_t)(endFrame - startFrame) &&
+				charOffsetsY->Values->size() >= (size_t)(endFrame - startFrame);
+			
+			x = std::floor(x);
+			y = std::floor(y);
+			
 			switch (align) {
-			case ALIGN_LEFT:
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				case ALIGN_LEFT: {
+					int charOffsetIndex = 0;
 					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
+						TEXTARRAY_GET_CHAR(startFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							TEXTARRAY_DRAW_CHAR(x, charOffsetIndex);
+							x += spacing + anim.Frames[curChar].Width;
 							++charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
-						}
-					}
-				}
-				break;
-
-			case ALIGN_CENTER:
-				--endFrame;
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
-					charOffsetIndex = endFrame;
+				
+				case ALIGN_CENTER: {
+					--endFrame;
+					int charOffsetIndex = endFrame;
 					for (; endFrame >= startFrame; --endFrame) {
-						VMValue val = (*string->Values)[endFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x - (frame.Width / 2) + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x = (x - frame.Width) - spacing;
+						TEXTARRAY_GET_CHAR(endFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							int width = anim.Frames[curChar].Width;
+							TEXTARRAY_DRAW_CHAR(x - width, charOffsetIndex);
+							x = (x - width) - spacing;
 							--charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; endFrame >= startFrame; --endFrame) {
-						VMValue val = (*string->Values)[endFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x - frame.Width / 2,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x = (x - frame.Width) - spacing;
+				
+				case ALIGN_RIGHT: {
+					int totalWidth = 0;
+					for (int pos = startFrame; pos < endFrame; ++pos) {
+						TEXTARRAY_GET_CHAR(pos);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							if (totalWidth) {
+								totalWidth += spacing;
+							}
+							totalWidth += anim.Frames[curChar].Width;
 						}
 					}
-				}
-				break;
-
-			case ALIGN_RIGHT:
-				int totalWidth = 0;
-				for (int pos = startFrame; pos < endFrame; ++pos) {
-					VMValue val = (*string->Values)[pos];
-					int curChar = 0;
-					if (ScriptManager::DoIntegerConversion(val, threadID)) {
-						curChar = AS_INTEGER(val);
-					}
-					if (curChar >= 0 &&
-						curChar <
-							sprite->Animations[animation].FrameCount) {
-						totalWidth += sprite->Animations[animation]
-								      .Frames[curChar]
-								      .Width +
-							spacing;
-					}
-				}
-				x -= totalWidth;
-
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+					x -= totalWidth;
+					
+					int charOffsetIndex = 0;
 					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
+						TEXTARRAY_GET_CHAR(startFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							TEXTARRAY_DRAW_CHAR(x, charOffsetIndex);
+							x += spacing + anim.Frames[curChar].Width;
 							++charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
-						}
-					}
-				}
-				break;
 			}
 		}
-
+		
 		ScriptManager::Unlock();
 		return NULL_VAL;
 	}
 	return NULL_VAL;
 }
+#undef TEXTARRAY_GET_CHAR
+#undef TEXTARRAY_GET_OFFSET
+#undef TEXTARRAY_DRAW_CHAR
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
