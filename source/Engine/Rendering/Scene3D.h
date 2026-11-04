@@ -51,17 +51,17 @@ struct Scene3D {
 			Buffer->Clear();
 		}
 	}
-	void SetAmbientLighting(Uint32 r, Uint32 g, Uint32 b) {
+	void SetAmbientLighting(float r, float g, float b) {
 		Lighting.Ambient.R = r;
 		Lighting.Ambient.G = g;
 		Lighting.Ambient.B = b;
 	}
-	void SetDiffuseLighting(Uint32 r, Uint32 g, Uint32 b) {
+	void SetDiffuseLighting(float r, float g, float b) {
 		Lighting.Diffuse.R = r;
 		Lighting.Diffuse.G = g;
 		Lighting.Diffuse.B = b;
 	}
-	void SetSpecularLighting(Uint32 r, Uint32 g, Uint32 b) {
+	void SetSpecularLighting(float r, float g, float b) {
 		Lighting.Specular.R = r;
 		Lighting.Specular.G = g;
 		Lighting.Specular.B = b;
