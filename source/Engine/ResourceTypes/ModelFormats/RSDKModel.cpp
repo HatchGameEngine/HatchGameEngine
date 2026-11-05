@@ -4,6 +4,7 @@
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
 #include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
+#include <Engine/Utilities/ColorUtils.h>
 
 #define RSDK_MODEL_MAGIC 0x4D444C00 // MDL0
 
@@ -76,7 +77,8 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 		Uint32 *colorPtr, color;
 		for (size_t i = 0; i < mesh->VertexCount; i++) {
 			colorPtr = &mesh->ColorBuffer[i];
-			*colorPtr = color = stream->ReadUInt32();
+			color = stream->ReadUInt32();
+			*colorPtr = color = ColorUtils::ToRGB((int)((color >> 16) & 0xFF), (int)((color >> 8) & 0xFF), (int)(color & 0xFF));
 			// Copy the value to other frames
 			for (size_t f = 1; f < frameCount; f++) {
 				colorPtr += mesh->VertexCount;
