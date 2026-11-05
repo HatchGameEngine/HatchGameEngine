@@ -926,7 +926,7 @@ static int CalcVertexColor(Scene3D* scene, VertexAttribute* vertex, int normalY)
 	CLAMP_VAL(specularB, 0x00, 0xFF);
 	col_b = specularB;
 
-	return col_r << 16 | col_g << 8 | col_b;
+	return ColorUtils::ToRGB(col_r, col_g, col_b);
 }
 
 // Drawing 3D
