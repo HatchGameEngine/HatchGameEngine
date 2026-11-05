@@ -141,6 +141,11 @@ void AudioManager::Init() {
 		break;
 	}
 
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		Log::Print(Log::LOG_INFO, "SDL_Init(SDL_INIT_AUDIO) failed with error: %s", SDL_GetError());
+		return;
+	}
+
 	if (Application::Platform != Platforms::Android) {
 		if (SDL_OpenAudio(&Want, &DeviceFormat) >= 0) {
 			AudioEnabled = true;
@@ -182,9 +187,6 @@ void AudioManager::Init() {
 		MixBuffer = (Uint8*)Memory::Malloc(MixBufferSize * BytesPerSample);
 	}
 
-	// AudioQueueMaxSize = DeviceFormat.samples *
-	// DeviceFormat.channels *
-	// (SDL_AUDIO_BITSIZE(DeviceFormat.format) >> 3);
 	AudioQueueMaxSize = 0x1000;
 	AudioQueueSize = 0;
 	AudioQueue = (Uint8*)Memory::Calloc(8, AudioQueueMaxSize);
