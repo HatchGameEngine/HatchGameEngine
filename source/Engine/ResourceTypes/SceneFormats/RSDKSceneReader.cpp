@@ -313,7 +313,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint32* tileRow = &layer->Tiles[0];
 	for (int y = 0; y < layer->Height; y++) {
 		for (int x = 0; x < layer->Width; x++) {
-			tileRow[x] = (tileBoys[t] & 0x3FF);
+			tileRow[x] = (tileBoys[t] == 0xFFFF) ? Scene::EmptyTile : (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
 			tileRow[x] |= (tileBoys[t] & 0xC000) << 12; // Collision B
@@ -626,7 +626,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::SceneType = SCENETYPE_RSDK;
 
 	Scene::TileCount = 0x400;
-	Scene::EmptyTile = 0x3FF;
+	Scene::EmptyTile = 0xFFFF;
 
 	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;
