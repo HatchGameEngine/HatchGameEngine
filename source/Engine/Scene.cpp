@@ -2254,7 +2254,7 @@ void Scene::ReadSceneFile(const char* filename) {
 			if (StringUtils::StrCaseStr(filename, ".bin")) {
 				RSDKSceneReader::Read(filename, pathParent);
 			}
-			else if (StringUtils::StrCaseStr(filename, ".hcsn")) {
+			else if (StringUtils::StrCaseStr(filename, ".hscn")) {
 				HatchSceneReader::Read(filename, pathParent);
 			}
 			else {
