@@ -1681,7 +1681,7 @@ ExprContext Compiler::GetInteger(ExprContext context) {
 	int value = 0;
 	char* start = parser.Previous.Start;
 	if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
-		value = (int)strtol(start + 2, NULL, 16);
+		value = (int)strtoul(start + 2, NULL, 16);
 	}
 	else {
 		value = (int)atof(start);
