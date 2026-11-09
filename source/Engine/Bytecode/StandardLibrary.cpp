@@ -12531,6 +12531,12 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 	memcpy(&Graphics::PaletteColors[palIndexTo][colorIndexStartTo],
 		&Graphics::PaletteColors[palIndexFrom][colorIndexStartFrom],
 		count * sizeof(Uint32));
+
+	// Index 0 of each bank has its alpha zeroed when rendering. Reset that when copied to another index.
+	if (colorIndexStartFrom == 0 && colorIndexStartTo != 0 && count > 0) {
+		Graphics::PaletteColors[palIndexTo][colorIndexStartTo] |= 0xFF000000;
+	}
+
 	Graphics::PaletteUpdated = true;
 
 	return NULL_VAL;
