@@ -3305,6 +3305,7 @@ void Application::DevMenu_CategorySelectMenu() {
 	else if (DevMenu_IsActionPressed("B")) {
 		DevMenu.State = DevMenu_MainMenu;
 		DevMenu.SubSelection = 0;
+		DevMenu.SubScrollPos = 0;
 		DevMenu.Timer = 1 * FrameTimeDesired;
 	}
 }
