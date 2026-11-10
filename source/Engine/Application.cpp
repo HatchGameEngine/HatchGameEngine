@@ -197,10 +197,6 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "0");
 
 #ifdef IOS
-	// SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft
-	// LandscapeRight Portrait PortraitUpsideDown"); // iOS only
-	// SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "playback"); //
-	// Background Playback
 	SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
 	iOS_InitMediaPlayer();
 #endif
@@ -209,8 +205,7 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
 #endif
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK |
-		    SDL_INIT_GAMECONTROLLER) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
 		Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
 	}
 
@@ -255,6 +250,9 @@ void Application::Init(int argc, char* args[]) {
 	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
+
+	// Set application name
+	SDL_SetHint(SDL_HINT_APP_NAME, GameTitleShort);
 
 	// Needs to be done after the settings are read and before Graphics::Init()
 	Graphics::ChooseBackend();
