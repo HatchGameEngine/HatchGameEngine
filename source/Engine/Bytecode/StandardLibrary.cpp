@@ -14590,7 +14590,7 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerDrawGroup
- * \desc Sets the draw group of the specified layer, for every view or a specified view.
+ * \desc Sets the draw group of the specified layer for every view or a specified view.
  * \param layerIndex (integer): Index of layer.
  * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
  * \paramOpt viewIndex (integer): Sets the draw group in only this view. Without this parameter, the draw group is set for every view and per-view overrides are cleared.
