@@ -9928,7 +9928,7 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	ObjInstance* srcInstance = GET_ARG(1, GetInstance);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
-	if (!destInstance || !srcInstance) {
+	if (!destInstance || !srcInstance || destInstance == srcInstance) {
 		return NULL_VAL;
 	}
 
