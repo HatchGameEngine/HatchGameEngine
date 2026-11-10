@@ -12670,7 +12670,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12688,7 +12688,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
  * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
  * \param name (string): Name of the animation file within the resource folder.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12716,7 +12716,7 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12733,7 +12733,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12750,7 +12750,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadMusic
  * \desc Loads a Music resource, returning its Music index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12762,6 +12762,29 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 	int result = Scene::LoadMusicResource(filename, unloadPolicy);
 
 	return INTEGER_VAL(result);
+}
+/***
+ * Resources.SetMusicUnloadPolicy
+ * \desc Changes when a loaded Music resource is unloaded, such as keeping the music that is playing through a scene change.
+ * \param music (integer): The music index to change.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \ns Resources
+ */
+VMValue Resources_SetMusicUnloadPolicy(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	int unloadPolicy = GET_ARG(1, GetInteger);
+
+	if (index < 0 || index >= (int)Scene::MusicList.size()) {
+		OUT_OF_RANGE_ERROR("Music index", index, 0, (int)Scene::MusicList.size() - 1);
+		return NULL_VAL;
+	}
+
+	if (Scene::MusicList[index]) {
+		Scene::MusicList[index]->UnloadPolicy = unloadPolicy;
+	}
+
+	return NULL_VAL;
 }
 /***
  * Resources.LoadSound
@@ -22207,6 +22230,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadMusic);
+	DEF_NATIVE(Resources, SetMusicUnloadPolicy);
 	DEF_NATIVE(Resources, LoadSound);
 	DEF_NATIVE(Resources, LoadVideo);
 	DEF_NATIVE(Resources, FileExists);
