@@ -19618,8 +19618,27 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.SetAspectMode
+ * \desc Sets the aspect mode of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \param aspectMode (<ref ASPECTMODE_*>): Desired aspect mode.
+ * \ns View
+ */
+VMValue View_SetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	int aspectMode = GET_ARG(1, GetInteger);
+	CHECK_VIEW_INDEX();
+	if (aspectMode < ASPECTMODE_NONE || aspectMode > ASPECTMODE_FILL) {
+		OUT_OF_RANGE_ERROR("Aspect mode", aspectMode, ASPECTMODE_NONE, ASPECTMODE_FILL);
+		return NULL_VAL;
+	}
+	Scene::Views[view_index].AspectMode = aspectMode;
+	return NULL_VAL;
+}
+/***
  * View.SetOutputX
- * \desc Sets the x-axis output position of the specified view.
+ * \desc Sets the x-axis output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param x (number): Desired X position.
  * \ns View
@@ -19634,7 +19653,7 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputY
- * \desc Sets the y-axis output position of the specified view.
+ * \desc Sets the y-axis output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param y (number): Desired Y position.
  * \ns View
@@ -19649,7 +19668,7 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputPosition
- * \desc Sets the output position of the specified view.
+ * \desc Sets the output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param x (number): Desired X position.
  * \param y (number): Desired Y position.
@@ -19665,7 +19684,7 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputSize
- * \desc Sets the output size of the specified view.
+ * \desc Sets the output size of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param width (number): Desired width.
  * \param height (number): Desired height.
@@ -19771,6 +19790,71 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
 	return DECIMAL_VAL(((float)Scene::Views[view_index].Height) / 2.0f);
+}
+/***
+ * View.GetOutputX
+ * \desc Gets the x-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputX);
+}
+/***
+ * View.GetOutputY
+ * \desc Gets the y-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputY);
+}
+/***
+ * View.GetOutputWidth
+ * \desc Gets the output width of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputWidth);
+}
+/***
+ * View.GetOutputHeight
+ * \desc Gets the output height of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputHeight);
+}
+/***
+ * View.GetAspectMode
+ * \desc Gets the aspect mode of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return <ref ASPECTMODE_*> Returns the aspect mode of the view.
+ * \ns View
+ */
+VMValue View_GetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return INTEGER_VAL(Scene::Views[view_index].AspectMode);
 }
 /***
  * View.IsUsingDrawTarget
@@ -20107,18 +20191,26 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetSize
  * \desc Sets the size of the active window.
- * \param width (number): Window width
- * \param height (number): Window height
+ * \param width (number): The window width.
+ * \param height (number): The window height.
  * \ns Window
  */
 VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (!Application::IsWindowResizeable()) {
-		return NULL_VAL;
-	}
-
 	int window_w = (int)GET_ARG(0, GetDecimal);
 	int window_h = (int)GET_ARG(1, GetDecimal);
+	if (window_w < 1) {
+		if (THROW_ERROR("Window width cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_w = 1;
+	}
+	if (window_h < 1) {
+		if (THROW_ERROR("Window height cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_h = 1;
+	}
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
 	Application::SetWindowSize(
@@ -20146,6 +20238,17 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int scale = GET_ARG(0, GetInteger);
 	Application::SetWindowScale(scale);
+	return NULL_VAL;
+}
+/***
+ * Window.SetResizable
+ * \desc Sets the resizable state of the active window.
+ * \param isResizable (boolean): Whether or not the window should be resizable.
+ * \ns Window
+ */
+VMValue Window_SetResizable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Application::SetWindowResizable(GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -20280,14 +20383,33 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Application::WindowScale);
 }
 /***
+ * Window.GetResizable
+ * \desc Gets the resizable state of the active window.
+ * \return boolean Returns `true` if the window is resizable, `false` if otherwise.
+ * \ns Window
+ */
+VMValue Window_GetResizable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowResizable);
+}
+/***
+ * Window.CanBeResized
+ * \desc Gets whether the active window can be resized by the user.
+ * \return boolean Returns `true` if the window can be resized, `false` if otherwise.
+ * \ns Window
+ */
+VMValue Window_CanBeResized(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::IsWindowResizable());
+}
+/***
  * Window.IsResizeable
- * \desc Gets whether the active window is resizeable.
- * \return boolean Returns whether the window is resizeable.
+ * \deprecated Use <ref Window.CanBeResized> instead.
  * \ns Window
  */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::IsWindowResizeable());
+	return Window_CanBeResized(argCount, args, threadID);
 }
 // #endregion
 
@@ -22932,6 +23054,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
+	DEF_NATIVE(View, SetAspectMode);
 	DEF_NATIVE(View, SetOutputX);
 	DEF_NATIVE(View, SetOutputY);
 	DEF_NATIVE(View, SetOutputPosition);
@@ -22943,6 +23066,11 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, GetHeight);
 	DEF_NATIVE(View, GetCenterX);
 	DEF_NATIVE(View, GetCenterY);
+	DEF_NATIVE(View, GetOutputX);
+	DEF_NATIVE(View, GetOutputY);
+	DEF_NATIVE(View, GetOutputWidth);
+	DEF_NATIVE(View, GetOutputHeight);
+	DEF_NATIVE(View, GetAspectMode);
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
@@ -22974,6 +23102,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
 	DEF_NATIVE(Window, SetScale);
+	DEF_NATIVE(Window, SetResizable);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
@@ -22984,6 +23113,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
 	DEF_NATIVE(Window, GetScale);
+	DEF_NATIVE(Window, GetResizable);
+	DEF_NATIVE(Window, CanBeResized);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 
@@ -23160,6 +23291,29 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
     * \desc Bottom side, slot 3 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_BOTTOM);
+	// #endregion
+
+	// #region Aspect Modes
+	/***
+    * \enum ASPECTMODE_NONE
+    * \desc Content isn't resized.
+    */
+	DEF_ENUM(ASPECTMODE_NONE);
+	/***
+    * \enum ASPECTMODE_STRETCH
+    * \desc Stretches the content without preserving the aspect ratio.
+    */
+	DEF_ENUM(ASPECTMODE_STRETCH);
+	/***
+    * \enum ASPECTMODE_FIT
+    * \desc Resizes the content to fit within its container, preserving the aspect ratio.
+    */
+	DEF_ENUM(ASPECTMODE_FIT);
+	/***
+    * \enum ASPECTMODE_FILL
+    * \desc Resizes the content to fill its container, preserving the aspect ratio, but potentially cropping it.
+    */
+	DEF_ENUM(ASPECTMODE_FILL);
 	// #endregion
 
 	/***

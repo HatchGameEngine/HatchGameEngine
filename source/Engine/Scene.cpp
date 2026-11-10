@@ -727,6 +727,7 @@ void Scene::Init() {
 		Scene::Views[i].Height = Application::WindowHeight;
 		Scene::Views[i].OutputWidth = Application::WindowWidth;
 		Scene::Views[i].OutputHeight = Application::WindowHeight;
+		Scene::Views[i].AspectMode = ASPECTMODE_FIT;
 		Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
 		Scene::Views[i].FOV = 45.0f;
 		Scene::Views[i].UsePerspective = false;
@@ -1581,6 +1582,8 @@ void Scene::Render() {
 	SDL2Renderer::GetMetalSize(&ren_w, &ren_h);
 #endif
 
+	bool isFullscreen = Application::GetWindowFullscreen();
+
 	int viewCount = Scene::ViewsActive;
 	for (int i = 0; i < viewCount; i++) {
 		int viewIndex = ViewRenderList[i];
@@ -1603,35 +1606,31 @@ void Scene::Render() {
 				float out_x = 0.0f;
 				float out_y = 0.0f;
 				float out_w = 0.0f, out_h = 0.0f;
-				float scale = 1.f;
-				// bool needClip = false;
-				int aspectMode = (viewCount > 1) ? 3 : 1;
-				switch (aspectMode) {
+				switch (currentView->AspectMode) {
+				// None
+				case ASPECTMODE_NONE:
+					out_x = currentView->OutputX;
+					out_y = currentView->OutputY;
+					out_w = currentView->OutputWidth;
+					out_h = currentView->OutputHeight;
+
+					if (!isFullscreen) {
+						float scale = Application::WindowScale;
+						out_x *= scale;
+						out_y *= scale;
+						out_w *= scale;
+						out_h *= scale;
+					}
+					break;
 				// Stretch
-				case 0:
+				case ASPECTMODE_STRETCH:
 					out_w = win_w;
 					out_h = win_h;
 					break;
 				// Fit to aspect ratio
-				case 1:
+				// This is the default.
+				case ASPECTMODE_FIT:
 					if (win_w / currentView->Width <
-						win_h / currentView->Height) {
-						out_w = win_w;
-						out_h = win_w * currentView->Height /
-							currentView->Width;
-					}
-					else {
-						out_w = win_h * currentView->Width /
-							currentView->Height;
-						out_h = win_h;
-					}
-					out_x = (win_w - out_w) * 0.5f / scale;
-					out_y = (win_h - out_h) * 0.5f / scale;
-					// needClip = true;
-					break;
-				// Fill to aspect ratio
-				case 2:
-					if (win_w / currentView->Width >
 						win_h / currentView->Height) {
 						out_w = win_w;
 						out_h = win_w * currentView->Height /
@@ -1645,20 +1644,21 @@ void Scene::Render() {
 					out_x = (win_w - out_w) * 0.5f;
 					out_y = (win_h - out_h) * 0.5f;
 					break;
-				// Splitscreen
-				case 3:
-					out_x = (currentView->OutputX /
-							(float)Application::WindowWidth) *
-						win_w;
-					out_y = (currentView->OutputY /
-							(float)Application::WindowHeight) *
-						win_h;
-					out_w = (currentView->OutputWidth /
-							(float)Application::WindowWidth) *
-						win_w;
-					out_h = (currentView->OutputHeight /
-							(float)Application::WindowHeight) *
-						win_h;
+				// Fill to aspect ratio
+				case ASPECTMODE_FILL:
+					if (win_w / currentView->Width >
+						win_h / currentView->Height) {
+						out_w = win_w;
+						out_h = win_w * currentView->Height /
+							currentView->Width;
+					}
+					else {
+						out_w = win_h * currentView->Width /
+							currentView->Height;
+						out_h = win_h;
+					}
+					out_x = (win_w - out_w) * 0.5f;
+					out_y = (win_h - out_h) * 0.5f;
 					break;
 				}
 

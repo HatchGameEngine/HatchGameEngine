@@ -151,6 +151,13 @@ enum {
 
 enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
 
+enum {
+	ASPECTMODE_NONE,
+	ASPECTMODE_STRETCH,
+	ASPECTMODE_FIT,
+	ASPECTMODE_FILL
+};
+
 struct TileScanLine {
 	Sint64 SrcX;
 	Sint64 SrcY;
