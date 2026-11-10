@@ -12670,7 +12670,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
