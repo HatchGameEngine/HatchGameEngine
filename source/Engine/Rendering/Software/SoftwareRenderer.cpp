@@ -1098,10 +1098,11 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
-#define LINE_X(pos, z) ((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000
-#define LINE_Y(pos, z) ((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000
+#define LINE_X(pos, z) (((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000 + cx)
+#define LINE_Y(pos, z) (((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					int vertexZ = vertex->Position.Z;
 					if (vertexZ < 0x10000) {
@@ -1128,8 +1129,8 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					LINE_Y(vertexFirst->Position.Y, vertexFirst->Position.Z));
 			}
 			else {
-#define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
-#define LINE_ORTHO_Y(pos) ((float)ORTHO_Y(pos)) / 0x10000
+#define LINE_ORTHO_X(pos) (((float)ORTHO_X(pos)) / 0x10000 + cx)
+#define LINE_ORTHO_Y(pos) (((float)ORTHO_Y(pos)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					SetColor(vertex->Color);
 					SoftwareRenderer::StrokeLine(
@@ -1167,6 +1168,7 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 			SetColor(CalcVertexColor(scene, vertex, averageNormalY >> 8));
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
 				while (vertexCountPerFaceMinus1--) {

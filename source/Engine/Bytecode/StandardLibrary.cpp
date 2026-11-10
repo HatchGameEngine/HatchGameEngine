@@ -15796,17 +15796,17 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
  * Scene3D.SetDiffuseLighting
  * \desc Sets the diffuse lighting of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
- * \param red (number): The red color value, bounded by 0.0 - 1.0.
- * \param green (number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
+ * \param red (number): The red color value, bounded by 0.0 - 256.0.
+ * \param green (number): The green color value, bounded by 0.0 - 256.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 256.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
+	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
+	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
 	scene3D->SetDiffuseLighting(r, g, b);
 	return NULL_VAL;
@@ -15815,17 +15815,17 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
  * Scene3D.SetSpecularLighting
  * \desc Sets the specular lighting of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
- * \param red (number): The red color value, bounded by 0.0 - 1.0.
- * \param green (number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
+ * \param red (number): The red color value, bounded by 0.0 - 256.0.
+ * \param green (number): The green color value, bounded by 0.0 - 256.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 256.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
+	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
+	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
 	scene3D->SetSpecularLighting(r, g, b);
 	return NULL_VAL;
