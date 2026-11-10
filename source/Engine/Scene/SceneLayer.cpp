@@ -14,9 +14,6 @@ SceneLayer::~SceneLayer() {
 	Memory::Free(Name);
 
 	if (Properties) {
-		Properties->ForAll([](Uint32, Property property) -> void {
-			Property::Delete(property);
-		});
 		delete Properties;
 	}
 }

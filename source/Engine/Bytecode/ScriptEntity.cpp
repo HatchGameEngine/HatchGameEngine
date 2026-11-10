@@ -898,16 +898,13 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 
 	// Copy properties
 	if (other->Properties) {
-		other->Properties->WithAll([](Uint32 key, Property value) -> void {
-			Property::Delete(value);
-		});
 		other->Properties->Clear();
 	}
 
 	if (Properties) {
 		other->InitProperties();
 
-		Properties->WithAll([other](Uint32 key, Property value) -> void {
+		Properties->WithAll([other](char* key, Property value) -> void {
 			other->Properties->Put(key, Property::Duplicate(value));
 		});
 	}

@@ -159,12 +159,6 @@ void Tileset::Dispose() {
 	}
 
 	for (size_t i = 0; i < TileCount; i++) {
-		HashMap<Property>* properties = PropertiesPerTile[i];
-		if (properties) {
-			properties->ForAll([](Uint32, Property property) -> void {
-				Property::Delete(property);
-			});
-			delete properties;
-		}
+		delete PropertiesPerTile[i];
 	}
 }

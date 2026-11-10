@@ -12,12 +12,15 @@ class ObjectList;
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/Property.h>
+#include <Engine/Types/PropertyMap.h>
 
 #ifdef SCRIPTABLE_ENTITY
 #define ENTITY_PARENT_CLASS ScriptEntity
 #else
 #define ENTITY_PARENT_CLASS Entity
 #endif
+
+#define ENTITY_FILTER_PROPERTY_NAME "filter"
 
 typedef Entity* (*EntitySpawnFunction)();
 typedef Entity* (*NamedEntitySpawnFunction)(const char*);
@@ -153,7 +156,7 @@ public:
 	Entity* PrevSceneEntity = NULL;
 	Entity* NextSceneEntity = NULL;
 
-	HashMap<Property>* Properties = NULL;
+	PropertyMap* Properties = NULL;
 
 	static HashMap<EntitySpawnFunction>* SpawnFunctions;
 	static bool DisableAutoAnimate;

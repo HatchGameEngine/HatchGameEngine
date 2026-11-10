@@ -35,7 +35,7 @@ Entity* Entity::SpawnNamed(const char* objectName) {
 
 void Entity::InitProperties() {
 	if (!Properties) {
-		Properties = new HashMap<Property>(NULL, 4);
+		Properties = new PropertyMap();
 	}
 }
 
@@ -743,9 +743,6 @@ void Entity::Dispose() {
 	}
 
 	if (Properties) {
-		Properties->ForAll([](Uint32, Property property) -> void {
-			Property::Delete(property);
-		});
 		delete Properties;
 	}
 }
