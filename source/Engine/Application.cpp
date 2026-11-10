@@ -87,9 +87,9 @@ char Application::WindowTitle[256];
 int Application::WindowWidth = 424;
 int Application::WindowHeight = 240;
 int Application::WindowScale = 2;
+bool Application::WindowResizable = false;
 bool Application::WindowFullscreen = false;
 bool Application::WindowBorderless = false;
-
 int Application::DefaultMonitor = 0;
 
 char Application::EngineVersion[256];
@@ -197,10 +197,6 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "0");
 
 #ifdef IOS
-	// SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft
-	// LandscapeRight Portrait PortraitUpsideDown"); // iOS only
-	// SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "playback"); //
-	// Background Playback
 	SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
 	iOS_InitMediaPlayer();
 #endif
@@ -209,8 +205,7 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
 #endif
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK |
-		    SDL_INIT_GAMECONTROLLER) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
 		Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
 	}
 
@@ -255,6 +250,9 @@ void Application::Init(int argc, char* args[]) {
 	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
+
+	// Set application name
+	SDL_SetHint(SDL_HINT_APP_NAME, GameTitleShort);
 
 	// Needs to be done after the settings are read and before Graphics::Init()
 	Graphics::ChooseBackend();
@@ -489,6 +487,9 @@ void Application::CreateWindow() {
 	if (allowRetina) {
 		window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	}
+	if (Application::WindowResizable) {
+		window_flags |= SDL_WINDOW_RESIZABLE;
+	}
 
 	int scale = 2;
 	Application::Settings->GetInteger("display", "scale", &scale);
@@ -501,29 +502,12 @@ void Application::CreateWindow() {
 		Application::WindowHeight * Application::WindowScale,
 		window_flags);
 
-	if (Application::Platform == Platforms::iOS) {
-		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-	}
-	else if (Application::Platform == Platforms::Switch) {
-		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-		AudioManager::MasterVolume = 0.25;
-
-#ifdef SWITCH
-		SDL_DisplayMode mode;
-		SDL_GetDisplayMode(0, 1 - appletGetOperationMode(), &mode);
-		Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
-#endif
-	}
-	else {
-		Application::Settings->GetBool(
-			"display", "fullscreen", &Application::WindowFullscreen);
-
-		if (Application::GetWindowFullscreen() != Application::WindowFullscreen) {
-			Application::SetWindowFullscreen(Application::WindowFullscreen);
-		}
-	}
-
+	Application::Settings->GetBool("display", "fullscreen", &Application::WindowFullscreen);
 	Application::Settings->GetBool("display", "borderless", &Application::WindowBorderless);
+
+	if (Application::GetWindowFullscreen() != Application::WindowFullscreen) {
+		Application::SetWindowFullscreen(Application::WindowFullscreen);
+	}
 	Application::SetWindowBorderless(Application::WindowBorderless);
 
 	Application::SetWindowTitle(Application::GameTitleShort);
@@ -1460,15 +1444,19 @@ void Application::LoadDevSettings() {
 #endif
 }
 
-bool Application::IsWindowResizeable() {
-	return !Application::IsMobile();
+bool Application::IsWindowResizable() {
+#ifdef CONSOLE_PLATFORM
+	return false;
+#else
+	if (Application::GetWindowFullscreen()) {
+		return false;
+	}
+
+	return (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_RESIZABLE) != 0;
+#endif
 }
 
 void Application::SetWindowSize(int window_w, int window_h) {
-	if (!Application::IsWindowResizeable()) {
-		return;
-	}
-
 	if (Application::Window == nullptr) {
 		return;
 	}
@@ -1510,6 +1498,12 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 		SDL_WarpMouseInWindow(Application::Window, window_w / 2, window_h / 2);
 	}
 
+#ifndef CONSOLE_PLATFORM
+	if (!isFullscreen) {
+		SDL_SetWindowResizable(Application::Window, (SDL_bool)Application::WindowResizable);
+	}
+#endif
+
 	if (Application::DevMenuActivated) {
 		DevMenu.Fullscreen = isFullscreen;
 		DevMenu.CurrentWindowWidth = window_w;
@@ -1518,7 +1512,15 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 
 	Graphics::Resize(window_w, window_h);
 }
+void Application::SetWindowResizable(bool isResizable) {
+#ifndef CONSOLE_PLATFORM
+	Application::WindowResizable = isResizable;
 
+	if (!Application::GetWindowFullscreen()) {
+		SDL_SetWindowResizable(Application::Window, (SDL_bool)isResizable);
+	}
+#endif
+}
 void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;
 	Application::Settings->SetBool("display", "borderless", isBorderless);
@@ -2383,6 +2385,7 @@ void Application::LoadGameConfig() {
 	if (node) {
 		ParseGameConfigInt(node, "width", Application::WindowWidth);
 		ParseGameConfigInt(node, "height", Application::WindowHeight);
+		ParseGameConfigBool(node, "resizable", Application::WindowResizable);
 	}
 
 	// Read audio defaults
@@ -3731,9 +3734,7 @@ void Application::DevMenu_VideoMenu() {
 			if (DevMenu.SubSelection == 3) { // Confirm
 				Application::SetWindowFullscreen(DevMenu.Fullscreen);
 				Application::SetWindowBorderless(DevMenu.WindowBorderless);
-				if (Application::IsWindowResizeable()) {
-					Application::SetWindowScale(DevMenu.WindowScale);
-				}
+				Application::SetWindowScale(DevMenu.WindowScale);
 			}
 			else { // Cancel
 				DevMenu.WindowScale = Application::WindowScale;
