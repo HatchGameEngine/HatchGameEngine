@@ -14,9 +14,9 @@ void FunctionImpl::Init() {
 	Class = NewClass("Function");
 	Class->NewFn = Constructor;
 
-	ScriptManager::DefineNative(Class, "Bind", FunctionImpl::VM_Bind);
-	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
-	ScriptManager::DefineNative(Class, "bindArguments", FunctionImpl::VM_BindArguments);
+	ScriptManager::DefineNative(Class, "Bind", VM_Bind);
+	ScriptManager::DefineNative(Class, "bind", VM_Bind);
+	ScriptManager::DefineNative(Class, "BindArguments", VM_BindArguments);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -41,7 +41,7 @@ Obj* FunctionImpl::New() {
 
 /***
  * \method Bind
- * \desc Binds a receiver, and optionally arguments, to a method.
+ * \desc Binds a receiver, and optionally arguments, to the method.
  * \param receiver (value): The receiver to bind.
  * \paramOpt ... (varargs): The arguments to bind.
  * \return <ref BoundMethod> Returns a bound method.
@@ -70,14 +70,14 @@ VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 
-	ObjBoundMethod* bound = NewBoundMethod(function, args + 1, argCount - 1);
+	ObjBoundMethod* bound = NewBoundMethod((Obj*)function, args + 1, argCount - 1);
 	bound->HasReceiver = true;
 	return OBJECT_VAL(bound);
 }
 
 /***
  * \method BindArguments
- * \desc Binds arguments to a method.
+ * \desc Binds arguments to the method.
  * \param ... (varargs): The arguments to bind.
  * \return <ref BoundMethod> Returns a bound method.
  * \ns Function
@@ -103,5 +103,5 @@ VMValue FunctionImpl::VM_BindArguments(int argCount, VMValue* args, Uint32 threa
 		return NULL_VAL;
 	}
 
-	return OBJECT_VAL(NewBoundMethod(function, args + 1, argCount - 1));
+	return OBJECT_VAL(NewBoundMethod((Obj*)function, args + 1, argCount - 1));
 }

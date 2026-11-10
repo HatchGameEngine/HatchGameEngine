@@ -160,31 +160,31 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 		PrintStackTrace(buffer);
 	}
 	else if (IS_OBJECT(FunctionToInvoke)) {
-		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE_FUNCTION) {
-			buffer_printf(
-				buffer, "While calling native function:\n\n    %s\n", errorString);
+		Obj* callable = NULL;
+
+		switch (OBJECT_TYPE(FunctionToInvoke)) {
+		case OBJ_FUNCTION:
+		case OBJ_NATIVE_FUNCTION:
+			callable = AS_OBJECT(FunctionToInvoke);
+			break;
+		case OBJ_BOUND_METHOD:
+			callable = AS_BOUND_METHOD(FunctionToInvoke)->Method;
+			break;
 		}
-		else {
-			ObjFunction* function = NULL;
 
-			if (OBJECT_TYPE(FunctionToInvoke) == OBJ_BOUND_METHOD) {
-				ObjBoundMethod* bound = AS_BOUND_METHOD(FunctionToInvoke);
-				function = bound->Method;
-			}
-			else if (OBJECT_TYPE(FunctionToInvoke) == OBJ_FUNCTION) {
-				function = AS_FUNCTION(FunctionToInvoke);
-			}
-
-			if (function) {
-				std::string functionName = GetFunctionName(function);
-				buffer_printf(buffer,
-					"While calling %s of %s",
-					functionName.c_str(),
-					GetModuleName(function->Module));
-			}
-			else {
-				buffer_printf(buffer, "While calling value");
-			}
+		if (callable == NULL) {
+			buffer_printf(buffer, "While calling value");
+		}
+		else if (callable->Type == OBJ_FUNCTION) {
+			ObjFunction* function = (ObjFunction*)callable;
+			std::string functionName = GetFunctionName(function);
+			buffer_printf(buffer,
+				"While calling %s of %s",
+				functionName.c_str(),
+				GetModuleName(function->Module));
+		}
+		else if (callable->Type == OBJ_NATIVE_FUNCTION) {
+			buffer_printf(buffer, "While calling native function");
 		}
 
 		if (errorString) {
@@ -3190,7 +3190,21 @@ bool VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
 	// Offset the stack top.
 	StackTop += numBound;
 
-	return Call(bound->Method, numBound + argCount);
+	// Call it
+	int finalArgCount = numBound + argCount;
+
+	if (bound->IsBoundToNative()) {
+		ObjNativeFunction* native = (ObjNativeFunction*)bound->Method;
+		if (bound->HasReceiver) {
+			CallNativeForObject(native->Function, finalArgCount);
+		}
+		else {
+			CallNative(native->Function, finalArgCount);
+		}
+		return true;
+	}
+
+	return Call((ObjFunction*)bound->Method, finalArgCount);
 }
 bool VMThread::CallValue(VMValue callee, int argCount) {
 	if (!IS_CALLABLE(callee)) {
@@ -3210,18 +3224,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			break;
 		case OBJ_NATIVE_FUNCTION: {
 			NativeFn nativeFn = AS_NATIVE_FUNCTION(callee);
-
-			VMValue returnValue = NULL_VAL;
-			try {
-				returnValue = nativeFn(argCount, StackTop - argCount, ID);
-			} catch (const ScriptException& error) {
-				ThrowRuntimeError(false, "%s", error.what());
-			}
-
-			StackTop -= argCount; // Pop arguments
-			StackTop -= 1; // Pop receiver / class
-			Push(returnValue); // Push result
-
+			CallNative(nativeFn, argCount);
 			result = true;
 			break;
 		}
@@ -3242,21 +3245,7 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 	if (ScriptManager::Lock()) {
 		// Special case for native functions
 		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
-			NativeFn native = AS_NATIVE_FUNCTION(callee);
-
-			VMValue returnValue = NULL_VAL;
-			try {
-				// Calling a native function for an object needs to correctly pass the receiver,
-				// which is the reason these +1 and -1 are here.
-				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
-			} catch (const ScriptException& error) {
-				ThrowRuntimeError(false, "%s", error.what());
-			}
-
-			StackTop -= argCount; // Pop arguments
-			StackTop -= 1; // Pop receiver / class
-			Push(returnValue); // Push returned value
-
+			CallNativeForObject(AS_NATIVE_FUNCTION(callee), argCount);
 			ScriptManager::Unlock();
 			return true;
 		}
@@ -3266,13 +3255,44 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 	}
 	return false;
 }
+void VMThread::CallNative(NativeFn nativeFn, int argCount) {
+	VMValue returnValue = NULL_VAL;
+	try {
+		returnValue = nativeFn(argCount, StackTop - argCount, ID);
+	} catch (const ScriptException& error) {
+		ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	StackTop -= argCount; // Pop arguments
+	StackTop -= 1; // Pop receiver / class
+	Push(returnValue); // Push result
+}
+void VMThread::CallNativeForObject(NativeFn nativeFn, int argCount) {
+	VMValue returnValue = NULL_VAL;
+	try {
+		// Calling a native function for an object needs to correctly pass the receiver,
+		// which is the reason these +1 and -1 are here.
+		returnValue = nativeFn(argCount + 1, StackTop - argCount - 1, ID);
+	} catch (const ScriptException& error) {
+		ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	StackTop -= argCount; // Pop arguments
+	StackTop -= 1; // Pop receiver / class
+	Push(returnValue); // Push returned value
+}
 bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
 	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
 		switch (OBJECT_TYPE(callee)) {
 		case OBJ_BOUND_METHOD: {
 			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
-			minArity = bound->Method->MinArity;
-			maxArity = bound->Method->Arity;
+			if (bound->IsBoundToNative()) {
+				break;
+			}
+
+			ObjFunction* function = (ObjFunction*)bound->Method;
+			minArity = function->MinArity;
+			maxArity = function->Arity;
 			ScriptManager::Unlock();
 			return true;
 		}
@@ -3918,8 +3938,9 @@ static const char* GetTypeOfValue(VMValue value) {
 	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_FUNCTION:
-		case OBJ_BOUND_METHOD:
 			return "function";
+		case OBJ_BOUND_METHOD:
+			return "bound method";
 		case OBJ_CLASS:
 			return "class";
 		case OBJ_CLOSURE:

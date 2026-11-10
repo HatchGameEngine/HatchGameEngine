@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/NativeFunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
@@ -14,6 +15,9 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 void TypeImpl::Init() {
+	// This has to be first
+	NativeFunctionImpl::Init();
+
 	ArrayImpl::Init();
 	EntityImpl::Init();
 	FontImpl::Init();
