@@ -13103,13 +13103,19 @@ VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
  * \param layerIndex (integer): Index of layer.
+ * \paramOpt viewIndex (integer): Gets the visibility in this view instead, including its per-view override.
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
+	if (argCount >= 2) {
+		int view_index = GET_ARG(1, GetInteger);
+		CHECK_VIEW_INDEX();
+		return INTEGER_VAL(!!Scene::Layers[index]->IsVisibleInView(view_index));
+	}
 	return INTEGER_VAL(!!Scene::Layers[index]->Visible);
 }
 /***
@@ -13364,13 +13370,19 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetLayerDrawGroup
  * \desc Gets the draw group of the specified layer.
  * \param layerIndex (integer): Index of layer.
+ * \paramOpt viewIndex (integer): Gets the draw group used in this view instead, including its per-view override.
  * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
+	if (argCount >= 2) {
+		int view_index = GET_ARG(1, GetInteger);
+		CHECK_VIEW_INDEX();
+		return INTEGER_VAL(Scene::Layers[index]->GetDrawGroupInView(view_index));
+	}
 	return INTEGER_VAL(Scene::Layers[index]->DrawGroup);
 }
 /***
@@ -14465,17 +14477,28 @@ VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
 #undef CHECK_TILESET_INDEX
 /***
  * Scene.SetLayerVisible
- * \desc Sets the visibility of the specified layer.
+ * \desc Sets the visibility of the specified layer for every view or a specified view.
  * \param layerIndex (integer): Index of layer.
  * \param isVisible (boolean): Whether the layer can be seen.
+ * \paramOpt viewIndex (integer): Sets the visibility in only this view. Without this parameter, the visibility is set for every view and per-view overrides are cleared.
  * \ns Scene
  */
 VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int visible = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index]->Visible = visible;
+	SceneLayer* layer = Scene::Layers[index];
+	if (argCount >= 3) {
+		int view_index = GET_ARG(2, GetInteger);
+		CHECK_VIEW_INDEX();
+		layer->ViewVisible[view_index] = !!visible;
+		return NULL_VAL;
+	}
+	layer->Visible = visible;
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		layer->ViewVisible[i] = -1;
+	}
 	return NULL_VAL;
 }
 /***
@@ -14567,13 +14590,14 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerDrawGroup
- * \desc Sets the draw group of the specified layer.
+ * \desc Sets the draw group of the specified layer, for every view or a specified view.
  * \param layerIndex (integer): Index of layer.
  * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
+ * \paramOpt viewIndex (integer): Sets the draw group in only this view. Without this parameter, the draw group is set for every view and per-view overrides are cleared.
  * \ns Scene
  */
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int drawGroup = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -14582,7 +14606,17 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
-	Scene::Layers[index]->DrawGroup = drawGroup;
+	SceneLayer* layer = Scene::Layers[index];
+	if (argCount >= 3) {
+		int view_index = GET_ARG(2, GetInteger);
+		CHECK_VIEW_INDEX();
+		layer->ViewDrawGroup[view_index] = drawGroup;
+		return NULL_VAL;
+	}
+	layer->DrawGroup = drawGroup;
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		layer->ViewDrawGroup[i] = -1;
+	}
 	return NULL_VAL;
 }
 /***
