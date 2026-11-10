@@ -9932,6 +9932,15 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
+	if (IS_NATIVE_INSTANCE(args[0])) {
+		THROW_ERROR("Cannot copy into an instance of type %s.", destInstance->Object.Class->Name);
+		return NULL_VAL;
+	}
+	else if (IS_NATIVE_INSTANCE(args[1])) {
+		THROW_ERROR("Cannot copy from an instance of type %s.", srcInstance->Object.Class->Name);
+		return NULL_VAL;
+	}
+
 	if (IS_ENTITY(args[0])) {
 		ObjEntity* objDestEntity = (ObjEntity*)destInstance;
 		ScriptEntity* destEntity = (ScriptEntity*)objDestEntity->EntityPtr;
