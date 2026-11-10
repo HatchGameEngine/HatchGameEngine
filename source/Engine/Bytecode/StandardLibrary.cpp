@@ -14442,6 +14442,7 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 	TileAnimator* animator = Scene::GetTileAnimator(tileID);
 	if (animator) {
 		animator->SetAnimation(animator->AnimationIndex, frameIndex);
+		animator->UpdateTile();
 	}
 
 	return NULL_VAL;
