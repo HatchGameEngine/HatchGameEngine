@@ -214,7 +214,7 @@ VMValue Camera_FieldGet_ViewIndex(Camera* camera, Uint32 threadID) {
 	return INTEGER_VAL(camera->ViewIndex);
 }
 void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
-	if (!ScriptManager::DoIntegerConversion(value, threadID)) {
+	if (!ScriptManager::DoIntegerConversion(value, Camera_Hash_ViewIndex, threadID)) {
 		return;
 	}
 
@@ -243,7 +243,7 @@ VMValue Camera_FieldGet_UseBounds(Camera* camera, Uint32 threadID) {
 	return INTEGER_VAL(camera->UseBounds);
 }
 void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {
-	if (!ScriptManager::DoIntegerConversion(value, threadID)) {
+	if (!ScriptManager::DoIntegerConversion(value, Camera_Hash_UseBounds, threadID)) {
 		return;
 	}
 

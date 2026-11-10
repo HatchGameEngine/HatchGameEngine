@@ -3150,13 +3150,13 @@ bool VMThread::HasProperty(ObjClass* klass, Uint32 hash) {
 bool VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
 	switch (field.Type) {
 	case VAL_LINKED_INTEGER:
-		if (!ScriptManager::DoIntegerConversion(value, this->ID)) {
+		if (!ScriptManager::DoIntegerConversion(value, hash, this->ID)) {
 			return false;
 		}
 		AS_LINKED_INTEGER(field) = AS_INTEGER(value);
 		break;
 	case VAL_LINKED_DECIMAL:
-		if (!ScriptManager::DoDecimalConversion(value, this->ID)) {
+		if (!ScriptManager::DoDecimalConversion(value, hash, this->ID)) {
 			return false;
 		}
 		AS_LINKED_DECIMAL(field) = AS_DECIMAL(value);
