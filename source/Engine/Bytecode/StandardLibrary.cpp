@@ -12765,7 +12765,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.SetMusicUnloadPolicy
- * \desc Changes when a loaded Music resource is unloaded, such as keeping the music that is playing through a scene change.
+ * \desc Changes when a loaded Music resource is unloaded.
  * \param music (integer): The music index to change.
  * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \ns Resources
@@ -12790,7 +12790,7 @@ VMValue Resources_SetMusicUnloadPolicy(int argCount, VMValue* args, Uint32 threa
  * Resources.LoadSound
  * \desc Loads a Sound resource, returning its Sound index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12807,7 +12807,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadVideo
  * \desc Loads a Video resource, returning its Video index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
