@@ -509,6 +509,8 @@ void Entity::Copy(Entity* other) {
 		other->List->Add(other);
 	}
 
+	other->PriorityListIndex = -1;
+
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		DrawGroupList* drawGroupList = Scene::PriorityLists[l];
 		if (drawGroupList) {
@@ -516,7 +518,12 @@ void Entity::Copy(Entity* other) {
 				// If the other object isn't in this priority
 				// list already, it's added into it
 				if (!drawGroupList->Contains(other)) {
-					drawGroupList->Add(other);
+					other->PriorityListIndex = drawGroupList->Add(other);
+				}
+				else {
+					// Already in this list!
+					// Get the PriorityListIndex
+					other->PriorityListIndex = drawGroupList->GetEntityIndex(other);
 				}
 			}
 			else {
@@ -578,7 +585,6 @@ void Entity::CopyFields(Entity* other) {
 	COPY(AutoPhysics);
 
 	COPY(Priority);
-	COPY(PriorityListIndex);
 	COPY(PriorityOld);
 
 	COPY(Depth);
