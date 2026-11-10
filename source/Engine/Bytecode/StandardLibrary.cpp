@@ -12688,7 +12688,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
  * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
  * \param name (string): Name of the animation file within the resource folder.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12716,7 +12716,7 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12733,7 +12733,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12750,7 +12750,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadMusic
  * \desc Loads a Music resource, returning its Music index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12767,7 +12767,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.SetMusicUnloadPolicy
  * \desc Changes when a loaded Music resource is unloaded.
  * \param music (integer): The music index to change.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \ns Resources
  */
 VMValue Resources_SetMusicUnloadPolicy(int argCount, VMValue* args, Uint32 threadID) {
@@ -12790,7 +12790,7 @@ VMValue Resources_SetMusicUnloadPolicy(int argCount, VMValue* args, Uint32 threa
  * Resources.LoadSound
  * \desc Loads a Sound resource, returning its Sound index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12807,7 +12807,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadVideo
  * \desc Loads a Video resource, returning its Video index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): When to unload the resource: at the end of the current Scene, at the game end, or when the next Scene uses a different resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
