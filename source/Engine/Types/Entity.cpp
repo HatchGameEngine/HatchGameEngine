@@ -655,7 +655,11 @@ void Entity::Initialize() {
 
 	Angle = 0;
 	AngleMode = 0;
+	ScaleX = 1.0;
+	ScaleY = 1.0;
 	Rotation = 0.0;
+	Alpha = 1.0;
+	BlendMode = BlendMode_NORMAL;
 	AutoPhysics = false;
 
 	Priority = 0;
