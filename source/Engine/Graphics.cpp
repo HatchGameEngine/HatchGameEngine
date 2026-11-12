@@ -2514,8 +2514,9 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 		end = MAX_FRAMEBUFFER_HEIGHT - 1;
 	}
 
+	int deformLine = scrollLine + deformOffset;
 	// Iterate lines
-	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+	for (int i = start; i < end; i++, scrollLine++, deformLine++, scanLine++) {
 		if (i < 0) {
 			continue;
 		}
@@ -2530,9 +2531,7 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
 			scanLine->SrcX = info->Position;
 			if (info->CanDeform) {
-				int deformTableOffset = scrollLine + deformOffset;
-				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
-				scanLine->SrcX += deformValues[deformTableOffset];
+				scanLine->SrcX += deformValues[deformLine & ((MAX_DEFORM_LINES >> 1) - 1)];
 			}
 		}
 		else {
