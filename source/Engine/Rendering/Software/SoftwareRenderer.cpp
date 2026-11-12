@@ -3900,7 +3900,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
 		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 			if (tScanLine->SrcX < 0) {
-				tScanLine->SrcX = -(tScanLine->SrcX % layerWidthInPixels);
+				tScanLine->SrcX = (tScanLine->SrcX % layerWidthInPixels + layerWidthInPixels) % layerWidthInPixels;
 			}
 			else {
 				tScanLine->SrcX %= layerWidthInPixels;
@@ -4558,14 +4558,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4716,14 +4716,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4901,14 +4901,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -5061,14 +5061,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
