@@ -3106,7 +3106,7 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 	for (size_t i = 1; i < Scene::TileCfg.size(); i++) {
 		TileConfig* cfgA = &Scene::TileCfg[0][tileStart];
 		TileConfig* cfgB = &Scene::TileCfg[i][tileStart];
-		for (size_t j = 0; j < 3; j++) {
+		for (size_t j = 0; j < 4; j++) {
 			memcpy(cfgB, cfgA, tileCount * sizeof(TileConfig));
 			cfgA += Scene::TileCount;
 			cfgB += Scene::TileCount;
