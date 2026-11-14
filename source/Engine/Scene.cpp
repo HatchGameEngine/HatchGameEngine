@@ -5577,6 +5577,7 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 	}
 
 	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
+	int targetBit = (isFloor != (CollisionEntity->TileCollisions == TILECOLLISION_UP)) ? 1 : 2;
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
@@ -5690,7 +5691,6 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 	}
 
 	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
-	int targetBit = (isFloor != (CollisionEntity->TileCollisions == TILECOLLISION_UP)) ? 1 : 2;
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
