@@ -3214,52 +3214,37 @@ bool Scene::AddTileset(char* path) {
 	return true;
 }
 void Scene::SetTileCount(size_t tileCount) {
-	vector<TileConfig*> configFlipX;
-	vector<TileConfig*> configFlipY;
-	vector<TileConfig*> configFlipXY;
+	size_t copyCount = (tileCount > Scene::TileCount) ? Scene::TileCount : tileCount;
+	size_t copySize = copyCount * sizeof(TileConfig);
+	size_t totalTileVariantCount = tileCount << 2;
 
-	size_t copySize = ((tileCount > Scene::TileCount) ? Scene::TileCount : tileCount) *
-		sizeof(TileConfig);
-
-	for (size_t i = 0; i < Scene::TileCfg.size(); i++) {
-		TileConfig* srcCfg = Scene::TileCfg[i];
-
-		TileConfig* flipX = (TileConfig*)Memory::Malloc(copySize);
-		TileConfig* flipY = (TileConfig*)Memory::Malloc(copySize);
-		TileConfig* flipXY = (TileConfig*)Memory::Malloc(copySize);
-
-		memcpy(flipX, srcCfg, copySize);
-		memcpy(flipY, srcCfg + Scene::TileCount, copySize);
-		memcpy(flipXY, srcCfg + (Scene::TileCount * 2), copySize);
-
-		configFlipX.push_back(flipX);
-		configFlipY.push_back(flipY);
-		configFlipXY.push_back(flipXY);
+	TileConfig* backup = nullptr;
+	if (copySize) {
+		backup = (TileConfig*)Memory::Malloc(copySize * 4);
 	}
 
-	size_t totalTileVariantCount = tileCount
-		<< 2; // multiplied by 4: For all combinations of tile
-	// flipping
-
 	for (size_t i = 0; i < Scene::TileCfg.size(); i++) {
-		Scene::TileCfg[i] = (TileConfig*)Memory::Realloc(
-			Scene::TileCfg[i], totalTileVariantCount * sizeof(TileConfig));
+		if (backup) {
+			for (size_t v = 0; v < 4; v++) {
+				memcpy(backup + (copyCount * v), Scene::TileCfg[i] + (Scene::TileCount * v), copySize);
+			}
+		}
+
+		Scene::TileCfg[i] = (TileConfig*)Memory::Realloc(Scene::TileCfg[i], totalTileVariantCount * sizeof(TileConfig));
 
 		TileConfig* destCfg = Scene::TileCfg[i];
 
 		ClearTileCollisions(destCfg, totalTileVariantCount);
 
-		TileConfig* flipX = configFlipX[i];
-		TileConfig* flipY = configFlipY[i];
-		TileConfig* flipXY = configFlipXY[i];
+		if (backup) {
+			for (size_t v = 0; v < 4; v++) {
+				memcpy(destCfg + (tileCount * v), backup + (copyCount * v), copySize);
+			}
+		}
+	}
 
-		memcpy(destCfg, flipX, copySize);
-		memcpy(destCfg + tileCount, flipY, copySize);
-		memcpy(destCfg + (tileCount * 2), flipXY, copySize);
-
-		Memory::Free(flipX);
-		Memory::Free(flipY);
-		Memory::Free(flipXY);
+	if (backup) {
+		Memory::Free(backup);
 	}
 
 	Scene::TileCount = tileCount;
