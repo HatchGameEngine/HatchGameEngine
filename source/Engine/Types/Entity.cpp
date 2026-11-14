@@ -179,6 +179,35 @@ void Entity::SetUpdatePriority(int priority) {
 		Scene::NeedEntitySort = true;
 	}
 }
+static void ShowEntityHitboxes(int type, Entity* source, Entity* other, int sourceCollision, int otherCollision) {
+	if (!Scene::ShowHitboxes) {
+		return;
+	}
+
+	Entity* entities[2] = {source, other};
+	int collisions[2] = {sourceCollision, otherCollision};
+	for (int i = 0; i < 2; i++) {
+		Entity* ent = entities[i];
+		if (ent->Hitbox.Width <= 0.0f || ent->Hitbox.Height <= 0.0f) {
+			continue;
+		}
+
+		bool flipX = ent->Direction & 1;
+		bool flipY = ent->Direction & 2;
+
+		CollisionBox box;
+		box.Left = (int)std::floor(ent->Hitbox.GetLeft(flipX));
+		box.Top = (int)std::floor(ent->Hitbox.GetTop(flipY));
+		box.Right = (int)std::floor(ent->Hitbox.GetRight(flipX));
+		box.Bottom = (int)std::floor(ent->Hitbox.GetBottom(flipY));
+
+		int id = Scene::RegisterHitbox(type, FLIP_NONE, ent, &box);
+		if (id >= 0) {
+			Scene::ViewableHitboxList[id].Collision |= collisions[i];
+		}
+	}
+}
+
 bool Entity::BasicCollideWithObject(Entity* other) {
 	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
 		return false;
@@ -190,10 +219,13 @@ bool Entity::BasicCollideWithObject(Entity* other) {
 		return false;
 	}
 
-	return other->X + other->Hitbox.GetLeft() >= X + Hitbox.GetLeft() &&
+	bool collided = other->X + other->Hitbox.GetLeft() >= X + Hitbox.GetLeft() &&
 		other->Y + other->Hitbox.GetTop() >= Y + Hitbox.GetTop() &&
 		other->X + other->Hitbox.GetRight() < X + Hitbox.GetRight() &&
 		other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
+
+	ShowEntityHitboxes(H_TYPE_TOUCH, this, other, collided, collided);
+	return collided;
 }
 bool Entity::CollideWithObject(Entity* other) {
 	float sourceHitboxW = this->Hitbox.Width * 0.5;
@@ -218,177 +250,185 @@ bool Entity::CollideWithObject(Entity* other) {
 	float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
 	float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
 
-	return !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
+	bool collided = !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
 		otherY - otherHitboxH > sourceY + sourceHitboxH ||
 		sourceX - sourceHitboxW > otherX + otherHitboxW ||
 		sourceX + sourceHitboxW < otherX - otherHitboxW);
+
+	ShowEntityHitboxes(H_TYPE_TOUCH, this, other, collided, collided);
+	return collided;
 }
 int Entity::SolidCollideWithObject(Entity* other, int flag) {
-	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
-		return false;
-	}
-
-	if (other->Hitbox.Width <= 0.0f || other->Hitbox.Height <= 0.0f) {
-		return false;
-	}
-
-	// NOTE: "flag" is setValues
-	float initialOtherX = other->X;
-	float initialOtherY = other->Y;
-	int sourceX = this->X;
-	int sourceY = this->Y;
-	int otherX = initialOtherX;
-	int otherY = initialOtherY;
-	float otherNewX = initialOtherX;
-	int collideSideHori = 0;
-	int collideSideVert = 0;
-
-	int sLeft = this->Hitbox.GetLeft(this->Direction & 1);
-	int sRight = this->Hitbox.GetRight(this->Direction & 1);
-	int sTop = this->Hitbox.GetTop(this->Direction & 2);
-	int sBottom = this->Hitbox.GetBottom(this->Direction & 2);
-
-	int oLeft = other->Hitbox.GetLeft(other->Direction & 1);
-	int oRight = other->Hitbox.GetRight(other->Direction & 1);
-	int oTop = other->Hitbox.GetTop(other->Direction & 2);
-	int oBottom = other->Hitbox.GetBottom(other->Direction & 2);
-
-	oTop++;
-	oBottom--;
-
-	// Check squeezed vertically
-	if (otherX <= (sRight + sLeft + 2 * sourceX) >> 1) {
-		if (otherX + oRight >= sourceX + sLeft && sourceY + sTop < otherY + oBottom &&
-			sourceY + sBottom > otherY + oTop) {
-			collideSideHori = C_LEFT;
-			otherNewX = this->X + (sLeft - oRight);
+	int side = [&]() -> int {
+		if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
+			return false;
 		}
-	}
-	else {
-		if (otherX + oLeft < sourceX + sRight && sourceY + sTop < otherY + oBottom &&
-			sourceY + sBottom > otherY + oTop) {
-			collideSideHori = C_RIGHT;
-			otherNewX = this->X + (sRight - oLeft);
+
+		if (other->Hitbox.Width <= 0.0f || other->Hitbox.Height <= 0.0f) {
+			return false;
 		}
-	}
 
-	oTop--;
-	oBottom++;
+		// NOTE: "flag" is setValues
+		float initialOtherX = other->X;
+		float initialOtherY = other->Y;
+		int sourceX = this->X;
+		int sourceY = this->Y;
+		int otherX = initialOtherX;
+		int otherY = initialOtherY;
+		float otherNewX = initialOtherX;
+		int collideSideHori = 0;
+		int collideSideVert = 0;
 
-	oLeft++;
-	oRight--;
+		int sLeft = this->Hitbox.GetLeft(this->Direction & 1);
+		int sRight = this->Hitbox.GetRight(this->Direction & 1);
+		int sTop = this->Hitbox.GetTop(this->Direction & 2);
+		int sBottom = this->Hitbox.GetBottom(this->Direction & 2);
 
-	// Check squeezed horizontally
-	if (otherY < (sTop + sBottom + 2 * sourceY) >> 1) {
-		if (otherY + oBottom >= sourceY + sTop && sourceX + sLeft < otherX + oRight &&
-			sourceX + sRight > otherX + oLeft) {
-			collideSideVert = C_TOP;
-			otherY = this->Y + (sTop - oBottom);
-		}
-	}
-	else {
-		if (otherY + oTop < sourceY + sBottom && sourceX + sLeft < otherX + oRight) {
-			if (otherX + oLeft < sourceX + sRight) {
-				collideSideVert = C_BOTTOM;
-				otherY = this->Y + (sBottom - oTop);
-			}
-		}
-	}
+		int oLeft = other->Hitbox.GetLeft(other->Direction & 1);
+		int oRight = other->Hitbox.GetRight(other->Direction & 1);
+		int oTop = other->Hitbox.GetTop(other->Direction & 2);
+		int oBottom = other->Hitbox.GetBottom(other->Direction & 2);
 
-	float deltaSquaredX1 = otherNewX - (other->X);
-	float deltaSquaredX2 = initialOtherX - (other->X);
-	float deltaSquaredY1 = otherY - (other->Y);
-	float deltaSquaredY2 = initialOtherY - (other->Y);
+		oTop++;
+		oBottom--;
 
-	deltaSquaredX1 *= deltaSquaredX1;
-	deltaSquaredX2 *= deltaSquaredX2;
-	deltaSquaredY1 *= deltaSquaredY1;
-	deltaSquaredY2 *= deltaSquaredY2;
-
-	int v47 = collideSideVert;
-	int v46 = collideSideHori;
-
-	if (collideSideHori != 0 || collideSideVert != 0) {
-		if (deltaSquaredX1 + deltaSquaredY2 >= deltaSquaredX2 + deltaSquaredY1) {
-			if (collideSideVert || !collideSideHori) {
-				other->X = initialOtherX;
-				other->Y = otherY;
-				if (flag == 1) {
-					if (collideSideVert != 1) {
-						if (collideSideVert == 4 && other->SpeedY < 0.0) {
-							other->SpeedY = 0.0;
-							return v47;
-						}
-						return v47;
-					}
-
-					if (other->SpeedY > 0.0) {
-						other->SpeedY = 0.0;
-					}
-					if (!other->OnGround && other->SpeedY >= 0.0) {
-						other->GroundSpeed = other->SpeedX;
-						other->Angle = 0;
-						other->OnGround = true;
-					}
-				}
-				return v47;
+		// Check squeezed vertically
+		if (otherX <= (sRight + sLeft + 2 * sourceX) >> 1) {
+			if (otherX + oRight >= sourceX + sLeft && sourceY + sTop < otherY + oBottom &&
+				sourceY + sBottom > otherY + oTop) {
+				collideSideHori = C_LEFT;
+				otherNewX = this->X + (sLeft - oRight);
 			}
 		}
 		else {
-			if (collideSideVert && !collideSideHori) {
-				other->X = initialOtherX;
-				other->Y = otherY;
-				if (flag == 1) {
-					if (collideSideVert != 1) {
-						if (collideSideVert == 4 && other->SpeedY < 0.0) {
-							other->SpeedY = 0.0;
-							return v47;
-						}
-						return v47;
-					}
-
-					if (other->SpeedY > 0.0) {
-						other->SpeedY = 0.0;
-					}
-					if (!other->OnGround && other->SpeedY >= 0.0) {
-						other->GroundSpeed = other->SpeedX;
-						other->Angle = 0;
-						other->OnGround = true;
-					}
-				}
-				return v47;
+			if (otherX + oLeft < sourceX + sRight && sourceY + sTop < otherY + oBottom &&
+				sourceY + sBottom > otherY + oTop) {
+				collideSideHori = C_RIGHT;
+				otherNewX = this->X + (sRight - oLeft);
 			}
 		}
 
-		other->X = otherNewX;
-		other->Y = initialOtherY;
-		if (flag == 1) {
-			float v50;
-			if (other->OnGround) {
-				v50 = other->GroundSpeed;
-				if (other->AngleMode == 2) {
-					v50 = -v50;
+		oTop--;
+		oBottom++;
+
+		oLeft++;
+		oRight--;
+
+		// Check squeezed horizontally
+		if (otherY < (sTop + sBottom + 2 * sourceY) >> 1) {
+			if (otherY + oBottom >= sourceY + sTop && sourceX + sLeft < otherX + oRight &&
+				sourceX + sRight > otherX + oLeft) {
+				collideSideVert = C_TOP;
+				otherY = this->Y + (sTop - oBottom);
+			}
+		}
+		else {
+			if (otherY + oTop < sourceY + sBottom && sourceX + sLeft < otherX + oRight) {
+				if (otherX + oLeft < sourceX + sRight) {
+					collideSideVert = C_BOTTOM;
+					otherY = this->Y + (sBottom - oTop);
+				}
+			}
+		}
+
+		float deltaSquaredX1 = otherNewX - (other->X);
+		float deltaSquaredX2 = initialOtherX - (other->X);
+		float deltaSquaredY1 = otherY - (other->Y);
+		float deltaSquaredY2 = initialOtherY - (other->Y);
+
+		deltaSquaredX1 *= deltaSquaredX1;
+		deltaSquaredX2 *= deltaSquaredX2;
+		deltaSquaredY1 *= deltaSquaredY1;
+		deltaSquaredY2 *= deltaSquaredY2;
+
+		int v47 = collideSideVert;
+		int v46 = collideSideHori;
+
+		if (collideSideHori != 0 || collideSideVert != 0) {
+			if (deltaSquaredX1 + deltaSquaredY2 >= deltaSquaredX2 + deltaSquaredY1) {
+				if (collideSideVert || !collideSideHori) {
+					other->X = initialOtherX;
+					other->Y = otherY;
+					if (flag == 1) {
+						if (collideSideVert != 1) {
+							if (collideSideVert == 4 && other->SpeedY < 0.0) {
+								other->SpeedY = 0.0;
+								return v47;
+							}
+							return v47;
+						}
+
+						if (other->SpeedY > 0.0) {
+							other->SpeedY = 0.0;
+						}
+						if (!other->OnGround && other->SpeedY >= 0.0) {
+							other->GroundSpeed = other->SpeedX;
+							other->Angle = 0;
+							other->OnGround = true;
+						}
+					}
+					return v47;
 				}
 			}
 			else {
-				v50 = other->SpeedX;
-			}
+				if (collideSideVert && !collideSideHori) {
+					other->X = initialOtherX;
+					other->Y = otherY;
+					if (flag == 1) {
+						if (collideSideVert != 1) {
+							if (collideSideVert == 4 && other->SpeedY < 0.0) {
+								other->SpeedY = 0.0;
+								return v47;
+							}
+							return v47;
+						}
 
-			if (v46 == 2) {
-				if (v50 <= 0.0) {
-					return v46;
+						if (other->SpeedY > 0.0) {
+							other->SpeedY = 0.0;
+						}
+						if (!other->OnGround && other->SpeedY >= 0.0) {
+							other->GroundSpeed = other->SpeedX;
+							other->Angle = 0;
+							other->OnGround = true;
+						}
+					}
+					return v47;
 				}
 			}
-			else if (v46 != 3 || v50 >= 0.0) {
-				return v46;
-			}
 
-			other->GroundSpeed = 0.0;
-			other->SpeedX = 0.0;
+			other->X = otherNewX;
+			other->Y = initialOtherY;
+			if (flag == 1) {
+				float v50;
+				if (other->OnGround) {
+					v50 = other->GroundSpeed;
+					if (other->AngleMode == 2) {
+						v50 = -v50;
+					}
+				}
+				else {
+					v50 = other->SpeedX;
+				}
+
+				if (v46 == 2) {
+					if (v50 <= 0.0) {
+						return v46;
+					}
+				}
+				else if (v46 != 3 || v50 >= 0.0) {
+					return v46;
+				}
+
+				other->GroundSpeed = 0.0;
+				other->SpeedX = 0.0;
+			}
+			return v46;
 		}
-		return v46;
-	}
-	return 0;
+		return 0;
+	}();
+
+	ShowEntityHitboxes(H_TYPE_BOX, this, other, side ? 1 << (side - 1) : 0, side ? 1 << (4 - side) : 0);
+	return side;
 }
 bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	// NOTE: "flag" might be "UseGroundSpeed"
@@ -423,6 +463,7 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 		sourceX + (sourceHitboxW + sourceHitboxOffX) <=
 			otherX + (-otherHitboxW + otherHitboxOffX) ||
 		other->SpeedY < 0.0) {
+		ShowEntityHitboxes(H_TYPE_PLAT, this, other, 0, 0);
 		return false;
 	}
 
@@ -436,6 +477,8 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 			other->OnGround = true;
 		}
 	}
+
+	ShowEntityHitboxes(H_TYPE_PLAT, this, other, 1 << 0, 1 << 3);
 	return true;
 }
 

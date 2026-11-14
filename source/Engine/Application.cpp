@@ -3600,6 +3600,7 @@ void Application::DevMenu_SettingsMenu() {
 		std::string("Object Region Viewer ") +
 			(Scene::ShowObjectRegions ? "(On)" : "(Off)"),
 		std::string("Hitbox Viewer ") + (Scene::ShowHitboxes ? "(On)" : "(Off)"),
+		std::string("Sensor Viewer ") + (Scene::ShowSensors ? "(On)" : "(Off)"),
 		std::string("Palette Viewer ") + (ViewPaletteViewer ? "(On)" : "(Off)"),
 		std::string("Scene Browser Mode ") + browserMode[DevMenu.SceneBrowserMode]
 	};
@@ -3648,10 +3649,13 @@ void Application::DevMenu_SettingsMenu() {
 		case 6: // Hitbox Viewer
 			Scene::ShowHitboxes = !Scene::ShowHitboxes;
 			break;
-		case 7: // Palette Viewer
+		case 7: // Sensor Viewer
+			Scene::ShowSensors = !Scene::ShowSensors;
+			break;
+		case 8: // Palette Viewer
 			ViewPaletteViewer = !ViewPaletteViewer;
 			break;
-		case 8: // Scene Browser Mode
+		case 9: // Scene Browser Mode
 			DevMenu.SceneBrowserMode = (DevMenu.SceneBrowserMode + 1) % 3;
 			Application::Settings->SetString("dev", "sceneBrowserMode", browserModeConfig[DevMenu.SceneBrowserMode]);
 			break;

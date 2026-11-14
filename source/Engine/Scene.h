@@ -143,6 +143,8 @@ public:
 	static bool ShowHitboxes;
 	static int ViewableHitboxCount;
 	static std::vector<ViewableHitbox> ViewableHitboxList;
+	static bool ShowSensors;
+	static std::vector<ViewableSensor> ViewableSensorList;
 
 	static void Add(Entity** first, Entity** last, int* count, Entity* obj);
 	static void Remove(Entity** first, Entity** last, int* count, Entity* obj);
@@ -242,6 +244,9 @@ public:
 		}
 	};
 	static int RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox);
+	static void DrawDebugHitboxes();
+	static void RegisterSensors(Entity* entity, bool wasOnGround);
+	static void DrawDebugSensors();
 	static bool CheckEntityTouch(Entity* thisEntity,
 		CollisionBox* thisHitbox,
 		Entity* otherEntity,
