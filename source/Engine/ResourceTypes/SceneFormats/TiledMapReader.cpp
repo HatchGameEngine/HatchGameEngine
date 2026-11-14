@@ -350,6 +350,11 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, int tile
 	int curTileCount = (int)TileSpriteInfos.size();
 	int numEmptyTiles = std::max((int)(firstgid - curTileCount), 0);
 
+	int realTileCount = cols * rows;
+	if (realTileCount > tileCount) {
+		tileCount = realTileCount;
+	}
+
 	// Add empty tiles
 	TileSpriteInfo info;
 	for (int i = 0; i < numEmptyTiles; i++) {
