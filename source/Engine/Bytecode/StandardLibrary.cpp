@@ -12589,7 +12589,7 @@ VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
  * \param paletteIndex (integer): Index of palette.
  * \param lineStart (number): Start line to set to the palette.
  * \param lineEnd (number): Line where to stop setting the palette.
- * \paramOpt enableLines (boolean): Whether to also enable the global palette index table (default: <code>false</code>).
+ * \paramOpt enableLines (boolean): Whether to also enable the global palette index table. (default: `false`)
  * \ns Palette
  */
 VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
