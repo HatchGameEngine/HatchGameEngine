@@ -2176,6 +2176,11 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	Scene::Prepare();
 
+    // Clear the existing palette index lines
+	memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
+	Graphics::PaletteIndexLinesUpdated = true;
+	Graphics::UsePaletteIndexLines = false;
+
 	if (sceneFilename == nullptr || sceneFilename[0] == '\0') {
 		return;
 	}

@@ -12589,29 +12589,34 @@ VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
  * \param paletteIndex (integer): Index of palette.
  * \param lineStart (number): Start line to set to the palette.
  * \param lineEnd (number): Line where to stop setting the palette.
+ * \paramOpt enableLines (boolean): Whether to also enable the global palette index table (default: <code>false</code>).
  * \ns Palette
  */
 VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	Sint32 lineStart = (int)GET_ARG(1, GetDecimal);
 	Sint32 lineEnd = (int)GET_ARG(2, GetDecimal);
+	bool enableLines = GET_ARG_OPT(3, GetInteger, false);
 
 	CHECK_PALETTE_INDEX(palIndex);
 
-	Sint32 lastLine = sizeof(Graphics::PaletteIndexLines) - 1;
-	if (lineStart > lastLine) {
-		lineStart = lastLine;
+	if (lineStart < 0) {
+		lineStart = 0;
 	}
 
-	if (lineEnd > lastLine) {
-		lineEnd = lastLine;
+	if (lineEnd > MAX_FRAMEBUFFER_HEIGHT) {
+		lineEnd = MAX_FRAMEBUFFER_HEIGHT;
 	}
 
 	for (Sint32 i = lineStart; i < lineEnd; i++) {
 		Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
 	}
 	Graphics::PaletteIndexLinesUpdated = true;
+
+	if (enableLines) {
+		Graphics::UsePaletteIndexLines = true;
+	}
 	return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX

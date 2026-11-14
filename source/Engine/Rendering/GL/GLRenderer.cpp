@@ -3105,7 +3105,7 @@ void GLRenderer::DrawTriangle(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
@@ -3155,7 +3155,7 @@ void GLRenderer::DrawQuad(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 

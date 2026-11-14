@@ -1397,7 +1397,7 @@ void Graphics::DrawTriangle(Texture* texture,
 	float* tu,
 	float* tv,
 	int* colors) {
-	if (Graphics::GfxFunctions->DrawQuad) {
+	if (Graphics::GfxFunctions->DrawTriangle) {
 		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
 	}
 }
