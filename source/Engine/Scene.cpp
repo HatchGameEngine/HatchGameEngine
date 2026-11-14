@@ -4207,6 +4207,11 @@ int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbo
 	return (int)ViewableHitboxList.size() - 1;
 }
 
+
+static inline int EntityPixelPos(float value) {
+	return (int)std::floor(value);
+}
+
 bool Scene::CheckEntityTouch(Entity* thisEntity,
 	CollisionBox* thisHitbox,
 	Entity* otherEntity,
@@ -4221,10 +4226,15 @@ bool Scene::CheckEntityTouch(Entity* thisEntity,
 		thisEntity->Direction,
 		&otherBox); // NOTE: This is intentionally using thisEntity's direction
 
-	bool collided = thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right &&
-		thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left &&
-		thisEntity->Y + thisBox.Top < otherEntity->Y + otherBox.Bottom &&
-		thisEntity->Y + thisBox.Bottom > otherEntity->Y + otherBox.Top;
+	int thisIX = EntityPixelPos(thisEntity->X);
+	int thisIY = EntityPixelPos(thisEntity->Y);
+	int otherIX = EntityPixelPos(otherEntity->X);
+	int otherIY = EntityPixelPos(otherEntity->Y);
+
+	bool collided = thisIX + thisBox.Left < otherIX + otherBox.Right &&
+		thisIX + thisBox.Right > otherIX + otherBox.Left &&
+		thisIY + thisBox.Top < otherIY + otherBox.Bottom &&
+		thisIY + thisBox.Bottom > otherIY + otherBox.Top;
 
 	if (ShowHitboxes) {
 		int thisHitboxID =
@@ -4249,9 +4259,9 @@ bool Scene::CheckEntityCircle(Entity* thisEntity,
 		return false;
 	}
 
-	float x = thisEntity->X - otherEntity->X;
-	float y = thisEntity->Y - otherEntity->Y;
-	float r = thisRadius + otherRadius;
+	int x = EntityPixelPos(thisEntity->X - otherEntity->X);
+	int y = EntityPixelPos(thisEntity->Y - otherEntity->Y);
+	int r = EntityPixelPos(thisRadius + otherRadius);
 	bool collided = (x * x + y * y) < (r * r);
 
 	if (ShowHitboxes) {
@@ -4294,22 +4304,25 @@ int Scene::CheckEntityBox(Entity* thisEntity,
 	float collideX = otherEntity->X;
 	float collideY = otherEntity->Y;
 
+	int thisIX = EntityPixelPos(thisEntity->X);
+	int thisIY = EntityPixelPos(thisEntity->Y);
+	int otherIX = EntityPixelPos(otherEntity->X);
+	int otherIY = EntityPixelPos(otherEntity->Y);
+
 	otherBox.Top++;
 	otherBox.Bottom--;
 
-	float thisCenterX = thisEntity->X + (thisBox.Right + thisBox.Left) * 0.5f;
-
-	if (otherEntity->X <= thisCenterX) {
-		if (otherEntity->X + otherBox.Right >= thisEntity->X + thisBox.Left &&
-			thisEntity->Y + thisBox.Top < otherEntity->Y + otherBox.Bottom &&
-			thisEntity->Y + thisBox.Bottom > otherEntity->Y + otherBox.Top) {
+	if (otherIX <= (thisBox.Right + thisBox.Left + 2 * thisIX) >> 1) {
+		if (otherIX + otherBox.Right >= thisIX + thisBox.Left &&
+			thisIY + thisBox.Top < otherIY + otherBox.Bottom &&
+			thisIY + thisBox.Bottom > otherIY + otherBox.Top) {
 			collisionSideH = C_LEFT;
 			collideX = thisEntity->X + (thisBox.Left - otherBox.Right);
 		}
 	}
-	else if (otherEntity->X + otherBox.Left < thisEntity->X + thisBox.Right &&
-		thisEntity->Y + thisBox.Top < otherEntity->Y + otherBox.Bottom &&
-		thisEntity->Y + thisBox.Bottom > otherEntity->Y + otherBox.Top) {
+	else if (otherIX + otherBox.Left < thisIX + thisBox.Right &&
+		thisIY + thisBox.Top < otherIY + otherBox.Bottom &&
+		thisIY + thisBox.Bottom > otherIY + otherBox.Top) {
 		collisionSideH = C_RIGHT;
 		collideX = thisEntity->X + (thisBox.Right - otherBox.Left);
 	}
@@ -4319,17 +4332,17 @@ int Scene::CheckEntityBox(Entity* thisEntity,
 	otherBox.Left++;
 	otherBox.Right--;
 
-	if (otherEntity->Y < (thisEntity->Y + (thisBox.Top + thisBox.Bottom) * 0.5f)) {
-		if (otherEntity->Y + otherBox.Bottom >= thisEntity->Y + thisBox.Top &&
-			thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right &&
-			thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left) {
+	if (otherIY < (thisBox.Top + thisBox.Bottom + 2 * thisIY) >> 1) {
+		if (otherIY + otherBox.Bottom >= thisIY + thisBox.Top &&
+			thisIX + thisBox.Left < otherIX + otherBox.Right &&
+			thisIX + thisBox.Right > otherIX + otherBox.Left) {
 			collisionSideV = C_TOP;
 			collideY = thisEntity->Y + (thisBox.Top - otherBox.Bottom);
 		}
 	}
-	else if (otherEntity->Y + otherBox.Top < thisEntity->Y + thisBox.Bottom &&
-		thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right &&
-		thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left) {
+	else if (otherIY + otherBox.Top < thisIY + thisBox.Bottom &&
+		thisIX + thisBox.Left < otherIX + otherBox.Right &&
+		thisIX + thisBox.Right > otherIX + otherBox.Left) {
 		collisionSideV = C_BOTTOM;
 		collideY = thisEntity->Y + (thisBox.Bottom - otherBox.Top);
 	}
@@ -4339,8 +4352,8 @@ int Scene::CheckEntityBox(Entity* thisEntity,
 
 	int side = C_NONE;
 
-	float deltaX = collideX - otherEntity->X;
-	float deltaY = collideY - otherEntity->Y;
+	int deltaX = EntityPixelPos(collideX - otherEntity->X);
+	int deltaY = EntityPixelPos(collideY - otherEntity->Y);
 
 	if ((deltaX * deltaX >= deltaY * deltaY && (collisionSideV || !collisionSideH)) ||
 		(!collisionSideH && collisionSideV)) {
@@ -4429,25 +4442,31 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity,
 		&otherBox); // NOTE: This is intentionally using thisEntity's direction
 
 	bool isUp = (otherEntity->TileCollisions == TILECOLLISION_UP);
-	float gravityDir = isUp ? -1.0f : 1.0f;
 
-	float otherEdge = otherEntity->Y + (otherBox.Bottom * gravityDir);
-	float otherPrevEdge =
-		(otherEntity->Y - otherEntity->SpeedY) + (otherBox.Bottom * gravityDir);
+	int thisIX = EntityPixelPos(thisEntity->X);
+	int thisIY = EntityPixelPos(thisEntity->Y);
+	int otherIX = EntityPixelPos(otherEntity->X);
+	int otherIY = EntityPixelPos(otherEntity->Y);
+	int otherMoveY = EntityPixelPos(otherEntity->Y - otherEntity->SpeedY);
 
-	float platformTop = thisEntity->Y + thisBox.Top;
-	float platformBottom = thisEntity->Y + thisBox.Bottom;
+	bool inRangeX = thisIX + thisBox.Left < otherIX + otherBox.Right &&
+		thisIX + thisBox.Right > otherIX + otherBox.Left;
 
-	bool isColliding = (thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right) &&
-		(thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left) &&
-		((!isUp && otherEntity->SpeedY >= 0.0f && otherEdge >= platformTop &&
-			 otherPrevEdge <= platformBottom) ||
-			(isUp && otherEntity->SpeedY <= 0.0f && otherEdge <= platformBottom &&
-				otherPrevEdge >= platformTop));
+	bool isColliding;
+	if (isUp) {
+		isColliding = otherIY - otherBox.Bottom >= thisIY + thisBox.Top &&
+			otherMoveY - otherBox.Bottom <= thisIY + thisBox.Bottom && inRangeX &&
+			otherEntity->SpeedY <= 0.0f;
+	}
+	else {
+		isColliding = otherIY + otherBox.Bottom >= thisIY + thisBox.Top &&
+			otherMoveY + otherBox.Bottom <= thisIY + thisBox.Bottom && inRangeX &&
+			otherEntity->SpeedY >= 0.0f;
+	}
 
 	if (isColliding) {
-		otherEntity->Y =
-			isUp ? (platformBottom + otherBox.Bottom) : (platformTop - otherBox.Bottom);
+		otherEntity->Y = isUp ? (thisEntity->Y + (thisBox.Bottom + otherBox.Bottom))
+				      : (thisEntity->Y + (thisBox.Top - otherBox.Bottom));
 
 		if (setValues) {
 			otherEntity->SpeedY = 0.0f;
@@ -4466,9 +4485,11 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity,
 		int otherID = RegisterHitbox(
 			H_TYPE_PLAT, otherEntity->Direction, otherEntity, otherHitbox);
 
-		if (isColliding && thisID >= 0 && otherID >= 0) {
-			ViewableHitboxList[thisID].Collision |= 1 << (isUp * 3);
-			ViewableHitboxList[otherID].Collision |= (!isUp * 3);
+		if (isColliding && thisID >= 0) {
+			ViewableHitboxList[thisID].Collision |= isUp ? (1 << 3) : (1 << 0);
+		}
+		if (isColliding && otherID >= 0) {
+			ViewableHitboxList[otherID].Collision |= isUp ? (1 << 0) : (1 << 3);
 		}
 	}
 
@@ -4487,8 +4508,8 @@ bool Scene::CheckTileCollision(Entity* entity,
 	}
 
 	bool collided = false;
-	int posX = xOffset + (int)entity->X;
-	int posY = yOffset + (int)entity->Y;
+	int posX = (int)std::floor(entity->X + xOffset);
+	int posY = (int)std::floor(entity->Y + yOffset);
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
 	bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
@@ -4613,8 +4634,8 @@ bool Scene::CheckTileGrip(Entity* entity,
 	}
 
 	bool collided = false;
-	int posX = (int)(xOffset + entity->X);
-	int posY = (int)(yOffset + entity->Y);
+	int posX = (int)std::floor(xOffset + entity->X);
+	int posY = (int)std::floor(yOffset + entity->Y);
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
 	bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
