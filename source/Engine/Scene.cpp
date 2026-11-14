@@ -158,6 +158,8 @@ int Scene::RoofAngleTolerance = 0x20;
 bool Scene::ShowHitboxes = false;
 int Scene::ViewableHitboxCount = 0;
 std::vector<ViewableHitbox> Scene::ViewableHitboxList;
+bool Scene::ShowSensors = false;
+std::vector<ViewableSensor> Scene::ViewableSensorList;
 
 void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 	// This is called before object lists are cleared, so we need
@@ -782,6 +784,7 @@ void Scene::ResetPerf() {
 void Scene::FrameUpdate() {
 	// Clear debug hitboxes from the previous frame
 	ViewableHitboxList.clear();
+	ViewableSensorList.clear();
 
 	// Sort entities if needed
 	Scene::SortEntities();
@@ -1434,6 +1437,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	}
 	// Call Scene.RenderFinish
 	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
+
+	DrawDebugSensors();
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
@@ -4208,6 +4213,93 @@ int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbo
 }
 
 
+void Scene::RegisterSensors(Entity* entity, bool wasOnGround) {
+	float x = entity->X;
+	float y = entity->Y;
+
+	bool sameState = (wasOnGround == entity->OnGround);
+
+	if (entity->OnGround) {
+        // Make copies so the original sensors keep their results
+		CollisionSensor layout[6];
+		for (int i = 0; i < 6; i++) {
+			layout[i] = Sensors[i];
+		}
+		layout[4].X = x;
+		layout[4].Y = y;
+		SetPathGripSensors(layout);
+
+		bool isVertical = (entity->CollisionMode == CMODE_FLOOR || entity->CollisionMode == CMODE_ROOF);
+		for (int i = 0; i < 3; i++) {
+			if (isVertical) {
+				AddViewableSensor(H_SENSOR_FLOOR, sameState && Sensors[i].Collided, layout[i].X, y, layout[i].X, layout[i].Y);
+			}
+			else {
+				AddViewableSensor(H_SENSOR_FLOOR, sameState && Sensors[i].Collided, x, layout[i].Y, layout[i].X, layout[i].Y);
+			}
+		}
+
+		if (entity->GroundSpeed != 0.0f) {
+			if (isVertical) {
+				AddViewableSensor(H_SENSOR_WALL, sameState && Sensors[3].Collided, x, layout[3].Y, layout[3].X, layout[3].Y);
+			}
+			else {
+				AddViewableSensor(H_SENSOR_WALL, sameState && Sensors[3].Collided, layout[3].X, y, layout[3].X, layout[3].Y);
+			}
+		}
+		return;
+	}
+
+	bool isUp = (entity->TileCollisions == TILECOLLISION_UP);
+	float offset = UseCollisionOffset ? (isUp ? -CollisionOffset : CollisionOffset) : 0.0f;
+	float wallY = y + offset;
+	AddViewableSensor(H_SENSOR_WALL, sameState && Sensors[0].Collided, x, wallY, x + CollisionOuter.Right, wallY);
+	AddViewableSensor(H_SENSOR_WALL, sameState && Sensors[1].Collided, x, wallY, x + CollisionOuter.Left - 1.0f, wallY);
+
+	float leftX = x + CollisionOuter.Left + 1.0f;
+	float rightX = x + CollisionOuter.Right - 2.0f;
+	float floorY = y + (isUp ? CollisionOuter.Top - 1.0f : CollisionOuter.Bottom);
+	float roofY = y + (isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f);
+	int floorSensor = isUp ? 4 : 2;
+	int roofSensor = isUp ? 2 : 4;
+	AddViewableSensor(H_SENSOR_FLOOR, sameState && Sensors[floorSensor].Collided, leftX, y, leftX, floorY);
+	AddViewableSensor(H_SENSOR_FLOOR, sameState && Sensors[floorSensor + 1].Collided, rightX, y, rightX, floorY);
+	AddViewableSensor(H_SENSOR_ROOF, sameState && Sensors[roofSensor].Collided, leftX, y, leftX, roofY);
+	AddViewableSensor(H_SENSOR_ROOF, sameState && Sensors[roofSensor + 1].Collided, rightX, y, rightX, roofY);
+}
+
+void Scene::DrawDebugSensors() {
+	if (!ShowSensors || ViewableSensorList.empty()) {
+		return;
+	}
+
+	Graphics::SetBlendMode(BlendMode_NORMAL);
+
+	for (ViewableSensor& sensor : ViewableSensorList) {
+		Uint32 color = 0x00E000;
+		if (sensor.Type == H_SENSOR_WALL) {
+			color = 0xFF3880;
+		}
+		else if (sensor.Type == H_SENSOR_ROOF) {
+			color = 0x2090FF;
+		}
+
+		float x1 = std::floor(std::min(sensor.StartX, sensor.EndX));
+		float y1 = std::floor(std::min(sensor.StartY, sensor.EndY));
+		float x2 = std::floor(std::max(sensor.StartX, sensor.EndX));
+		float y2 = std::floor(std::max(sensor.StartY, sensor.EndY));
+		Graphics::SetBlendColor(((color >> 16) & 0xFF) / 255.0f, ((color >> 8) & 0xFF) / 255.0f, (color & 0xFF) / 255.0f, 1.0f);
+		Graphics::FillRectangle(x1, y1, x2 - x1 + 1.0f, y2 - y1 + 1.0f);
+
+		if (sensor.Collided) {
+			Graphics::SetBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+			Graphics::FillRectangle(std::floor(sensor.EndX), std::floor(sensor.EndY), 1.0f, 1.0f);
+		}
+	}
+
+	Graphics::SetBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
 static inline int EntityPixelPos(float value) {
 	return (int)std::floor(value);
 }
@@ -4761,6 +4853,7 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 	if (entity && outerBox && innerBox) {
 		if (entity->TileCollisions) {
 			entity->Angle &= 0xFF;
+			bool wasOnGround = entity->OnGround;
 
 			CollisionOuter = *outerBox;
 			CollisionInner = *innerBox;
@@ -4776,18 +4869,12 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 				CollisionTolerance = HighCollisionTolerance;
 			}
 
+			UseCollisionOffset = entity->OnGround && entity->Angle == groundAngle && CollisionOuter.Bottom >= 14;
+
 			if (entity->OnGround) {
-				UseCollisionOffset = (entity->Angle == groundAngle);
-
-				if ((isUp ? abs(CollisionOuter.Top) : abs(CollisionOuter.Bottom)) <
-					14) {
-					UseCollisionOffset = false;
-				}
-
 				ProcessPathGrip();
 			}
 			else {
-				UseCollisionOffset = false;
 				ProcessAirCollision(isUp);
 			}
 
@@ -4799,6 +4886,10 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 			}
 			else {
 				entity->GroundSpeed = entity->SpeedX;
+			}
+
+			if (ShowSensors) {
+				RegisterSensors(entity, wasOnGround);
 			}
 		}
 		else {
@@ -4951,7 +5042,9 @@ void Scene::ProcessPathGrip() {
 		case CMODE_LWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed < 0.0f);
+			if (CollisionEntity->GroundSpeed != 0.0f) {
+				CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed < 0.0f);
+			}
 			if (Sensors[3].Collided) {
 				yVel = 0.0f;
 				checkDist = -1;
@@ -5033,7 +5126,9 @@ void Scene::ProcessPathGrip() {
 		case CMODE_RWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed > 0.0f);
+			if (CollisionEntity->GroundSpeed != 0.0f) {
+				CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed > 0.0f);
+			}
 			if (Sensors[3].Collided) {
 				yVel = 0.0f;
 				checkDist = -1;
