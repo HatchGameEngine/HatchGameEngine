@@ -1356,12 +1356,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		for (size_t li = 0; li < Layers.size(); li++) {
 			SceneLayer* layer = Layers[li];
 			// Skip layer tile render if already rendered
-			if (layer->DrawGroup != l) {
+			if (layer->GetDrawGroupInView(viewIndex) != l) {
 				continue;
 			}
 
 			// Draw Tiles
-			if (layer->Visible) {
+			if (layer->IsVisibleInView(viewIndex)) {
 				PERF_START(LayerTileRenderTime[li]);
 
 				Graphics::TextureBlend = layer->UseBlending;
