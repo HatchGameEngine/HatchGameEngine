@@ -103,4 +103,15 @@ struct ViewableHitbox {
 	int Y;
 };
 
+#define VIEWABLE_SENSOR_COUNT 0x80
+
+struct ViewableSensor {
+	int Type;
+	bool Collided;
+	float StartX;
+	float StartY;
+	float EndX;
+	float EndY;
+};
+
 #endif /* ENTITYTYPES_H */
