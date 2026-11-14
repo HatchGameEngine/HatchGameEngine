@@ -4235,7 +4235,7 @@ void Scene::RegisterSensors(Entity* entity, bool wasOnGround) {
 	bool sameState = (wasOnGround == entity->OnGround);
 
 	if (entity->OnGround) {
-        // Make copies so the original sensors keep their results
+		// Copy the sensors so we don't overwrite the original results
 		CollisionSensor layout[6];
 		for (int i = 0; i < 6; i++) {
 			layout[i] = Sensors[i];
