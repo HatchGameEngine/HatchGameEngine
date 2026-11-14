@@ -2820,8 +2820,8 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 			vectors[i].Y = FP16_TO(yy);
 			vectors[i].Z = FP16_TO(1.0f);
 			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
-			uv[i].X = ((int)pu[i]) << 16;
-			uv[i].Y = ((int)pv[i]) << 16;
+			uv[i].X = FP16_TO(pu[i]);
+			uv[i].Y = FP16_TO(pv[i]);
 		}
 
 		PolygonRasterizer::DrawBlendPerspective(
