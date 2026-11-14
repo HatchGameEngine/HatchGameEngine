@@ -1438,6 +1438,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	// Call Scene.RenderFinish
 	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
 
+	DrawDebugHitboxes();
 	DrawDebugSensors();
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
@@ -4188,28 +4189,112 @@ int Scene::CollisionInLine(int x,
 }
 
 int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox) {
+	CollisionBox oriented;
+	OrientHitbox(hitbox, dir, &oriented);
+
 	for (size_t i = 0; i < ViewableHitboxList.size(); ++i) {
-		if (ViewableHitboxList[i].Instance == entity &&
-			ViewableHitboxList[i].Hitbox.Left == hitbox->Left &&
-			ViewableHitboxList[i].Hitbox.Top == hitbox->Top &&
-			ViewableHitboxList[i].Hitbox.Right == hitbox->Right &&
-			ViewableHitboxList[i].Hitbox.Bottom == hitbox->Bottom &&
-			ViewableHitboxList[i].X == (int)entity->X &&
-			ViewableHitboxList[i].Y == (int)entity->Y) {
+		ViewableHitbox& entry = ViewableHitboxList[i];
+		if (entry.Instance == entity && entry.Type == type && entry.Hitbox.Left == oriented.Left && entry.Hitbox.Top == oriented.Top
+			&& entry.Hitbox.Right == oriented.Right && entry.Hitbox.Bottom == oriented.Bottom && entry.X == entity->X && entry.Y == entity->Y) {
 			return (int)i;
 		}
+	}
+
+	if (ViewableHitboxList.size() >= VIEWABLE_HITBOX_COUNT) {
+		return -1;
 	}
 
 	ViewableHitbox box;
 	box.Type = type;
 	box.Collision = 0;
 	box.Instance = entity;
-	box.X = (int)entity->X;
-	box.Y = (int)entity->Y;
-	OrientHitbox(hitbox, dir, &box.Hitbox);
+	box.X = entity->X;
+	box.Y = entity->Y;
+	box.Hitbox = oriented;
 
 	ViewableHitboxList.push_back(box);
 	return (int)ViewableHitboxList.size() - 1;
+}
+
+void Scene::DrawDebugHitboxes() {
+	if (!ShowHitboxes || ViewableHitboxList.empty()) {
+		return;
+	}
+
+	const float fillAlpha = 0x60 / 255.0f;
+	const float edgeAlpha = 0xC0 / 255.0f;
+
+	Graphics::SetBlendMode(BlendMode_NORMAL);
+
+	for (ViewableHitbox& info : ViewableHitboxList) {
+		float x = std::floor(info.X) + info.Hitbox.Left;
+		float y = std::floor(info.Y) + info.Hitbox.Top;
+		float w = (float)abs(info.Hitbox.Right - info.Hitbox.Left);
+		float h = (float)abs(info.Hitbox.Bottom - info.Hitbox.Top);
+
+		switch (info.Type) {
+		case H_TYPE_TOUCH:
+			if (info.Collision) {
+				Graphics::SetBlendColor(0x80 / 255.0f, 0x80 / 255.0f, 0.0f, fillAlpha);
+			}
+			else {
+				Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, fillAlpha);
+			}
+			Graphics::FillRectangle(x, y, w, h);
+			break;
+
+		case H_TYPE_CIRCLE:
+			if (info.Collision) {
+				Graphics::SetBlendColor(0x80 / 255.0f, 0x80 / 255.0f, 0.0f, fillAlpha);
+			}
+			else {
+				Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, fillAlpha);
+			}
+			Graphics::FillCircle(std::floor(info.X), std::floor(info.Y), (float)info.Hitbox.Left);
+			break;
+
+		case H_TYPE_BOX:
+		case H_TYPE_PLAT: {
+			if (info.Type == H_TYPE_BOX) {
+				Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, fillAlpha);
+			}
+			else {
+				Graphics::SetBlendColor(0.0f, 1.0f, 0.0f, fillAlpha);
+			}
+			Graphics::FillRectangle(x, y, w, h);
+
+			Graphics::SetBlendColor(1.0f, 1.0f, 0.0f, edgeAlpha);
+			if (info.Collision & 1) {
+				Graphics::FillRectangle(x, y, w, 1.0f);
+			}
+			if (info.Collision & 8) {
+				Graphics::FillRectangle(x, y + h, w, 1.0f);
+			}
+
+			if (info.Type == H_TYPE_BOX && (info.Collision & (2 | 4))) {
+				float sy = y;
+				float sh = h;
+				if (info.Collision & 1) {
+					sy += 1.0f;
+					sh -= 1.0f;
+				}
+				if (info.Collision & 8) {
+					sh -= 1.0f;
+				}
+
+				if (info.Collision & 2) {
+					Graphics::FillRectangle(x, sy, 1.0f, sh);
+				}
+				if (info.Collision & 4) {
+					Graphics::FillRectangle(x + w, sy, 1.0f, sh);
+				}
+			}
+			break;
+		}
+		}
+	}
+
+	Graphics::SetBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 

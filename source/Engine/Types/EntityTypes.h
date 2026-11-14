@@ -99,8 +99,8 @@ struct ViewableHitbox {
 	int Collision;
 	Entity* Instance;
 	CollisionBox Hitbox;
-	int X;
-	int Y;
+	float X;
+	float Y;
 };
 
 #define VIEWABLE_SENSOR_COUNT 0x80
