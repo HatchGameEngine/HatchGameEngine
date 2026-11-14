@@ -294,7 +294,7 @@ bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 		break;
 
 	case ACTIVE_RBOUNDS:
-		if (onScreenX || onScreenY) {
+		if (ent->OnScreenHitboxW == 0.0f) {
 			return true;
 		}
 
@@ -302,10 +302,14 @@ bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 			if (!Scene::Views[v].Active) {
 				continue;
 			}
-			float sx = abs(ent->X - Scene::Views[v].X);
-			float sy = abs(ent->Y - Scene::Views[v].Y);
 
-			if (sx * sx + sy * sy <= ent->OnScreenHitboxW) {
+			float halfWidth = Scene::Views[v].GetScaledWidth() * 0.5f;
+			float halfHeight = Scene::Views[v].GetScaledHeight() * 0.5f;
+			Sint64 sx = (Sint64)fabs(ent->X - (Scene::Views[v].X + halfWidth));
+			Sint64 sy = (Sint64)fabs(ent->Y - (Scene::Views[v].Y + halfHeight));
+			Sint64 range = (Sint64)ent->OnScreenHitboxW + ((Sint64)halfWidth << 16);
+
+			if (sx * sx + sy * sy <= range) {
 				return true;
 			}
 		}
@@ -1206,6 +1210,14 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				if (ent->Activity == ACTIVE_ALWAYS || ent->Activity == ACTIVE_NORMAL || (Scene::Paused && ent->Activity == ACTIVE_PAUSED))
 					goto DoCheckRender;
+
+				// A width-only or radius region can't be checked as a box
+				if (!Scene::UseRenderRegions && (ent->Activity == ACTIVE_XBOUNDS || ent->Activity == ACTIVE_RBOUNDS)) {
+					if (!ent->OnScreen) {
+						continue;
+					}
+					goto DoCheckRender;
+				}
 
 				if (Scene::UseRenderRegions) {
 					if (ent->RenderRegionLeft || ent->RenderRegionRight) {
