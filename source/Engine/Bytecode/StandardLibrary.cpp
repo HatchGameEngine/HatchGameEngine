@@ -17509,6 +17509,31 @@ VMValue Sprite_SetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Sprite.CopyFrame
+ * \desc Copies a sprite frame over another.
+ * \param sprite (integer): The sprite index to modify.
+ * \param destAnimationID (integer): The animation index of the frame to overwrite.
+ * \param destFrame (integer): The frame index of the frame to overwrite.
+ * \param srcAnimationID (integer): The animation index of the frame to copy.
+ * \param srcFrame (integer): The frame index of the frame to copy.
+ * \ns Sprite
+ */
+VMValue Sprite_CopyFrame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int destAnimationID = GET_ARG(1, GetInteger);
+	int destFrameID = GET_ARG(2, GetInteger);
+	int srcAnimationID = GET_ARG(3, GetInteger);
+	int srcFrameID = GET_ARG(4, GetInteger);
+
+	CHECK_ANIMFRAME_INDEX(destAnimationID, destFrameID);
+	CHECK_ANIMFRAME_INDEX(srcAnimationID, srcFrameID);
+
+	sprite->Animations[destAnimationID].Frames[destFrameID] = sprite->Animations[srcAnimationID].Frames[srcFrameID];
+
+	return NULL_VAL;
+}
+/***
  * Sprite.MakePalettized
  * \desc Converts a sprite's colors to the ones in the specified palette index.
  * \param sprite (integer): The sprite index.
@@ -22842,6 +22867,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Sprite, GetTextWidth);
 	DEF_NATIVE(Sprite, SetFrameOffsetX);
 	DEF_NATIVE(Sprite, SetFrameOffsetY);
+	DEF_NATIVE(Sprite, CopyFrame);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
