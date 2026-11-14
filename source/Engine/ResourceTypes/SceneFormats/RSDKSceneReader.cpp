@@ -268,6 +268,8 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
 	}
 
+	layer->UsePaletteIndexLines = true;
+
 	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
 		layer->Visible = false;
