@@ -178,7 +178,7 @@ void HatchSceneReader::ReadTileData(Stream* r, TileLayer* layer) {
 }
 
 void HatchSceneReader::ConvertTileData(TileLayer* layer) {
-	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
+	for (size_t i = 0; i < (size_t)layer->WidthData * layer->HeightData; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
