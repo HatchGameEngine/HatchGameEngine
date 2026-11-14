@@ -101,6 +101,7 @@ struct ViewableHitbox {
 	CollisionBox Hitbox;
 	int X;
 	int Y;
+};
 
 #define VIEWABLE_SENSOR_COUNT 0x80
 
