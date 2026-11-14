@@ -25,7 +25,7 @@ SceneLoader* SceneLoader::New(Stream* stream, const char* filename) {
 		if (StringUtils::StrCaseStr(filename, ".bin")) {
 			loader = new RSDKSceneReader();
 		}
-		else if (StringUtils::StrCaseStr(filename, ".hcsn")) {
+		else if (StringUtils::StrCaseStr(filename, ".hscn")) {
 			loader = new HatchSceneReader();
 		}
 	}

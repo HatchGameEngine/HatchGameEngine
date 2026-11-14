@@ -1025,7 +1025,7 @@ VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
 
 		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
-			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return INTEGER_VAL(0);
 		}
 
@@ -1058,7 +1058,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		if (animator->CurrentFrame >=
-			sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return NULL_VAL;
 		}
 
@@ -2780,7 +2780,7 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
 	int cPlane = GET_ARG(3, GetInteger);
 	int xOffset = GET_ARG(4, GetInteger);
 	int yOffset = GET_ARG(5, GetInteger);
-	int setPos = GET_ARG(6, GetInteger);
+	int setPos = !!GET_ARG(6, GetInteger);
 
 	if (!entity->EntityPtr) {
 		return INTEGER_VAL(false);
@@ -5043,6 +5043,32 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
+
+#define TEXTARRAY_GET_CHAR(index) \
+	int curChar = 0; \
+	{ \
+		VMValue charVal = (*string->Values)[index]; \
+		if (IS_INTEGER(charVal)) \
+			curChar = AS_INTEGER(charVal); \
+	}
+
+#define TEXTARRAY_GET_OFFSET(offsets, index, out) \
+	float out = 0.0f; \
+	if (useCharOffsets && (index) >= 0 && (index) < (int)(offsets)->Values->size()) { \
+		VMValue offsetVal = (*(offsets)->Values)[index]; \
+		if (IS_DECIMAL(offsetVal)) \
+			out = std::floor(AS_DECIMAL(offsetVal)); \
+		else if (IS_INTEGER(offsetVal)) \
+			out = (float)AS_INTEGER(offsetVal); \
+	}
+
+#define TEXTARRAY_DRAW_CHAR(left, offsetIndex) \
+	{ \
+		TEXTARRAY_GET_OFFSET(charOffsetsX, offsetIndex, offsetX); \
+		TEXTARRAY_GET_OFFSET(charOffsetsY, offsetIndex, offsetY); \
+		Graphics::DrawSprite(sprite, animation, curChar, (left) - anim.Frames[curChar].OffsetX + offsetX, y + offsetY, false, false, 1.0f, 1.0f, 0.0f, paletteID); \
+	}
+
 /***
  * Draw.TextArray
  * \desc Draws a series of sprites based on a converted sprite string.
@@ -5075,281 +5101,91 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
 		int paletteID = GET_ARG_OPT(11, GetInteger, 0);
-
+		
 		CHECK_PALETTE_INDEX(paletteID);
-
-		if (sprite && string && animation >= 0 &&
+		
+		if (sprite && string && string->Values->size() > 0 && animation >= 0 &&
 			animation < (int)sprite->Animations.size()) {
-			startFrame =
-				(int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
-
-			if (endFrame <= 0 || endFrame > (int)string->Values->size()) {
-				endFrame = (int)string->Values->size();
+			Animation& anim = sprite->Animations[animation];
+			int length = (int)string->Values->size();
+			
+			startFrame = (int)Math::Clamp(startFrame, 0, length - 1);
+			
+			if (endFrame <= 0 || endFrame > length) {
+				endFrame = length;
 			}
-
-			int charOffsetIndex = 0;
+			
+			bool useCharOffsets = charOffsetsX && charOffsetsY &&
+				charOffsetsX->Values->size() >= (size_t)(endFrame - startFrame) &&
+				charOffsetsY->Values->size() >= (size_t)(endFrame - startFrame);
+			
+			x = std::floor(x);
+			y = std::floor(y);
+			
 			switch (align) {
-			case ALIGN_LEFT:
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				case ALIGN_LEFT: {
+					int charOffsetIndex = 0;
 					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
+						TEXTARRAY_GET_CHAR(startFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							TEXTARRAY_DRAW_CHAR(x, charOffsetIndex);
+							x += spacing + anim.Frames[curChar].Width;
 							++charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
-						}
-					}
-				}
-				break;
-
-			case ALIGN_CENTER:
-				--endFrame;
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
-					charOffsetIndex = endFrame;
+				
+				case ALIGN_CENTER: {
+					--endFrame;
+					int charOffsetIndex = endFrame;
 					for (; endFrame >= startFrame; --endFrame) {
-						VMValue val = (*string->Values)[endFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x - (frame.Width / 2) + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x = (x - frame.Width) - spacing;
+						TEXTARRAY_GET_CHAR(endFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							int width = anim.Frames[curChar].Width;
+							TEXTARRAY_DRAW_CHAR(x - width, charOffsetIndex);
+							x = (x - width) - spacing;
 							--charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; endFrame >= startFrame; --endFrame) {
-						VMValue val = (*string->Values)[endFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x - frame.Width / 2,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x = (x - frame.Width) - spacing;
+				
+				case ALIGN_RIGHT: {
+					int totalWidth = 0;
+					for (int pos = startFrame; pos < endFrame; ++pos) {
+						TEXTARRAY_GET_CHAR(pos);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							if (totalWidth) {
+								totalWidth += spacing;
+							}
+							totalWidth += anim.Frames[curChar].Width;
 						}
 					}
-				}
-				break;
-
-			case ALIGN_RIGHT:
-				int totalWidth = 0;
-				for (int pos = startFrame; pos < endFrame; ++pos) {
-					VMValue val = (*string->Values)[pos];
-					int curChar = 0;
-					if (ScriptManager::DoIntegerConversion(val, threadID)) {
-						curChar = AS_INTEGER(val);
-					}
-					if (curChar >= 0 &&
-						curChar <
-							sprite->Animations[animation].FrameCount) {
-						totalWidth += sprite->Animations[animation]
-								      .Frames[curChar]
-								      .Width +
-							spacing;
-					}
-				}
-				x -= totalWidth;
-
-				if (charOffsetsX && charOffsetsY &&
-					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
-					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+					x -= totalWidth;
+					
+					int charOffsetIndex = 0;
 					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							VMValue xVal = (*charOffsetsX
-									->Values)[charOffsetIndex];
-							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
-								xOffset = AS_DECIMAL(xVal);
-							}
-							VMValue yVal = (*charOffsetsY
-									->Values)[charOffsetIndex];
-							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
-								yOffset = AS_DECIMAL(yVal);
-							}
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + xOffset,
-								y + yOffset,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
+						TEXTARRAY_GET_CHAR(startFrame);
+						if (curChar >= 0 && curChar < anim.FrameCount) {
+							TEXTARRAY_DRAW_CHAR(x, charOffsetIndex);
+							x += spacing + anim.Frames[curChar].Width;
 							++charOffsetIndex;
 						}
 					}
+					break;
 				}
-				else {
-					for (; startFrame < endFrame; ++startFrame) {
-						VMValue val = (*string->Values)[startFrame];
-						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
-							curChar = AS_INTEGER(val);
-						}
-						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
-							AnimFrame frame =
-								sprite->Animations[animation]
-									.Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x,
-								y,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f,
-								paletteID);
-							x += spacing + frame.Width;
-						}
-					}
-				}
-				break;
 			}
 		}
-
+		
 		ScriptManager::Unlock();
 		return NULL_VAL;
 	}
 	return NULL_VAL;
 }
+#undef TEXTARRAY_GET_CHAR
+#undef TEXTARRAY_GET_OFFSET
+#undef TEXTARRAY_DRAW_CHAR
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
@@ -11363,7 +11199,7 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
 	int scaleZ = GET_ARG(3, GetDecimal);
 	MatrixHelper helper;
 	memset(&helper, 0, sizeof(helper));
-	helper[0][0] = scaleZ;
+	helper[0][0] = scaleX;
 	helper[1][0] = 0.0;
 	helper[2][0] = 0.0;
 	helper[3][0] = 0.0;
@@ -11503,14 +11339,14 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 	memset(&helper, 0, sizeof(helper));
 	double sineX = Math::Sin1024(rotationX) / 4.0;
 	double cosineX = Math::Cos1024(rotationX) / 4.0;
-	double sineY = Math::Sin1024(rotationX) / 4.0;
-	double cosineY = Math::Cos1024(rotationX) / 4.0;
-	double sineZ = Math::Sin1024(rotationX) / 4.0;
-	double cosineZ = Math::Cos1024(rotationX) / 4.0;
+	double sineY = Math::Sin1024(rotationY) / 4.0;
+	double cosineY = Math::Cos1024(rotationY) / 4.0;
+	double sineZ = Math::Sin1024(rotationZ) / 4.0;
+	double cosineZ = Math::Cos1024(rotationZ) / 4.0;
 
 	helper[0][0] = (cosineZ * cosineY / 256.0) + (sineZ * (sineY * sineX / 256.0) / 256.0);
 	helper[0][1] = -(sineZ * cosineX) / 256.0;
-	helper[0][2] = (sineZ * (cosineY * cosineX / 256.0) / 256.0) - (cosineZ * cosineY / 256.0);
+	helper[0][2] = (sineZ * (cosineY * sineX / 256.0) / 256.0) - (cosineZ * sineY / 256.0);
 	helper[0][3] = 0.0;
 	helper[1][0] = (sineZ * cosineY / 256.0) - (cosineZ * (sineY * sineX / 256.0) / 256.0);
 	helper[1][1] = cosineZ * cosineX / 256.0;
@@ -12702,6 +12538,12 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 	memcpy(&Graphics::PaletteColors[palIndexTo][colorIndexStartTo],
 		&Graphics::PaletteColors[palIndexFrom][colorIndexStartFrom],
 		count * sizeof(Uint32));
+
+	// Index 0 of each bank has its alpha zeroed when rendering. Reset that when copied to another index.
+	if (colorIndexStartFrom == 0 && colorIndexStartTo != 0 && count > 0) {
+		Graphics::PaletteColors[palIndexTo][colorIndexStartTo] |= 0xFF000000;
+	}
+
 	Graphics::PaletteUpdated = true;
 
 	return NULL_VAL;
@@ -12754,29 +12596,34 @@ VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
  * \param paletteIndex (integer): Index of palette.
  * \param lineStart (number): Start line to set to the palette.
  * \param lineEnd (number): Line where to stop setting the palette.
+ * \paramOpt enableLines (boolean): Whether to also enable the global palette index table. (default: `false`)
  * \ns Palette
  */
 VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	Sint32 lineStart = (int)GET_ARG(1, GetDecimal);
 	Sint32 lineEnd = (int)GET_ARG(2, GetDecimal);
+	bool enableLines = GET_ARG_OPT(3, GetInteger, false);
 
 	CHECK_PALETTE_INDEX(palIndex);
 
-	Sint32 lastLine = sizeof(Graphics::PaletteIndexLines) - 1;
-	if (lineStart > lastLine) {
-		lineStart = lastLine;
+	if (lineStart < 0) {
+		lineStart = 0;
 	}
 
-	if (lineEnd > lastLine) {
-		lineEnd = lastLine;
+	if (lineEnd > MAX_FRAMEBUFFER_HEIGHT) {
+		lineEnd = MAX_FRAMEBUFFER_HEIGHT;
 	}
 
 	for (Sint32 i = lineStart; i < lineEnd; i++) {
 		Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
 	}
 	Graphics::PaletteIndexLinesUpdated = true;
+
+	if (enableLines) {
+		Graphics::UsePaletteIndexLines = true;
+	}
 	return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
@@ -12835,7 +12682,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12853,7 +12700,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
  * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
  * \param name (string): Name of the animation file within the resource folder.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12881,7 +12728,7 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12898,7 +12745,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12915,7 +12762,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadMusic
  * \desc Loads a Music resource, returning its Music index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12929,10 +12776,33 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(result);
 }
 /***
+ * Resources.SetMusicUnloadPolicy
+ * \desc Changes when a loaded Music resource is unloaded.
+ * \param music (integer): The music index to change.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
+ * \ns Resources
+ */
+VMValue Resources_SetMusicUnloadPolicy(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	int unloadPolicy = GET_ARG(1, GetInteger);
+
+	if (index < 0 || index >= (int)Scene::MusicList.size()) {
+		OUT_OF_RANGE_ERROR("Music index", index, 0, (int)Scene::MusicList.size() - 1);
+		return NULL_VAL;
+	}
+
+	if (Scene::MusicList[index]) {
+		Scene::MusicList[index]->UnloadPolicy = unloadPolicy;
+	}
+
+	return NULL_VAL;
+}
+/***
  * Resources.LoadSound
  * \desc Loads a Sound resource, returning its Sound index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -12949,7 +12819,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadVideo
  * \desc Loads a Video resource, returning its Video index.
  * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (<ref SCOPE_*>): When to unload the resource.
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
@@ -14554,6 +14424,8 @@ VMValue Scene_CopyTiles(int argCount, VMValue* args, Uint32 threadID) {
 			if (dstLayer->UsingTileBuffers) {
 				dstLayer->RemakeTileBuffers = true;
 			}
+
+			Scene::AnyLayerTileChange = true;
 		}
 	}
 
@@ -14738,6 +14610,7 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 	TileAnimator* animator = Scene::GetTileAnimator(tileID);
 	if (animator) {
 		animator->SetAnimation(animator->AnimationIndex, frameIndex);
+		animator->UpdateTile();
 	}
 
 	return NULL_VAL;
@@ -15437,6 +15310,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		layer->ScrollInfos[g].RelativeParallax = BufferedScrollInfos[g].relative;
 		layer->ScrollInfos[g].ConstantParallax = BufferedScrollInfos[g].constant;
 		layer->ScrollInfos[g].CanDeform = BufferedScrollInfos[g].canDeform;
+		layer->ScrollInfos[g].Offset = 0.0f;
 	}
 
 	int length16 = layer->HeightData * 16;
@@ -15569,7 +15443,7 @@ VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32
 	CHECK_SCENE_LAYER_INDEX(index);
 	CHECK_IS_TILE_LAYER(index);
 	TileLayer* layer = (TileLayer*)Scene::Layers[index];
-	if (args[0].Type == VAL_NULL) {
+	if (args[1].Type == VAL_NULL) {
 		layer->UsingCustomScanlineFunction = false;
 	}
 	else {
@@ -16177,17 +16051,17 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
  * Scene3D.SetDiffuseLighting
  * \desc Sets the diffuse lighting of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
- * \param red (number): The red color value, bounded by 0.0 - 1.0.
- * \param green (number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
+ * \param red (number): The red color value, bounded by 0.0 - 256.0.
+ * \param green (number): The green color value, bounded by 0.0 - 256.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 256.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
+	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
+	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
 	scene3D->SetDiffuseLighting(r, g, b);
 	return NULL_VAL;
@@ -16196,17 +16070,17 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
  * Scene3D.SetSpecularLighting
  * \desc Sets the specular lighting of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
- * \param red (number): The red color value, bounded by 0.0 - 1.0.
- * \param green (number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
+ * \param red (number): The red color value, bounded by 0.0 - 256.0.
+ * \param green (number): The green color value, bounded by 0.0 - 256.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 256.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
+	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
+	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
 	scene3D->SetSpecularLighting(r, g, b);
 	return NULL_VAL;
@@ -17885,6 +17759,31 @@ VMValue Sprite_SetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	sprite->Animations[animationID].Frames[frameID].OffsetY = offsetY;
+
+	return NULL_VAL;
+}
+/***
+ * Sprite.CopyFrame
+ * \desc Copies a sprite frame over another.
+ * \param sprite (integer): The sprite index to modify.
+ * \param destAnimationID (integer): The animation index of the frame to overwrite.
+ * \param destFrame (integer): The frame index of the frame to overwrite.
+ * \param srcAnimationID (integer): The animation index of the frame to copy.
+ * \param srcFrame (integer): The frame index of the frame to copy.
+ * \ns Sprite
+ */
+VMValue Sprite_CopyFrame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int destAnimationID = GET_ARG(1, GetInteger);
+	int destFrameID = GET_ARG(2, GetInteger);
+	int srcAnimationID = GET_ARG(3, GetInteger);
+	int srcFrameID = GET_ARG(4, GetInteger);
+
+	CHECK_ANIMFRAME_INDEX(destAnimationID, destFrameID);
+	CHECK_ANIMFRAME_INDEX(srcAnimationID, srcFrameID);
+
+	sprite->Animations[destAnimationID].Frames[destFrameID] = sprite->Animations[srcAnimationID].Frames[srcFrameID];
 
 	return NULL_VAL;
 }
@@ -19999,8 +19898,27 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.SetAspectMode
+ * \desc Sets the aspect mode of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \param aspectMode (<ref ASPECTMODE_*>): Desired aspect mode.
+ * \ns View
+ */
+VMValue View_SetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	int aspectMode = GET_ARG(1, GetInteger);
+	CHECK_VIEW_INDEX();
+	if (aspectMode < ASPECTMODE_NONE || aspectMode > ASPECTMODE_FILL) {
+		OUT_OF_RANGE_ERROR("Aspect mode", aspectMode, ASPECTMODE_NONE, ASPECTMODE_FILL);
+		return NULL_VAL;
+	}
+	Scene::Views[view_index].AspectMode = aspectMode;
+	return NULL_VAL;
+}
+/***
  * View.SetOutputX
- * \desc Sets the x-axis output position of the specified view.
+ * \desc Sets the x-axis output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param x (number): Desired X position.
  * \ns View
@@ -20015,7 +19933,7 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputY
- * \desc Sets the y-axis output position of the specified view.
+ * \desc Sets the y-axis output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param y (number): Desired Y position.
  * \ns View
@@ -20030,7 +19948,7 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputPosition
- * \desc Sets the output position of the specified view.
+ * \desc Sets the output position of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param x (number): Desired X position.
  * \param y (number): Desired Y position.
@@ -20046,7 +19964,7 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputSize
- * \desc Sets the output size of the specified view.
+ * \desc Sets the output size of the specified view. This only takes effect if the view has the <ref ASPECTMODE_NONE> aspect mode.
  * \param viewIndex (integer): Index of the view.
  * \param width (number): Desired width.
  * \param height (number): Desired height.
@@ -20152,6 +20070,71 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
 	return DECIMAL_VAL(((float)Scene::Views[view_index].Height) / 2.0f);
+}
+/***
+ * View.GetOutputX
+ * \desc Gets the x-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputX);
+}
+/***
+ * View.GetOutputY
+ * \desc Gets the y-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputY);
+}
+/***
+ * View.GetOutputWidth
+ * \desc Gets the output width of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputWidth);
+}
+/***
+ * View.GetOutputHeight
+ * \desc Gets the output height of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputHeight);
+}
+/***
+ * View.GetAspectMode
+ * \desc Gets the aspect mode of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return <ref ASPECTMODE_*> Returns the aspect mode of the view.
+ * \ns View
+ */
+VMValue View_GetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return INTEGER_VAL(Scene::Views[view_index].AspectMode);
 }
 /***
  * View.IsUsingDrawTarget
@@ -20488,18 +20471,26 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetSize
  * \desc Sets the size of the active window.
- * \param width (number): Window width
- * \param height (number): Window height
+ * \param width (number): The window width.
+ * \param height (number): The window height.
  * \ns Window
  */
 VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (!Application::IsWindowResizeable()) {
-		return NULL_VAL;
-	}
-
 	int window_w = (int)GET_ARG(0, GetDecimal);
 	int window_h = (int)GET_ARG(1, GetDecimal);
+	if (window_w < 1) {
+		if (THROW_ERROR("Window width cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_w = 1;
+	}
+	if (window_h < 1) {
+		if (THROW_ERROR("Window height cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_h = 1;
+	}
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
 	Application::SetWindowSize(
@@ -20527,6 +20518,17 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int scale = GET_ARG(0, GetInteger);
 	Application::SetWindowScale(scale);
+	return NULL_VAL;
+}
+/***
+ * Window.SetResizable
+ * \desc Sets the resizable state of the active window.
+ * \param isResizable (boolean): Whether or not the window should be resizable.
+ * \ns Window
+ */
+VMValue Window_SetResizable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Application::SetWindowResizable(GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -20661,14 +20663,33 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Application::WindowScale);
 }
 /***
+ * Window.GetResizable
+ * \desc Gets the resizable state of the active window.
+ * \return boolean Returns `true` if the window is resizable, `false` if otherwise.
+ * \ns Window
+ */
+VMValue Window_GetResizable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowResizable);
+}
+/***
+ * Window.CanBeResized
+ * \desc Gets whether the active window can be resized by the user.
+ * \return boolean Returns `true` if the window can be resized, `false` if otherwise.
+ * \ns Window
+ */
+VMValue Window_CanBeResized(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::IsWindowResizable());
+}
+/***
  * Window.IsResizeable
- * \desc Gets whether the active window is resizeable.
- * \return boolean Returns whether the window is resizeable.
+ * \deprecated Use <ref Window.CanBeResized> instead.
  * \ns Window
  */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::IsWindowResizeable());
+	return Window_CanBeResized(argCount, args, threadID);
 }
 // #endregion
 
@@ -21104,6 +21125,11 @@ They require the Game SDK library to be present.
 	* \desc Hitbox display keybind. (dev)
 	*/
 	DEF_ENUM_CLASS(KeyBind, DevViewHitboxes);
+	/***
+	* \enum KeyBind_DevPaletteViewer
+	* \desc Palette viewer keybind, which steps through the palettes 8 at a time. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevPaletteViewer);
 	/***
 	* \enum KeyBind_DevMenuToggle
 	* \desc Open/close dev menu keybind. (dev)
@@ -22606,6 +22632,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadMusic);
+	DEF_NATIVE(Resources, SetMusicUnloadPolicy);
 	DEF_NATIVE(Resources, LoadSound);
 	DEF_NATIVE(Resources, LoadVideo);
 	DEF_NATIVE(Resources, FileExists);
@@ -23099,6 +23126,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Sprite, GetTextWidth);
 	DEF_NATIVE(Sprite, SetFrameOffsetX);
 	DEF_NATIVE(Sprite, SetFrameOffsetY);
+	DEF_NATIVE(Sprite, CopyFrame);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
@@ -23312,6 +23340,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
+	DEF_NATIVE(View, SetAspectMode);
 	DEF_NATIVE(View, SetOutputX);
 	DEF_NATIVE(View, SetOutputY);
 	DEF_NATIVE(View, SetOutputPosition);
@@ -23323,6 +23352,11 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, GetHeight);
 	DEF_NATIVE(View, GetCenterX);
 	DEF_NATIVE(View, GetCenterY);
+	DEF_NATIVE(View, GetOutputX);
+	DEF_NATIVE(View, GetOutputY);
+	DEF_NATIVE(View, GetOutputWidth);
+	DEF_NATIVE(View, GetOutputHeight);
+	DEF_NATIVE(View, GetAspectMode);
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
@@ -23354,6 +23388,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
 	DEF_NATIVE(Window, SetScale);
+	DEF_NATIVE(Window, SetResizable);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
@@ -23364,6 +23399,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
 	DEF_NATIVE(Window, GetScale);
+	DEF_NATIVE(Window, GetResizable);
+	DEF_NATIVE(Window, CanBeResized);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 
@@ -23540,6 +23577,29 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
     * \desc Bottom side, slot 3 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_BOTTOM);
+	// #endregion
+
+	// #region Aspect Modes
+	/***
+    * \enum ASPECTMODE_NONE
+    * \desc Content isn't resized.
+    */
+	DEF_ENUM(ASPECTMODE_NONE);
+	/***
+    * \enum ASPECTMODE_STRETCH
+    * \desc Stretches the content without preserving the aspect ratio.
+    */
+	DEF_ENUM(ASPECTMODE_STRETCH);
+	/***
+    * \enum ASPECTMODE_FIT
+    * \desc Resizes the content to fit within its container, preserving the aspect ratio.
+    */
+	DEF_ENUM(ASPECTMODE_FIT);
+	/***
+    * \enum ASPECTMODE_FILL
+    * \desc Resizes the content to fill its container, preserving the aspect ratio, but potentially cropping it.
+    */
+	DEF_ENUM(ASPECTMODE_FILL);
 	// #endregion
 
 	/***

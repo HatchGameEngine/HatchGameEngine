@@ -261,6 +261,8 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
 	}
 
+	layer->UsePaletteIndexLines = true;
+
 	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
 		layer->Visible = false;
@@ -306,7 +308,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint32* tileRow = &layer->Tiles[0];
 	for (int y = 0; y < layer->Height; y++) {
 		for (int x = 0; x < layer->Width; x++) {
-			tileRow[x] = (tileBoys[t] & 0x3FF);
+			tileRow[x] = (tileBoys[t] == 0xFFFF) ? Scene::EmptyTile : (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
 			tileRow[x] |= (tileBoys[t] & 0xC000) << 12; // Collision B
@@ -607,7 +609,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	}
 
 	SceneType = SCENETYPE_RSDK;
-	EmptyTile = 0x3FF;
+	EmptyTile = 0xFFFF;
 	PriorityPerLayer = 16;
 
 	r->Skip(16); // 16 bytes

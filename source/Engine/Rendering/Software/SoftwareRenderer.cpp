@@ -926,7 +926,7 @@ static int CalcVertexColor(Scene3D* scene, VertexAttribute* vertex, int normalY)
 	CLAMP_VAL(specularB, 0x00, 0xFF);
 	col_b = specularB;
 
-	return col_r << 16 | col_g << 8 | col_b;
+	return ColorUtils::ToRGB(col_r, col_g, col_b);
 }
 
 // Drawing 3D
@@ -1098,10 +1098,11 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
-#define LINE_X(pos, z) ((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000
-#define LINE_Y(pos, z) ((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000
+#define LINE_X(pos, z) (((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000 + cx)
+#define LINE_Y(pos, z) (((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					int vertexZ = vertex->Position.Z;
 					if (vertexZ < 0x10000) {
@@ -1128,8 +1129,8 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					LINE_Y(vertexFirst->Position.Y, vertexFirst->Position.Z));
 			}
 			else {
-#define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
-#define LINE_ORTHO_Y(pos) ((float)ORTHO_Y(pos)) / 0x10000
+#define LINE_ORTHO_X(pos) (((float)ORTHO_X(pos)) / 0x10000 + cx)
+#define LINE_ORTHO_Y(pos) (((float)ORTHO_Y(pos)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					SetColor(vertex->Color);
 					SoftwareRenderer::StrokeLine(
@@ -1167,6 +1168,7 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 			SetColor(CalcVertexColor(scene, vertex, averageNormalY >> 8));
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
 				while (vertexCountPerFaceMinus1--) {
@@ -2818,8 +2820,8 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 			vectors[i].Y = FP16_TO(yy);
 			vectors[i].Z = FP16_TO(1.0f);
 			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
-			uv[i].X = ((int)pu[i]) << 16;
-			uv[i].Y = ((int)pv[i]) << 16;
+			uv[i].X = FP16_TO(pu[i]);
+			uv[i].Y = FP16_TO(pv[i]);
 		}
 
 		PolygonRasterizer::DrawBlendPerspective(
@@ -3898,7 +3900,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
 		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 			if (tScanLine->SrcX < 0) {
-				tScanLine->SrcX = -(tScanLine->SrcX % layerWidthInPixels);
+				tScanLine->SrcX = (tScanLine->SrcX % layerWidthInPixels + layerWidthInPixels) % layerWidthInPixels;
 			}
 			else {
 				tScanLine->SrcX %= layerWidthInPixels;
@@ -4556,14 +4558,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4714,14 +4716,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4899,14 +4901,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -5059,14 +5061,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;

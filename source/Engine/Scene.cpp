@@ -290,7 +290,7 @@ bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 		break;
 
 	case ACTIVE_RBOUNDS:
-		if (onScreenX || onScreenY) {
+		if (ent->OnScreenHitboxW == 0.0f) {
 			return true;
 		}
 
@@ -298,10 +298,14 @@ bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 			if (!Scene::Views[v].Active) {
 				continue;
 			}
-			float sx = abs(ent->X - Scene::Views[v].X);
-			float sy = abs(ent->Y - Scene::Views[v].Y);
 
-			if (sx * sx + sy * sy <= ent->OnScreenHitboxW) {
+			float halfWidth = Scene::Views[v].GetScaledWidth() * 0.5f;
+			float halfHeight = Scene::Views[v].GetScaledHeight() * 0.5f;
+			Sint64 sx = (Sint64)fabs(ent->X - (Scene::Views[v].X + halfWidth));
+			Sint64 sy = (Sint64)fabs(ent->Y - (Scene::Views[v].Y + halfHeight));
+			Sint64 range = (Sint64)ent->OnScreenHitboxW + ((Sint64)halfWidth << 16);
+
+			if (sx * sx + sy * sy <= range) {
 				return true;
 			}
 		}
@@ -723,6 +727,7 @@ void Scene::Init() {
 		Scene::Views[i].Height = Application::WindowHeight;
 		Scene::Views[i].OutputWidth = Application::WindowWidth;
 		Scene::Views[i].OutputHeight = Application::WindowHeight;
+		Scene::Views[i].AspectMode = ASPECTMODE_FIT;
 		Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
 		Scene::Views[i].FOV = 45.0f;
 		Scene::Views[i].UsePerspective = false;
@@ -1202,6 +1207,14 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				if (ent->Activity == ACTIVE_ALWAYS || ent->Activity == ACTIVE_NORMAL || (Scene::Paused && ent->Activity == ACTIVE_PAUSED))
 					goto DoCheckRender;
 
+				// A width-only or radius region can't be checked as a box
+				if (!Scene::UseRenderRegions && (ent->Activity == ACTIVE_XBOUNDS || ent->Activity == ACTIVE_RBOUNDS)) {
+					if (!ent->OnScreen) {
+						continue;
+					}
+					goto DoCheckRender;
+				}
+
 				if (Scene::UseRenderRegions) {
 					if (ent->RenderRegionLeft || ent->RenderRegionRight) {
 						if (ent->RenderRegionLeft == 0.0f &&
@@ -1581,6 +1594,8 @@ void Scene::Render() {
 	SDL2Renderer::GetMetalSize(&ren_w, &ren_h);
 #endif
 
+	bool isFullscreen = Application::GetWindowFullscreen();
+
 	int viewCount = Scene::ViewsActive;
 	for (int i = 0; i < viewCount; i++) {
 		int viewIndex = ViewRenderList[i];
@@ -1603,35 +1618,31 @@ void Scene::Render() {
 				float out_x = 0.0f;
 				float out_y = 0.0f;
 				float out_w = 0.0f, out_h = 0.0f;
-				float scale = 1.f;
-				// bool needClip = false;
-				int aspectMode = (viewCount > 1) ? 3 : 1;
-				switch (aspectMode) {
+				switch (currentView->AspectMode) {
+				// None
+				case ASPECTMODE_NONE:
+					out_x = currentView->OutputX;
+					out_y = currentView->OutputY;
+					out_w = currentView->OutputWidth;
+					out_h = currentView->OutputHeight;
+
+					if (!isFullscreen) {
+						float scale = Application::WindowScale;
+						out_x *= scale;
+						out_y *= scale;
+						out_w *= scale;
+						out_h *= scale;
+					}
+					break;
 				// Stretch
-				case 0:
+				case ASPECTMODE_STRETCH:
 					out_w = win_w;
 					out_h = win_h;
 					break;
 				// Fit to aspect ratio
-				case 1:
+				// This is the default.
+				case ASPECTMODE_FIT:
 					if (win_w / currentView->Width <
-						win_h / currentView->Height) {
-						out_w = win_w;
-						out_h = win_w * currentView->Height /
-							currentView->Width;
-					}
-					else {
-						out_w = win_h * currentView->Width /
-							currentView->Height;
-						out_h = win_h;
-					}
-					out_x = (win_w - out_w) * 0.5f / scale;
-					out_y = (win_h - out_h) * 0.5f / scale;
-					// needClip = true;
-					break;
-				// Fill to aspect ratio
-				case 2:
-					if (win_w / currentView->Width >
 						win_h / currentView->Height) {
 						out_w = win_w;
 						out_h = win_w * currentView->Height /
@@ -1645,20 +1656,21 @@ void Scene::Render() {
 					out_x = (win_w - out_w) * 0.5f;
 					out_y = (win_h - out_h) * 0.5f;
 					break;
-				// Splitscreen
-				case 3:
-					out_x = (currentView->OutputX /
-							(float)Application::WindowWidth) *
-						win_w;
-					out_y = (currentView->OutputY /
-							(float)Application::WindowHeight) *
-						win_h;
-					out_w = (currentView->OutputWidth /
-							(float)Application::WindowWidth) *
-						win_w;
-					out_h = (currentView->OutputHeight /
-							(float)Application::WindowHeight) *
-						win_h;
+				// Fill to aspect ratio
+				case ASPECTMODE_FILL:
+					if (win_w / currentView->Width >
+						win_h / currentView->Height) {
+						out_w = win_w;
+						out_h = win_w * currentView->Height /
+							currentView->Width;
+					}
+					else {
+						out_w = win_h * currentView->Width /
+							currentView->Height;
+						out_h = win_h;
+					}
+					out_x = (win_w - out_w) * 0.5f;
+					out_y = (win_h - out_h) * 0.5f;
 					break;
 				}
 
@@ -2176,6 +2188,11 @@ void Scene::LoadScene(const char* sceneFilename) {
 #endif
 
 	Scene::Prepare();
+
+    // Clear the existing palette index lines
+	memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
+	Graphics::PaletteIndexLinesUpdated = true;
+	Graphics::UsePaletteIndexLines = false;
 
 	if (sceneFilename == nullptr || sceneFilename[0] == '\0') {
 		return;
@@ -3866,6 +3883,7 @@ void Scene::Dispose() {
 
 	Scene::UnloadTileCollisions();
 
+	// Dispose of properties
 	if (Scene::Properties) {
 		Scene::Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);
