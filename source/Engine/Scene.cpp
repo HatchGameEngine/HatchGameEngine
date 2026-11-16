@@ -4318,9 +4318,7 @@ void Scene::DrawDebugSensors() {
 	Graphics::SetBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-static inline int EntityPixelPos(float value) {
-	return (int)std::floor(value);
-}
+#define ENTITY_PIXEL_POS(value) ((int)std::floor(value))
 
 bool Scene::CheckEntityTouch(Entity* thisEntity,
 	CollisionBox* thisHitbox,
@@ -4336,10 +4334,10 @@ bool Scene::CheckEntityTouch(Entity* thisEntity,
 		thisEntity->Direction,
 		&otherBox); // NOTE: This is intentionally using thisEntity's direction
 
-	int thisIX = EntityPixelPos(thisEntity->X);
-	int thisIY = EntityPixelPos(thisEntity->Y);
-	int otherIX = EntityPixelPos(otherEntity->X);
-	int otherIY = EntityPixelPos(otherEntity->Y);
+	int thisIX = ENTITY_PIXEL_POS(thisEntity->X);
+	int thisIY = ENTITY_PIXEL_POS(thisEntity->Y);
+	int otherIX = ENTITY_PIXEL_POS(otherEntity->X);
+	int otherIY = ENTITY_PIXEL_POS(otherEntity->Y);
 
 	bool collided = thisIX + thisBox.Left < otherIX + otherBox.Right &&
 		thisIX + thisBox.Right > otherIX + otherBox.Left &&
@@ -4369,9 +4367,9 @@ bool Scene::CheckEntityCircle(Entity* thisEntity,
 		return false;
 	}
 
-	int x = EntityPixelPos(thisEntity->X - otherEntity->X);
-	int y = EntityPixelPos(thisEntity->Y - otherEntity->Y);
-	int r = EntityPixelPos(thisRadius + otherRadius);
+	int x = ENTITY_PIXEL_POS(thisEntity->X - otherEntity->X);
+	int y = ENTITY_PIXEL_POS(thisEntity->Y - otherEntity->Y);
+	int r = ENTITY_PIXEL_POS(thisRadius + otherRadius);
 	bool collided = (x * x + y * y) < (r * r);
 
 	if (ShowHitboxes) {
@@ -4414,10 +4412,10 @@ int Scene::CheckEntityBox(Entity* thisEntity,
 	float collideX = otherEntity->X;
 	float collideY = otherEntity->Y;
 
-	int thisIX = EntityPixelPos(thisEntity->X);
-	int thisIY = EntityPixelPos(thisEntity->Y);
-	int otherIX = EntityPixelPos(otherEntity->X);
-	int otherIY = EntityPixelPos(otherEntity->Y);
+	int thisIX = ENTITY_PIXEL_POS(thisEntity->X);
+	int thisIY = ENTITY_PIXEL_POS(thisEntity->Y);
+	int otherIX = ENTITY_PIXEL_POS(otherEntity->X);
+	int otherIY = ENTITY_PIXEL_POS(otherEntity->Y);
 
 	otherBox.Top++;
 	otherBox.Bottom--;
@@ -4462,8 +4460,8 @@ int Scene::CheckEntityBox(Entity* thisEntity,
 
 	int side = C_NONE;
 
-	int deltaX = EntityPixelPos(collideX - otherEntity->X);
-	int deltaY = EntityPixelPos(collideY - otherEntity->Y);
+	int deltaX = ENTITY_PIXEL_POS(collideX - otherEntity->X);
+	int deltaY = ENTITY_PIXEL_POS(collideY - otherEntity->Y);
 
 	if ((deltaX * deltaX >= deltaY * deltaY && (collisionSideV || !collisionSideH)) ||
 		(!collisionSideH && collisionSideV)) {
@@ -4553,11 +4551,11 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity,
 
 	bool isUp = (otherEntity->TileCollisions == TILECOLLISION_UP);
 
-	int thisIX = EntityPixelPos(thisEntity->X);
-	int thisIY = EntityPixelPos(thisEntity->Y);
-	int otherIX = EntityPixelPos(otherEntity->X);
-	int otherIY = EntityPixelPos(otherEntity->Y);
-	int otherMoveY = EntityPixelPos(otherEntity->Y - otherEntity->SpeedY);
+	int thisIX = ENTITY_PIXEL_POS(thisEntity->X);
+	int thisIY = ENTITY_PIXEL_POS(thisEntity->Y);
+	int otherIX = ENTITY_PIXEL_POS(otherEntity->X);
+	int otherIY = ENTITY_PIXEL_POS(otherEntity->Y);
+	int otherMoveY = ENTITY_PIXEL_POS(otherEntity->Y - otherEntity->SpeedY);
 
 	bool inRangeX = thisIX + thisBox.Left < otherIX + otherBox.Right &&
 		thisIX + thisBox.Right > otherIX + otherBox.Left;
