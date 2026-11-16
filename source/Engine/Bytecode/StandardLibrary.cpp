@@ -17651,18 +17651,13 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Close
- * \desc Closes a stream.
+ * \desc Closes a stream. Does nothing if the stream was already closed.
  * \param stream (stream): The stream to close.
  * \ns Stream
  */
 VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	GET_STREAM_PTR(stream);
-	if (streamPtr == nullptr) {
-		THROW_ERROR("Cannot close a stream that was already closed!");
-		return NULL_VAL;
-	}
 	StreamImpl::Close((Obj*)stream);
 	return NULL_VAL;
 }
