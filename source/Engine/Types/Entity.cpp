@@ -179,6 +179,35 @@ void Entity::SetUpdatePriority(int priority) {
 		Scene::NeedEntitySort = true;
 	}
 }
+static void AddViewableEntityHitboxes(int type, Entity* source, Entity* other, int sourceCollision, int otherCollision) {
+	if (!Scene::ShowHitboxes) {
+		return;
+	}
+
+	Entity* entities[2] = {source, other};
+	int collisions[2] = {sourceCollision, otherCollision};
+	for (int i = 0; i < 2; i++) {
+		Entity* ent = entities[i];
+		if (ent->Hitbox.Width <= 0.0f || ent->Hitbox.Height <= 0.0f) {
+			continue;
+		}
+
+		bool flipX = ent->Direction & 1;
+		bool flipY = ent->Direction & 2;
+
+		CollisionBox box;
+		box.Left = (int)std::floor(ent->Hitbox.GetLeft(flipX));
+		box.Top = (int)std::floor(ent->Hitbox.GetTop(flipY));
+		box.Right = (int)std::floor(ent->Hitbox.GetRight(flipX));
+		box.Bottom = (int)std::floor(ent->Hitbox.GetBottom(flipY));
+
+		int id = Scene::RegisterHitbox(type, FLIP_NONE, ent, &box);
+		if (id >= 0) {
+			Scene::ViewableHitboxList[id].Collision |= collisions[i];
+		}
+	}
+}
+
 bool Entity::BasicCollideWithObject(Entity* other) {
 	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
 		return false;
@@ -190,10 +219,13 @@ bool Entity::BasicCollideWithObject(Entity* other) {
 		return false;
 	}
 
-	return other->X + other->Hitbox.GetLeft() >= X + Hitbox.GetLeft() &&
+	bool collided = other->X + other->Hitbox.GetLeft() >= X + Hitbox.GetLeft() &&
 		other->Y + other->Hitbox.GetTop() >= Y + Hitbox.GetTop() &&
 		other->X + other->Hitbox.GetRight() < X + Hitbox.GetRight() &&
 		other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
+
+	AddViewableEntityHitboxes(H_TYPE_TOUCH, this, other, collided, collided);
+	return collided;
 }
 bool Entity::CollideWithObject(Entity* other) {
 	float sourceHitboxW = this->Hitbox.Width * 0.5;
@@ -218,12 +250,15 @@ bool Entity::CollideWithObject(Entity* other) {
 	float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
 	float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
 
-	return !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
+	bool collided = !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
 		otherY - otherHitboxH > sourceY + sourceHitboxH ||
 		sourceX - sourceHitboxW > otherX + otherHitboxW ||
 		sourceX + sourceHitboxW < otherX - otherHitboxW);
+
+	AddViewableEntityHitboxes(H_TYPE_TOUCH, this, other, collided, collided);
+	return collided;
 }
-int Entity::SolidCollideWithObject(Entity* other, int flag) {
+int Entity::CheckSolidCollision(Entity* other, int flag) {
 	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
 		return false;
 	}
@@ -390,6 +425,12 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 	}
 	return 0;
 }
+int Entity::SolidCollideWithObject(Entity* other, int flag) {
+	int side = CheckSolidCollision(other, flag);
+
+	AddViewableEntityHitboxes(H_TYPE_BOX, this, other, side ? 1 << (side - 1) : 0, side ? 1 << (4 - side) : 0);
+	return side;
+}
 bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	// NOTE: "flag" might be "UseGroundSpeed"
 	float initialOtherX = (other->X);
@@ -423,6 +464,7 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 		sourceX + (sourceHitboxW + sourceHitboxOffX) <=
 			otherX + (-otherHitboxW + otherHitboxOffX) ||
 		other->SpeedY < 0.0) {
+		AddViewableEntityHitboxes(H_TYPE_PLAT, this, other, 0, 0);
 		return false;
 	}
 
@@ -436,6 +478,8 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 			other->OnGround = true;
 		}
 	}
+
+	AddViewableEntityHitboxes(H_TYPE_PLAT, this, other, 1 << 0, 1 << 3);
 	return true;
 }
 
