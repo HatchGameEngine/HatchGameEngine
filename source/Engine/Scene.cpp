@@ -2674,9 +2674,7 @@ DrawGroupList* Scene::GetDrawGroupNoCheck(int index) {
 	return Scene::PriorityLists[index];
 }
 
-static inline Uint8 FlipCollisionMask(Uint8 mask) {
-	return mask == 0xFF ? 0xFF : (mask ^ 15);
-}
+#define FLIP_COLLISION_MASK(mask) ((mask) == 0xFF ? 0xFF : ((mask) ^ 15))
 
 void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
 	int bufferPos = 0;
@@ -2835,8 +2833,8 @@ void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
 		tileDest->CollisionTop[xD] = tile->CollisionTop[xS];
 		tileDest->CollisionBottom[xD] = tile->CollisionBottom[xS];
 		// Swaps
-		tileDest->CollisionLeft[xD] = FlipCollisionMask(tile->CollisionRight[xD]);
-		tileDest->CollisionRight[xD] = FlipCollisionMask(tile->CollisionLeft[xD]);
+		tileDest->CollisionLeft[xD] = FLIP_COLLISION_MASK(tile->CollisionRight[xD]);
+		tileDest->CollisionRight[xD] = FLIP_COLLISION_MASK(tile->CollisionLeft[xD]);
 	}
 
 	// Flip Y
@@ -2849,8 +2847,8 @@ void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
 		tileDest->CollisionLeft[xD] = tile->CollisionLeft[xS];
 		tileDest->CollisionRight[xD] = tile->CollisionRight[xS];
 		// Swaps
-		tileDest->CollisionTop[xD] = FlipCollisionMask(tile->CollisionBottom[xD]);
-		tileDest->CollisionBottom[xD] = FlipCollisionMask(tile->CollisionTop[xD]);
+		tileDest->CollisionTop[xD] = FLIP_COLLISION_MASK(tile->CollisionBottom[xD]);
+		tileDest->CollisionBottom[xD] = FLIP_COLLISION_MASK(tile->CollisionTop[xD]);
 	}
 
 	// Flip XY
@@ -2861,10 +2859,10 @@ void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
 	tileDest->AngleRight = -tileLast->AngleLeft;
 	tileDest->AngleBottom = -tileLast->AngleBottom;
 	for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
-		tileDest->CollisionTop[xD] = FlipCollisionMask(tile->CollisionBottom[xS]);
-		tileDest->CollisionLeft[xD] = FlipCollisionMask(tile->CollisionRight[xS]);
-		tileDest->CollisionRight[xD] = FlipCollisionMask(tile->CollisionLeft[xS]);
-		tileDest->CollisionBottom[xD] = FlipCollisionMask(tile->CollisionTop[xS]);
+		tileDest->CollisionTop[xD] = FLIP_COLLISION_MASK(tile->CollisionBottom[xS]);
+		tileDest->CollisionLeft[xD] = FLIP_COLLISION_MASK(tile->CollisionRight[xS]);
+		tileDest->CollisionRight[xD] = FLIP_COLLISION_MASK(tile->CollisionLeft[xS]);
+		tileDest->CollisionBottom[xD] = FLIP_COLLISION_MASK(tile->CollisionTop[xS]);
 	}
 }
 void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
@@ -3081,8 +3079,8 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 			tileDest->CollisionTop[xD] = tile->CollisionTop[xS];
 			tileDest->CollisionBottom[xD] = tile->CollisionBottom[xS];
 			// Swaps
-			tileDest->CollisionLeft[xD] = FlipCollisionMask(tile->CollisionRight[xD]);
-			tileDest->CollisionRight[xD] = FlipCollisionMask(tile->CollisionLeft[xD]);
+			tileDest->CollisionLeft[xD] = FLIP_COLLISION_MASK(tile->CollisionRight[xD]);
+			tileDest->CollisionRight[xD] = FLIP_COLLISION_MASK(tile->CollisionLeft[xD]);
 		}
 		// Flip Y
 		tileDest = tile + (Scene::TileCount << 1);
@@ -3094,8 +3092,8 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 			tileDest->CollisionLeft[xD] = tile->CollisionLeft[xS];
 			tileDest->CollisionRight[xD] = tile->CollisionRight[xS];
 			// Swaps
-			tileDest->CollisionTop[xD] = FlipCollisionMask(tile->CollisionBottom[xD]);
-			tileDest->CollisionBottom[xD] = FlipCollisionMask(tile->CollisionTop[xD]);
+			tileDest->CollisionTop[xD] = FLIP_COLLISION_MASK(tile->CollisionBottom[xD]);
+			tileDest->CollisionBottom[xD] = FLIP_COLLISION_MASK(tile->CollisionTop[xD]);
 		}
 		// Flip XY
 		tileLast = tileDest;
@@ -3105,10 +3103,10 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		tileDest->AngleRight = -tileLast->AngleLeft;
 		tileDest->AngleBottom = -tileLast->AngleBottom;
 		for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
-			tileDest->CollisionTop[xD] = FlipCollisionMask(tile->CollisionBottom[xS]);
-			tileDest->CollisionLeft[xD] = FlipCollisionMask(tile->CollisionRight[xS]);
-			tileDest->CollisionRight[xD] = FlipCollisionMask(tile->CollisionLeft[xS]);
-			tileDest->CollisionBottom[xD] = FlipCollisionMask(tile->CollisionTop[xS]);
+			tileDest->CollisionTop[xD] = FLIP_COLLISION_MASK(tile->CollisionBottom[xS]);
+			tileDest->CollisionLeft[xD] = FLIP_COLLISION_MASK(tile->CollisionRight[xS]);
+			tileDest->CollisionRight[xD] = FLIP_COLLISION_MASK(tile->CollisionLeft[xS]);
+			tileDest->CollisionBottom[xD] = FLIP_COLLISION_MASK(tile->CollisionTop[xS]);
 		}
 	}
 
