@@ -17662,6 +17662,22 @@ VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Stream.IsOpen
+ * \desc Checks if a stream is open.
+ * \param stream (stream): The stream to check.
+ * \return boolean Returns a boolean value.
+ * \ns Stream
+ */
+VMValue Stream_IsOpen(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ObjStream* stream = GET_ARG(0, GetStream);
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
+		return INTEGER_VAL(false);
+	}
+	return INTEGER_VAL(true);
+}
+/***
  * Stream.Seek
  * \desc Seeks a stream, relative to the start of the stream.
  * \param stream (stream): The stream to seek.
@@ -22936,6 +22952,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Stream, FromResource);
 	DEF_NATIVE(Stream, FromFile);
 	DEF_NATIVE(Stream, Close);
+	DEF_NATIVE(Stream, IsOpen);
 	DEF_NATIVE(Stream, Seek);
 	DEF_NATIVE(Stream, SeekEnd);
 	DEF_NATIVE(Stream, Skip);
