@@ -23,7 +23,8 @@ VirtualFileStream::New(VirtualFileSystem* vfs, const char* filename, Uint32 acce
 
 	stream->StreamPtr = OpenFile(vfs, filename, access);
 	if (!stream->StreamPtr) {
-		goto FREE;
+		delete stream;
+		return nullptr;
 	}
 
 	stream->VFSPtr = vfs;
@@ -34,10 +35,6 @@ VirtualFileStream::New(VirtualFileSystem* vfs, const char* filename, Uint32 acce
 	vfs->ReplaceOpenStream(stream->StreamPtr, stream);
 
 	return stream;
-
-FREE:
-	delete stream;
-	return nullptr;
 }
 
 bool VirtualFileStream::Reopen(Uint32 newAccess) {
@@ -82,9 +79,10 @@ bool VirtualFileStream::MakeWritable(bool writable) {
 void VirtualFileStream::Close() {
 	ScriptManager::RegistryRemove((void*)this);
 
-	VFSPtr->CloseStream(StreamPtr);
-
+	VFSPtr->ReplaceOpenStream(this, nullptr);
 	VFSPtr = nullptr;
+
+	StreamPtr->Close();
 	StreamPtr = nullptr;
 
 	Stream::Close();

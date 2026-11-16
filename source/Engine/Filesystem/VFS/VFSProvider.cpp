@@ -91,7 +91,12 @@ bool VFSProvider::ReplaceOpenStream(Stream* oldStream, Stream* newStream) {
 	for (size_t i = 0; i < OpenStreams.size(); i++) {
 		VFSOpenStream& openStream = OpenStreams[i];
 		if (openStream.StreamPtr == oldStream) {
-			openStream.StreamPtr = newStream;
+			if (newStream == nullptr) {
+				OpenStreams.erase(OpenStreams.begin() + i);
+			}
+			else {
+				openStream.StreamPtr = newStream;
+			}
 			return true;
 		}
 	}
