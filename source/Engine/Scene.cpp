@@ -4231,7 +4231,7 @@ static void AddViewableSensor(int type, bool collided, float startX, float start
 	Scene::ViewableSensorList.push_back(sensor);
 }
 
-void Scene::RegisterSensors(Entity* entity, bool wasOnGround) {
+void Scene::AddViewableEntitySensors(Entity* entity, bool wasOnGround) {
 	float x = entity->X;
 	float y = entity->Y;
 
@@ -4904,7 +4904,7 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 			}
 
 			if (ShowSensors) {
-				RegisterSensors(entity, wasOnGround);
+				AddViewableEntitySensors(entity, wasOnGround);
 			}
 		}
 		else {

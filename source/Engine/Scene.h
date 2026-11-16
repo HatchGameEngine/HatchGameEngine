@@ -244,7 +244,7 @@ public:
 		}
 	};
 	static int RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox);
-	static void RegisterSensors(Entity* entity, bool wasOnGround);
+	static void AddViewableEntitySensors(Entity* entity, bool wasOnGround);
 	static void DrawDebugSensors();
 	static bool CheckEntityTouch(Entity* thisEntity,
 		CollisionBox* thisHitbox,
