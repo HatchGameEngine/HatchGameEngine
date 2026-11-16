@@ -180,6 +180,7 @@ public:
 	virtual void SetUpdatePriority(int priority);
 	virtual bool BasicCollideWithObject(Entity* other);
 	virtual bool CollideWithObject(Entity* other);
+	int CheckSolidCollision(Entity* other, int flag);
 	virtual int SolidCollideWithObject(Entity* other, int flag);
 	virtual bool TopSolidCollideWithObject(Entity* other, int flag);
 	virtual void ApplyPhysics();
