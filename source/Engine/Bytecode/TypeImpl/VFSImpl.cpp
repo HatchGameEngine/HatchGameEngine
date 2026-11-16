@@ -30,7 +30,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "FileExists", VM_FileExists);
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
-	ScriptManager::DefineNative(Class, "Dispose", VM_Dispose);
+	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -295,11 +295,11 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 	return OBJECT_VAL(objStream);
 }
 /***
- * \method Dispose
- * \desc Disposes of the virtual file system. All mounts are flushed (if needed), then all open streams are closed. The VFS can no longer be used after this function is called.
+ * \method Delete
+ * \desc Deletes the virtual file system. All mounts are flushed (if needed), then all open streams are closed. The VFS can no longer be used after this function is called.
  * \ns VirtualFileSystem
  */
-VMValue VFSImpl::VM_Dispose(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VFSImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
 	ObjInstance* objVfs = AS_VFS(args[0]);
@@ -309,7 +309,7 @@ VMValue VFSImpl::VM_Dispose(int argCount, VMValue* args, Uint32 threadID) {
 
 	// Obviously, we must never let a script delete the main VFS.
 	if (vfs == ResourceManager::GetVFS()) {
-		throw ScriptException("Cannot dispose of the main virtual file system!"); \
+		throw ScriptException("Cannot delete the main virtual file system!"); \
 	}
 
 	ScriptManager::RegistryRemove((void*)vfs);
