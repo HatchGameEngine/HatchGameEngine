@@ -690,25 +690,23 @@ float textBaseline;
 float textAscent;
 float textAdvance;
 
-#define CHECK_READ_STREAM \
-	if (stream->Closed) { \
+#define GET_STREAM_PTR(streamObj) \
+	Stream* streamPtr = (Stream*)ScriptManager::RegistryGet((Obj*)streamObj)
+#define CHECK_READ_STREAM(streamPtr) \
+	if (streamPtr == nullptr) { \
 		THROW_ERROR("Cannot read closed stream!"); \
 		return NULL_VAL; \
 	} \
-	if (!stream->StreamPtr->IsReadable()) { \
+	if (!streamPtr->IsReadable()) { \
 		THROW_ERROR("Stream is not readable!"); \
 		return NULL_VAL; \
 	}
-#define CHECK_WRITE_STREAM \
-	if (stream->Closed) { \
+#define CHECK_WRITE_STREAM(streamPtr) \
+	if (streamPtr == nullptr) { \
 		THROW_ERROR("Cannot write to closed stream!"); \
 		return NULL_VAL; \
 	} \
-	if (!stream->Writable) { \
-		THROW_ERROR("Cannot write to read-only stream!"); \
-		return NULL_VAL; \
-	} \
-	if (!stream->StreamPtr->IsWritable()) { \
+	if (!streamPtr->IsWritable()) { \
 		THROW_ERROR("Stream is not writable!"); \
 		return NULL_VAL; \
 	}
@@ -16003,9 +16001,10 @@ VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_WRITE_STREAM;
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
 
-	Serializer serializer(stream->StreamPtr);
+	Serializer serializer(streamPtr);
 	serializer.Store(args[1]);
 
 	return NULL_VAL;
@@ -16020,9 +16019,10 @@ VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
 
-	Serializer serializer(stream->StreamPtr);
+	Serializer serializer(streamPtr);
 	return serializer.Retrieve();
 }
 // #endregion
@@ -17618,7 +17618,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -17643,8 +17643,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream =
-			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -17659,12 +17658,12 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot close a stream that was already closed!");
 		return NULL_VAL;
 	}
-	stream->StreamPtr->Close();
-	stream->Closed = true;
+	StreamImpl::Close((Obj*)stream);
 	return NULL_VAL;
 }
 /***
@@ -17678,11 +17677,12 @@ VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot seek closed stream!");
 		return NULL_VAL;
 	}
-	stream->StreamPtr->Seek(offset);
+	streamPtr->Seek(offset);
 	return NULL_VAL;
 }
 /***
@@ -17696,11 +17696,12 @@ VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot seek closed stream!");
 		return NULL_VAL;
 	}
-	stream->StreamPtr->SeekEnd(offset);
+	streamPtr->SeekEnd(offset);
 	return NULL_VAL;
 }
 /***
@@ -17714,11 +17715,12 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot skip closed stream!");
 		return NULL_VAL;
 	}
-	stream->StreamPtr->Skip(offset);
+	streamPtr->Skip(offset);
 	return NULL_VAL;
 }
 /***
@@ -17731,11 +17733,12 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot get position of closed stream!");
 		return NULL_VAL;
 	}
-	return INTEGER_VAL((int)stream->StreamPtr->Position());
+	return INTEGER_VAL((int)streamPtr->Position());
 }
 /***
  * Stream.Length
@@ -17747,11 +17750,12 @@ VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	if (stream->Closed) {
+	GET_STREAM_PTR(stream);
+	if (streamPtr == nullptr) {
 		THROW_ERROR("Cannot get length of closed stream!");
 		return NULL_VAL;
 	}
-	return INTEGER_VAL((int)stream->StreamPtr->Length());
+	return INTEGER_VAL((int)streamPtr->Length());
 }
 /***
  * Stream.ReadByte
@@ -17763,8 +17767,9 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadByte());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadByte());
 }
 /***
  * Stream.ReadUInt16
@@ -17776,8 +17781,9 @@ VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadUInt16());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadUInt16());
 }
 /***
  * Stream.ReadUInt16BE
@@ -17789,8 +17795,9 @@ VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadUInt16BE());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadUInt16BE());
 }
 /***
  * Stream.ReadUInt32
@@ -17802,8 +17809,9 @@ VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadUInt32());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadUInt32());
 }
 /***
  * Stream.ReadUInt32BE
@@ -17815,8 +17823,9 @@ VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadUInt32BE());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadUInt32BE());
 }
 /***
  * Stream.ReadUInt64
@@ -17828,8 +17837,9 @@ VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadUInt64());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadUInt64());
 }
 /***
  * Stream.ReadInt16
@@ -17841,8 +17851,9 @@ VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadInt16());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadInt16());
 }
 /***
  * Stream.ReadInt16BE
@@ -17854,8 +17865,9 @@ VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadInt16BE());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadInt16BE());
 }
 /***
  * Stream.ReadInt32
@@ -17867,8 +17879,9 @@ VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadInt32());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadInt32());
 }
 /***
  * Stream.ReadInt32BE
@@ -17880,8 +17893,9 @@ VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadInt32BE());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadInt32BE());
 }
 /***
  * Stream.ReadInt64
@@ -17893,8 +17907,9 @@ VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return INTEGER_VAL((int)stream->StreamPtr->ReadInt64());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return INTEGER_VAL((int)streamPtr->ReadInt64());
 }
 /***
  * Stream.ReadFloat
@@ -17906,8 +17921,9 @@ VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
-	return DECIMAL_VAL((float)stream->StreamPtr->ReadFloat());
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
+	return DECIMAL_VAL((float)streamPtr->ReadFloat());
 }
 /***
  * Stream.ReadString
@@ -17919,10 +17935,11 @@ VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		char* line = stream->StreamPtr->ReadString();
+		char* line = streamPtr->ReadString();
 		obj = OBJECT_VAL(TakeString(line));
 		ScriptManager::Unlock();
 	}
@@ -17938,10 +17955,11 @@ VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
-	CHECK_READ_STREAM;
+	GET_STREAM_PTR(stream);
+	CHECK_READ_STREAM(streamPtr);
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		char* line = stream->StreamPtr->ReadLine();
+		char* line = streamPtr->ReadLine();
 		obj = OBJECT_VAL(TakeString(line));
 		ScriptManager::Unlock();
 	}
@@ -17958,8 +17976,9 @@ VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint8 byte = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteByte(byte);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteByte(byte);
 	return NULL_VAL;
 }
 /***
@@ -17973,8 +17992,9 @@ VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint16 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteUInt16(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteUInt16(val);
 	return NULL_VAL;
 }
 /***
@@ -17988,8 +18008,9 @@ VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint16 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteUInt16BE(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteUInt16BE(val);
 	return NULL_VAL;
 }
 /***
@@ -18003,8 +18024,9 @@ VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint32 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteUInt32(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteUInt32(val);
 	return NULL_VAL;
 }
 /***
@@ -18018,8 +18040,9 @@ VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint32 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteUInt32BE(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteUInt32BE(val);
 	return NULL_VAL;
 }
 /***
@@ -18033,8 +18056,9 @@ VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint64 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteUInt64(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteUInt64(val);
 	return NULL_VAL;
 }
 /***
@@ -18048,8 +18072,9 @@ VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint16 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteInt16(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteInt16(val);
 	return NULL_VAL;
 }
 /***
@@ -18063,8 +18088,9 @@ VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint16 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteInt16BE(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteInt16BE(val);
 	return NULL_VAL;
 }
 /***
@@ -18078,8 +18104,9 @@ VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint32 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteInt32(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteInt32(val);
 	return NULL_VAL;
 }
 /***
@@ -18093,8 +18120,9 @@ VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint32 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteInt32BE(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteInt32BE(val);
 	return NULL_VAL;
 }
 /***
@@ -18108,8 +18136,9 @@ VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 val = GET_ARG(1, GetInteger);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteInt64(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteInt64(val);
 	return NULL_VAL;
 }
 /***
@@ -18123,8 +18152,9 @@ VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	float val = GET_ARG(1, GetDecimal);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteFloat(val);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteFloat(val);
 	return NULL_VAL;
 }
 /***
@@ -18138,8 +18168,9 @@ VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	char* string = GET_ARG(1, GetString);
-	CHECK_WRITE_STREAM;
-	stream->StreamPtr->WriteString(string);
+	GET_STREAM_PTR(stream);
+	CHECK_WRITE_STREAM(streamPtr);
+	streamPtr->WriteString(string);
 	return NULL_VAL;
 }
 #undef CHECK_WRITE_STREAM

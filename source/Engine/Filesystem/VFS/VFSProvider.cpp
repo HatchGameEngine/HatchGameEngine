@@ -87,6 +87,17 @@ Stream* VFSProvider::OpenWriteStream(const char* filename) {
 Stream* VFSProvider::OpenAppendStream(const char* filename) {
 	return nullptr;
 }
+bool VFSProvider::ReplaceOpenStream(Stream* oldStream, Stream* newStream) {
+	for (size_t i = 0; i < OpenStreams.size(); i++) {
+		VFSOpenStream& openStream = OpenStreams[i];
+		if (openStream.StreamPtr == oldStream) {
+			openStream.StreamPtr = newStream;
+			return true;
+		}
+	}
+
+	return false;
+}
 bool VFSProvider::CloseStream(Stream* stream) {
 	for (size_t i = 0; i < OpenStreams.size(); i++) {
 		VFSOpenStream& openStream = OpenStreams[i];
@@ -100,7 +111,6 @@ bool VFSProvider::CloseStream(Stream* stream) {
 
 	return false;
 }
-
 void VFSProvider::Close() {
 	for (size_t i = 0; i < OpenStreams.size(); i++) {
 		VFSOpenStream& openStream = OpenStreams[i];

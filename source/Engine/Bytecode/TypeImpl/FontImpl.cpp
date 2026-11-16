@@ -52,18 +52,16 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 
 	if (IS_STREAM(value)) {
 		ObjStream* objStream = AS_STREAM(value);
-		if (!objStream || !objStream->StreamPtr) {
-			return nullptr;
-		}
 
-		if (objStream->Closed) {
+		Stream* streamPtr = (Stream*)ScriptManager::RegistryGet((Obj*)objStream);
+		if (streamPtr == nullptr) {
 			throw ScriptException("Cannot read closed stream!");
 		}
-		if (objStream->Writable) {
+		if (!streamPtr->IsReadable()) {
 			throw ScriptException("Stream is not readable!");
 		}
 
-		return objStream->StreamPtr;
+		return streamPtr;
 	}
 	else {
 		char* filename = nullptr;

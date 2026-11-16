@@ -16,7 +16,8 @@ public:
 	static void Init();
 
 	static Obj* Constructor();
-	static ObjStream* New(void* streamPtr, bool writable);
+	static ObjStream* New(void* streamPtr);
+	static void Close(Obj* object);
 	static void Dispose(Obj* object);
 };
 

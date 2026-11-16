@@ -231,6 +231,18 @@ Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
 
 	return nullptr;
 }
+bool VirtualFileSystem::ReplaceOpenStream(Stream* oldStream, Stream* newStream) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		if (vfs->ReplaceOpenStream(oldStream, newStream)) {
+			return true;
+		}
+	}
+
+	return false;
+}
 bool VirtualFileSystem::CloseStream(Stream* stream) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSMount& mount = LoadedVFS[i];

@@ -50,6 +50,7 @@ public:
 	Stream* OpenReadStream(const char* filename);
 	Stream* OpenWriteStream(const char* filename);
 	Stream* OpenAppendStream(const char* filename);
+	bool ReplaceOpenStream(Stream* oldStream, Stream* newStream);
 	bool CloseStream(Stream* stream);
 };
 

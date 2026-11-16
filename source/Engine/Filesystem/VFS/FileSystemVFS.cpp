@@ -62,6 +62,7 @@ VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 
 	if (entry == nullptr) {
 		entry = new VFSEntry();
+		entry->Name = entryName;
 		Cache[entryName] = entry;
 	}
 
@@ -270,13 +271,13 @@ Stream* FileSystemVFS::OpenAppendStream(const char* filename) {
 }
 
 void FileSystemVFS::Close() {
+	VFSProvider::Close();
+
 	for (VFSEntryMap::iterator it = Cache.begin(); it != Cache.end(); it++) {
 		delete it->second;
 	}
 
 	Cache.clear();
-
-	VFSProvider::Close();
 }
 
 FileSystemVFS::~FileSystemVFS() {

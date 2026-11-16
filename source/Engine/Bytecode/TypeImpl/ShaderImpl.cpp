@@ -221,18 +221,16 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (IS_STREAM(args[2])) {
 		ObjStream* objStream = AS_STREAM(args[2]);
-		if (!objStream || !objStream->StreamPtr) {
-			return NULL_VAL;
-		}
 
-		if (objStream->Closed) {
+		Stream* streamPtr = (Stream*)ScriptManager::RegistryGet((Obj*)objStream);
+		if (streamPtr == nullptr) {
 			throw ScriptException("Cannot read closed stream!");
 		}
-		if (objStream->Writable) {
+		if (!streamPtr->IsReadable()) {
 			throw ScriptException("Stream is not readable!");
 		}
 
-		stream = objStream->StreamPtr;
+		stream = streamPtr;
 	}
 	else {
 		char* filename = GET_ARG(2, GetString);

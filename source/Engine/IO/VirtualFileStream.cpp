@@ -1,3 +1,4 @@
+#include <Engine/Bytecode/ScriptManager.h> // For removing from the registry
 #include <Engine/IO/VirtualFileStream.h>
 
 Stream* VirtualFileStream::OpenFile(VirtualFileSystem* vfs, const char* filename, Uint32 access) {
@@ -28,6 +29,9 @@ VirtualFileStream::New(VirtualFileSystem* vfs, const char* filename, Uint32 acce
 	stream->VFSPtr = vfs;
 	stream->Filename = std::string(filename);
 	stream->CurrentAccess = access;
+
+	// This VirtualFileStream owns the opened stream. So replace the latter.
+	vfs->ReplaceOpenStream(stream->StreamPtr, stream);
 
 	return stream;
 
@@ -76,6 +80,8 @@ bool VirtualFileStream::MakeWritable(bool writable) {
 }
 
 void VirtualFileStream::Close() {
+	ScriptManager::RegistryRemove((void*)this);
+
 	VFSPtr->CloseStream(StreamPtr);
 
 	VFSPtr = nullptr;

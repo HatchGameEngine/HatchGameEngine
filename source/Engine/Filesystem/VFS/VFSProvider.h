@@ -70,6 +70,7 @@ public:
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
 	virtual Stream* OpenAppendStream(const char* filename);
+	bool ReplaceOpenStream(Stream* oldStream, Stream* newStream);
 	virtual bool CloseStream(Stream*);
 	virtual void Close();
 };

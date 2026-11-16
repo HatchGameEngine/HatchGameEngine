@@ -267,7 +267,7 @@ VMValue VFSImpl::VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	ObjStream* objStream = StreamImpl::New((void*)stream, stream->IsWritable());
+	ObjStream* objStream = StreamImpl::New((void*)stream);
 	return OBJECT_VAL(objStream);
 }
 /***
@@ -291,7 +291,7 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	ObjStream* objStream = StreamImpl::New((void*)stream, stream->IsWritable());
+	ObjStream* objStream = StreamImpl::New((void*)stream);
 	return OBJECT_VAL(objStream);
 }
 /***
@@ -309,7 +309,7 @@ VMValue VFSImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
 
 	// Obviously, we must never let a script delete the main VFS.
 	if (vfs == ResourceManager::GetVFS()) {
-		throw ScriptException("Cannot delete the main virtual file system!"); \
+		throw ScriptException("Cannot delete the main virtual file system!");
 	}
 
 	ScriptManager::RegistryRemove((void*)vfs);

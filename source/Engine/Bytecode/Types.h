@@ -441,10 +441,7 @@ struct ObjEntity {
 };
 struct ObjStream {
 	UNION_INSTANCEABLE;
-	Stream* StreamPtr;
 	void* VFSPtr;
-	bool Writable;
-	bool Closed;
 };
 struct ObjMaterial {
 	UNION_INSTANCEABLE;

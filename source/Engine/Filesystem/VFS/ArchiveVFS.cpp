@@ -206,6 +206,7 @@ Stream* ArchiveVFS::OpenWriteStream(const char* filename) {
 	// If the entry does not exist, create one
 	if (entry == nullptr) {
 		entry = new VFSEntry();
+		entry->Name = TransformFilename(filename);
 		entry->CachedData = (Uint8*)Memory::Calloc(1, sizeof(Uint8));
 		PutFile(filename, entry);
 	}

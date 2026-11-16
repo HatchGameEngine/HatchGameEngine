@@ -27,23 +27,25 @@ Obj* StreamImpl::Constructor() {
 	return nullptr;
 }
 
-ObjStream* StreamImpl::New(void* streamPtr, bool writable) {
+ObjStream* StreamImpl::New(void* streamPtr) {
 	ObjStream* stream = (ObjStream*)NewNativeInstance(sizeof(ObjStream));
 	Memory::Track(stream, "NewStream");
 	stream->Object.Class = Class;
 	stream->InstanceObj.Destructor = Dispose;
-	stream->StreamPtr = (Stream*)streamPtr;
-	stream->Writable = writable;
-	stream->Closed = false;
+	ScriptManager::RegistryAdd(streamPtr, (Obj*)stream);
 	return stream;
 }
 
-void StreamImpl::Dispose(Obj* object) {
-	ObjStream* stream = (ObjStream*)object;
-
-	if (!stream->Closed) {
-		stream->StreamPtr->Close();
+void StreamImpl::Close(Obj* object) {
+	Stream* streamPtr = (Stream*)ScriptManager::RegistryGet(object);
+	if (streamPtr != nullptr) {
+		streamPtr->Close();
+		ScriptManager::RegistryRemove(object);
 	}
+}
+
+void StreamImpl::Dispose(Obj* object) {
+	Close(object);
 
 	InstanceImpl::Dispose(object);
 }
