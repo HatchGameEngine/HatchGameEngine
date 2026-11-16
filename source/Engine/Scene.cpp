@@ -4965,8 +4965,7 @@ void Scene::SetPathGripSensors(CollisionSensor* sensors) {
 	}
 }
 
-static void PushOffWall(float gripSpeed) {
-	Entity* entity = Scene::CollisionEntity;
+static void PushOffWall(Entity* entity, float gripSpeed) {
 	CollisionSensor* sensor = &Scene::Sensors[3];
 	CollisionBox& outer = Scene::CollisionOuter;
 
@@ -5239,14 +5238,14 @@ void Scene::ProcessPathGrip() {
 				CollisionEntity->X = Sensors[4].X;
 			}
 			else {
-				PushOffWall(gripSpeed);
+				PushOffWall(CollisionEntity, gripSpeed);
 				CollisionEntity->GroundSpeed = CollisionEntity->SpeedX = 0.0f;
 			}
 			CollisionEntity->Y = Sensors[4].Y;
 		}
 		else {
 			if (Sensors[3].Collided) {
-				PushOffWall(gripSpeed);
+				PushOffWall(CollisionEntity, gripSpeed);
 			}
 			SetAirborne(CollisionEntity);
 			if (!Sensors[3].Collided) {
@@ -5269,7 +5268,7 @@ void Scene::ProcessPathGrip() {
 	case CMODE_LWALL:
 	case CMODE_RWALL:
 		if (Sensors[3].Collided) {
-			PushOffWall(gripSpeed);
+			PushOffWall(CollisionEntity, gripSpeed);
 		}
 
 		if (grounded) {
