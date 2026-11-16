@@ -928,7 +928,7 @@ void Graphics::DoScreenPostProcess() {
 	Graphics::UpdateOrthoFlipped(ww, wh);
 	Graphics::SetDepthTesting(false);
 	Graphics::SetBlendMode(BlendMode_NORMAL);
-	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 	Graphics::TextureBlend = false;
 
 	Graphics::SetUserShader(Graphics::PostProcessShader);
@@ -939,8 +939,8 @@ void Graphics::DoScreenPostProcess() {
 		Graphics::FramebufferTexture->Height,
 		0.0,
 		0.0,
-		Application::WindowWidth,
-		Application::WindowHeight);
+		ww,
+		wh);
 	Graphics::SetUserShader(nullptr);
 }
 void Graphics::CopyFramebuffer(int sourceX,
@@ -1397,7 +1397,7 @@ void Graphics::DrawTriangle(Texture* texture,
 	float* tu,
 	float* tv,
 	int* colors) {
-	if (Graphics::GfxFunctions->DrawQuad) {
+	if (Graphics::GfxFunctions->DrawTriangle) {
 		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
 	}
 }
@@ -1624,8 +1624,8 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			glyph,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * baseline),
 			false,
 			false,
 			1.0f,
@@ -2159,8 +2159,8 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x - lineWidths[line] * params->Align,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x - lineWidths[line] * params->Align),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2251,10 +2251,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 					Graphics::DrawSprite(sprite,
 						0,
 						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								params->Baseline,
+						std::floor(x),
+						std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 						false,
 						false,
 						1.0f,
@@ -2326,8 +2324,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2516,8 +2514,9 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 		end = MAX_FRAMEBUFFER_HEIGHT - 1;
 	}
 
+	int deformLine = scrollLine + deformOffset;
 	// Iterate lines
-	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+	for (int i = start; i < end; i++, scrollLine++, deformLine++, scanLine++) {
 		if (i < 0) {
 			continue;
 		}
@@ -2532,9 +2531,7 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
 			scanLine->SrcX = info->Position;
 			if (info->CanDeform) {
-				int deformTableOffset = scrollLine + deformOffset;
-				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
-				scanLine->SrcX += deformValues[deformTableOffset];
+				scanLine->SrcX += deformValues[deformLine & ((MAX_DEFORM_LINES >> 1) - 1)];
 			}
 		}
 		else {

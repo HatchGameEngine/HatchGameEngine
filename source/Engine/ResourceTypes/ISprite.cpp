@@ -292,7 +292,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 	Animations.resize(previousAnimationCount + animationCount);
 
 	// Load animations
-	int frameID = 0;
+	int frameID = FrameCount;
 	for (int a = 0; a < animationCount; a++) {
 		Animation an;
 		an.Name = reader->ReadHeaderedString();

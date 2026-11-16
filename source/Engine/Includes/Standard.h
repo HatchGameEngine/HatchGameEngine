@@ -62,6 +62,7 @@ enum class KeyBind {
 	DevTileCol,
 	DevObjectRegions,
 	DevViewHitboxes,
+	DevPaletteViewer,
 	DevPreviousScene,
 	DevNextScene,
 	DevMenuToggle,
@@ -126,6 +127,10 @@ typedef int64_t Sint64;
 
 #if defined(__unix__) && !defined(UNIX)
 #define UNIX __unix__
+#endif
+
+#if defined(SWITCH) || defined(PLAYSTATION) || defined(XBOX)
+#define CONSOLE_PLATFORM
 #endif
 
 #endif // STANDARDLIBS_H

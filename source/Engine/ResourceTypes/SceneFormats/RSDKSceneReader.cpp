@@ -268,6 +268,8 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
 	}
 
+	layer->UsePaletteIndexLines = true;
+
 	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
 		layer->Visible = false;
@@ -313,7 +315,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint32* tileRow = &layer->Tiles[0];
 	for (int y = 0; y < layer->Height; y++) {
 		for (int x = 0; x < layer->Width; x++) {
-			tileRow[x] = (tileBoys[t] & 0x3FF);
+			tileRow[x] = (tileBoys[t] == 0xFFFF) ? Scene::EmptyTile : (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
 			tileRow[x] |= (tileBoys[t] & 0xC000) << 12; // Collision B
@@ -484,6 +486,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					val = Property::MakeArray(array);
 					break;
 				}
+				// Float
+				case 0xA:
+					val = Property::MakeDecimal(r->ReadFloat());
+					break;
 				// Color
 				case 0xB:
 					val = Property::MakeInteger((int)r->ReadUInt32());
@@ -534,6 +540,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				// Position
 				case 0x9:
 					r->Skip(8);
+					break;
+				// Float
+				case 0xA:
+					r->Skip(4);
 					break;
 				// Color
 				case 0xB:
@@ -618,7 +628,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::SceneType = SCENETYPE_RSDK;
 
 	Scene::TileCount = 0x400;
-	Scene::EmptyTile = 0x3FF;
+	Scene::EmptyTile = 0xFFFF;
 
 	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;

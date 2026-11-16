@@ -63,6 +63,7 @@ Configures display options.
 | ---------------- | ---------------- | ------------------ | --------------- |
 | `width` | integer | The width of the screen. | `424` |
 | `height` | integer | The height of the screen. | `240` |
+| `resizable` | boolean | Whether the window can be resized by the user. | `false` |
 
 ## `audio` options
 
