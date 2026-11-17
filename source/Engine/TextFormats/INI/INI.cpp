@@ -90,6 +90,7 @@ bool INI::Read(Stream* stream) {
 		delete Sections[i];
 	}
 	Sections.clear();
+	AddSection(nullptr);
 
 	while (*ptr) {
 		// trim leading whitespace
