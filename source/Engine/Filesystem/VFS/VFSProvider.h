@@ -64,6 +64,7 @@ public:
 	virtual bool IsEmpty();
 	virtual bool HasFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
+	virtual bool CreateFile(const char* filename);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual VFSEnumeration EnumerateFiles(const char* path, VFSEnumerationOptions options);

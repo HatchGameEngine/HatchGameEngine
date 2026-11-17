@@ -46,6 +46,7 @@ public:
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
+	bool CreateFile(const char* filename);
 
 	Stream* OpenReadStream(const char* filename);
 	Stream* OpenWriteStream(const char* filename);

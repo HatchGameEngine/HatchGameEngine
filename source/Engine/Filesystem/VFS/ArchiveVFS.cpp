@@ -81,6 +81,21 @@ bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 	return false;
 }
 
+bool ArchiveVFS::CreateFile(const char* filename) {
+	if (HasFile(filename)) {
+		return true;
+	}
+
+	VFSEntry* entry = new VFSEntry();
+	entry->CachedData = (Uint8*)Memory::Calloc(1, sizeof(Uint8));
+
+	if (!PutFile(filename, entry)) {
+		delete entry;
+		return false;
+	}
+
+	return true;
+}
 bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 	if (IsWritable()) {
 		std::string entryName = TransformFilename(filename);

@@ -56,6 +56,9 @@ bool VFSProvider::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return false;
 }
 
+bool VFSProvider::CreateFile(const char* filename) {
+	return false;
+}
 bool VFSProvider::PutFile(const char* filename, VFSEntry* entry) {
 	return false;
 }

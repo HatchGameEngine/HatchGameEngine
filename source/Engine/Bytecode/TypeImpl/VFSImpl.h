@@ -28,6 +28,7 @@ public:
 	static VMValue VM_FileExists(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_CreateFile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 

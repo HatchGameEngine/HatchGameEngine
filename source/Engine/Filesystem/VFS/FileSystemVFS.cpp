@@ -1,4 +1,5 @@
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/IO/FileStream.h>
@@ -41,12 +42,12 @@ bool FileSystemVFS::HasFile(const char* filename) {
 		return false;
 	}
 
-	Stream* stream = OpenReadStream(filename);
+	Stream* stream = OpenStream(filename, FileStream::READ_ACCESS);
 	if (!stream) {
 		return false;
 	}
 
-	CloseStream(stream);
+	stream->Close();
 
 	return true;
 }
@@ -66,7 +67,7 @@ VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 		Cache[entryName] = entry;
 	}
 
-	entry->Size = stream->Length();
+	entry->Size = stream != nullptr ? stream->Length() : 0;
 	entry->CompressedSize = entry->Size;
 
 	return entry;
@@ -96,14 +97,16 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 	}
 
 	// This caches the file entry, but not its data.
-	Stream* stream = OpenReadStream(filename);
+	Stream* stream = OpenStream(filename, FileStream::READ_ACCESS);
 	if (!stream) {
 		return nullptr;
 	}
 
-	CloseStream(stream);
+	VFSEntry* entry = CacheEntry(filename, stream);
 
-	return GetCachedEntry(filename);
+	stream->Close();
+
+	return entry;
 }
 
 bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
@@ -111,12 +114,14 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		return false;
 	}
 
-	Stream* stream = OpenReadStream(filename);
+	Stream* stream = OpenStream(filename, FileStream::READ_ACCESS);
 	if (!stream) {
 		return false;
 	}
 
-	size_t length = stream->Length();
+	VFSEntry* entry = CacheEntry(filename, stream);
+
+	size_t length = entry->Size;
 
 	Uint8* memory = (Uint8*)Memory::Malloc(length);
 	if (!memory) {
@@ -125,10 +130,54 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 
 	stream->ReadBytes(memory, length);
 
-	CloseStream(stream);
+	stream->Close();
 
 	*out = memory;
 	*size = length;
+
+	return true;
+}
+
+bool FileSystemVFS::CreateFile(const char* filename) {
+	// See if the file exists already
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
+
+	// Cannot create if the path matches a directory. Return false.
+	if (Directory::Exists(resourcePath)) {
+		return false;
+	}
+	// If there is already a file of this name, return true.
+	else if (File::Exists(resourcePath)) {
+		return true;
+	}
+
+	// Else, the file doesn't exist. Create it.
+
+	// Not writable
+	if (!IsWritable()) {
+		return false;
+	}
+
+	// First, recursively create the path directories if needed.
+	if (!Path::Create(resourcePath)) {
+		return false;
+	}
+
+	// Try opening the stream.
+	// But don't write anything to it. Just check if it can be opened.
+	Stream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
+	if (stream == nullptr) {
+		return false;
+	}
+
+	// Close it immediately
+	stream->Close();
+
+	// Cache the entry
+	CacheEntry(filename, nullptr);
 
 	return true;
 }
@@ -220,13 +269,17 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path, VFSEnumerationOpt
 	return enumeration;
 }
 
-Stream* FileSystemVFS::OpenReadStream(const char* filename) {
+Stream* FileSystemVFS::OpenStream(const char* filename, Uint32 access) {
 	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return nullptr;
 	}
 
-	Stream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	return FileStream::New(resourcePath, access, true);
+}
+
+Stream* FileSystemVFS::OpenReadStream(const char* filename) {
+	Stream* stream = OpenStream(filename, FileStream::READ_ACCESS);
 	if (stream != nullptr) {
 		VFSEntry* entry = CacheEntry(filename, stream);
 		AddOpenStream(entry, stream);
@@ -256,12 +309,7 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 }
 
 Stream* FileSystemVFS::OpenAppendStream(const char* filename) {
-	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
-	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
-		return nullptr;
-	}
-
-	Stream* stream = FileStream::New(resourcePath, FileStream::APPEND_ACCESS, true);
+	Stream* stream = OpenStream(filename, FileStream::APPEND_ACCESS);
 	if (stream != nullptr) {
 		VFSEntry* entry = CacheEntry(filename, stream);
 		AddOpenStream(entry, stream);

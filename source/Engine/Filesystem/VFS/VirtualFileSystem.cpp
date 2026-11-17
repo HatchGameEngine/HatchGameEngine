@@ -164,6 +164,23 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 
 	return false;
 }
+bool VirtualFileSystem::CreateFile(const char* filename) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		if (vfs->CreateFile(realFilename)) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {

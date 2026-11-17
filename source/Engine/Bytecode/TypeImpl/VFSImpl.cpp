@@ -30,6 +30,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "FileExists", VM_FileExists);
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
+	ScriptManager::DefineNative(Class, "CreateFile", VM_CreateFile);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -293,6 +294,24 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 
 	ObjStream* objStream = StreamImpl::New((void*)stream);
 	return OBJECT_VAL(objStream);
+}
+/***
+ * \method CreateFile
+ * \desc Creates a file with the given filename. If the file already exists, this does nothing, and returns `true`.
+ * \param filename (string): The filename.
+ * \return boolean Returns `true` if the file was created, `false` if otherwise.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_CreateFile(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* filename = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL(vfs->CreateFile(filename));
 }
 /***
  * \method Delete
