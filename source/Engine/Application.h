@@ -112,6 +112,7 @@ private:
 	static void DevMenu_SettingsMenu();
 	static void DevMenu_VideoMenu();
 	static void DevMenu_AudioMenu();
+	static void DevMenu_ModsMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;

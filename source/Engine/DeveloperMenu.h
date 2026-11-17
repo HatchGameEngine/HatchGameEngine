@@ -27,6 +27,7 @@ struct DeveloperMenu {
 	bool MusicPausedStore;
 	bool ResourcesBrowserAvailable;
 	int SceneBrowserMode;
+	bool ModsChanged;
 };
 
 #endif /* ENGINE_DEVELOPERMENU_H */

@@ -7,6 +7,7 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/FileStream.h>
+#include <Engine/ResourceTypes/ModLoader.h>
 
 #define RESOURCES_VFS_NAME "main"
 
@@ -198,6 +199,8 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 		Log::Print(Log::LOG_WARN, "Resources directory is empty.", RESOURCES_DIR_PATH);
 	}
 
+	ModLoader::Init();
+
 	return true;
 }
 bool ResourceManager::Mount(const char* name,
@@ -256,18 +259,28 @@ void ResourceManager::SetMainResourceWritable(bool writable) {
 }
 
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
+	if (ModLoader::FileExists(filename)) {
+		return ModLoader::LoadFile(filename, out, size);
+	}
+
 	if (vfs) {
 		return vfs->LoadFile(filename, out, size);
 	}
 	return false;
 }
 bool ResourceManager::ResourceExists(const char* filename) {
+	if (ModLoader::FileExists(filename)) {
+		return true;
+	}
+
 	if (vfs) {
 		return vfs->FileExists(filename);
 	}
 	return false;
 }
 void ResourceManager::Dispose() {
+	ModLoader::Dispose();
+
 	delete vfs;
 	vfs = nullptr;
 	mainResource = nullptr;

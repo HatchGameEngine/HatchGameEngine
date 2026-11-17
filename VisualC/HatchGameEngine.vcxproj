@@ -289,6 +289,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\MD3Model.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\ModLoader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\SceneFormats\HatchSceneReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\RSDKSceneReader.cpp" />

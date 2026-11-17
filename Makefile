@@ -149,6 +149,7 @@ CPPFILES := \
 	source/Engine/ResourceTypes/ModelFormats/Importer.cpp \
 	source/Engine/ResourceTypes/ModelFormats/MD3Model.cpp \
 	source/Engine/ResourceTypes/ModelFormats/RSDKModel.cpp \
+	source/Engine/ResourceTypes/ModLoader.cpp \
 	source/Engine/ResourceTypes/ResourceManager.cpp \
 	source/Engine/ResourceTypes/SceneFormats/HatchSceneReader.cpp \
 	source/Engine/ResourceTypes/SceneFormats/RSDKSceneReader.cpp \
@@ -300,6 +301,7 @@ PRVHFILES := \
 	source/Engine/ResourceTypes/ImageFormats/JPEG.h \
 	source/Engine/ResourceTypes/ImageFormats/ImageFormat.h \
 	source/Engine/ResourceTypes/Font.h \
+	source/Engine/ResourceTypes/ModLoader.h \
 	source/Engine/ResourceTypes/ResourceManager.h \
 	source/Engine/ResourceTypes/Image.h \
 	source/Engine/ResourceTypes/ModelFormats/RSDKModel.h \

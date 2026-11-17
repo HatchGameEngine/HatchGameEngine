@@ -363,6 +363,9 @@
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\ModLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

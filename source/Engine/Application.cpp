@@ -17,6 +17,7 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
+#include <Engine/ResourceTypes/ModLoader.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -1798,6 +1799,22 @@ void Application::RunFrame(int runFrames) {
 	Application::PollEvents();
 	Metrics.Event.End();
 
+	if (DevMenu.ModsChanged && !Application::DevMenuActivated) {
+		DevMenu.ModsChanged = false;
+
+		// TODO: These 4 could probably be put into a new method
+		InputManager::ControllerStopRumble();
+		AudioManager::AudioStopAll();
+		AudioManager::ClearMusic();
+		AudioManager::LowPassFilter = 0.0f;
+
+		ModLoader::SaveMods();
+		ModLoader::LoadMods(false);
+		Application::Restart(false);
+		Application::StartGame(StartingScene);
+		Application::UpdateWindowTitle();
+	}
+
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
 	if (*Scene::NextScene || Scene::DoRestart) {
@@ -3125,7 +3142,7 @@ void Application::CloseDevMenu() {
 }
 
 void Application::DevMenu_DrawMainMenu() {
-	const char* selectionNames[] = {"Resume", "Restart", "Scene Select", "Settings", "Exit"};
+	const char* selectionNames[] = {"Resume", "Restart", "Scene Select", "Settings", "Mods", "Exit"};
 
 	DevMenu_DrawTitleBar();
 	DrawRectangle(0, 82, 128, 124, 0x000000, 0xC0);
@@ -3207,6 +3224,7 @@ void Application::DevMenu_MainMenu() {
 		"Restart the current scene.",
 		"Navigate to a certain scene.",
 		"Adjust the application's settings.",
+		"Enable, disable, and reorder mods.",
 		"Close the application."};
 	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
 
@@ -3256,6 +3274,12 @@ void Application::DevMenu_MainMenu() {
 			DevMenu.State = Application::DevMenu_SettingsMenu;
 			break;
 		case 4:
+			// Detect mods added since the list was last loaded
+			ModLoader::LoadMods(true);
+			DevMenu.State = Application::DevMenu_ModsMenu;
+			DevMenu.SubScrollPos = 0;
+			break;
+		case 5:
 			Running = false;
 			break;
 		}
@@ -3802,6 +3826,58 @@ void Application::DevMenu_AudioMenu() {
 		Application::LoadAudioSettings();
 		DevMenu.State = DevMenu_SettingsMenu;
 		DevMenu.SubSelection = 1;
+		DevMenu.Timer = 1 * FrameTimeDesired;
+	}
+}
+
+void Application::DevMenu_ModsMenu() {
+	DevMenu_DrawMainMenu();
+
+	DrawDevString("Manage mods...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	int modCount = (int)ModLoader::Mods.size();
+	if (!modCount) {
+		DrawDevString("No mods found!", 160, 86, ALIGN_LEFT, true);
+
+		if (DevMenu_IsActionPressed("B")) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+			DevMenu.SubScrollPos = 0;
+			DevMenu.Timer = 1 * FrameTimeDesired;
+		}
+		return;
+	}
+
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < ModLoader::Mods.size(); i++, y += 14) {
+		ModInfo& mod = ModLoader::Mods[DevMenu.SubScrollPos + i];
+		bool isSelected = (DevMenu.SubSelection - DevMenu.SubScrollPos) == i;
+		DrawDevString(mod.Name.c_str(), 160, y, ALIGN_LEFT, isSelected);
+		DrawDevString(mod.Active ? "Y" : "N", Application::WindowWidth - 16, y, ALIGN_RIGHT, isSelected);
+	}
+
+	int preselection = DevMenu.SubSelection;
+	if (DevMenu_MoveSelection(DevMenu.SubSelection, modCount)) {
+		DevMenu_ScrollToSelection();
+	}
+
+	if (DevMenu_IsConfirmPressed() || DevMenu_IsActionPressed("Left") || DevMenu_IsActionPressed("Right")) {
+		ModInfo& mod = ModLoader::Mods[DevMenu.SubSelection];
+		mod.Active = !mod.Active;
+		DevMenu.ModsChanged = true;
+	}
+	else if (DevMenu_IsActionHeld("C") && preselection != DevMenu.SubSelection) {
+		std::swap(ModLoader::Mods[preselection], ModLoader::Mods[DevMenu.SubSelection]);
+		DevMenu.ModsChanged = true;
+	}
+	else if (DevMenu_IsActionPressed("B")) {
+		ModLoader::SaveMods();
+		if (DevMenu.ModsChanged) {
+			ModLoader::LoadMods(false);
+		}
+
+		DevMenu.State = DevMenu_MainMenu;
+		DevMenu.SubSelection = 0;
+		DevMenu.SubScrollPos = 0;
 		DevMenu.Timer = 1 * FrameTimeDesired;
 	}
 }

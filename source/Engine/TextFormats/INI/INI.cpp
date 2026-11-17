@@ -125,27 +125,23 @@ bool INI::Read(Stream* stream) {
 		else {
 			char* keyPtr = ptr;
 			int l = -1;
-			while (*ptr) {
-				if (*ptr == '=' || *ptr == ' ') {
-					l = (int)(ptr - keyPtr);
-					break;
-				}
-				else if (*ptr == '\n') {
+			while (*ptr && *ptr != '\n') {
+				if (*ptr == '=') {
+					char* keyEnd = ptr;
+					while (keyEnd > keyPtr && *(keyEnd - 1) <= ' ') {
+						keyEnd--;
+					}
+					l = (int)(keyEnd - keyPtr);
 					break;
 				}
 				ptr++;
 			}
 
 			if (l < 1) {
-				while (*ptr != '\n') {
+				while (*ptr && *ptr != '\n') {
 					ptr++;
 				}
-				++ptr;
 				continue;
-			}
-
-			while (*ptr == ' ') {
-				ptr++;
 			}
 
 			if (*ptr == '=') {

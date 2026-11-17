@@ -2,6 +2,7 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/ResourceTypes/ModLoader.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -659,6 +660,11 @@ std::string Path::GetForLocation(PathLocation location, bool makeDirs, bool allo
 		break;
 	// save://
 	case PathLocation::SAVEGAME:
+		// An active mod with RedirectSave stores its saves in its own folder
+		if (ModLoader::CustomUserFileDir != "") {
+			finalPath = ModLoader::CustomUserFileDir;
+			break;
+		}
 		finalPath = GetBaseUserPath();
 		if (finalPath != "") {
 			suffix = Application::GetSavesDir();
