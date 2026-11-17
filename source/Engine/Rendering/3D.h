@@ -47,14 +47,14 @@ struct PolygonClipBuffer {
 		float vecX = vec3in.X; \
 		float vecY = vec3in.Y; \
 		float vecZ = vec3in.Z; \
-		vec4out.X = FP16_TO(M[3]) + ((int)(vecX * M[0])) + ((int)(vecY * M[1])) + \
-			((int)(vecZ * M[2])); \
-		vec4out.Y = FP16_TO(M[7]) + ((int)(vecX * M[4])) + ((int)(vecY * M[5])) + \
-			((int)(vecZ * M[6])); \
-		vec4out.Z = FP16_TO(M[11]) + ((int)(vecX * M[8])) + ((int)(vecY * M[9])) + \
-			((int)(vecZ * M[10])); \
-		vec4out.W = FP16_TO(M[15]) + ((int)(vecX * M[12])) + ((int)(vecY * M[13])) + \
-			((int)(vecZ * M[14])); \
+		vec4out.X = FP16_TO(M[3]) + ((Sint64)(vecX * M[0])) + ((Sint64)(vecY * M[1])) + \
+			((Sint64)(vecZ * M[2])); \
+		vec4out.Y = FP16_TO(M[7]) + ((Sint64)(vecX * M[4])) + ((Sint64)(vecY * M[5])) + \
+			((Sint64)(vecZ * M[6])); \
+		vec4out.Z = FP16_TO(M[11]) + ((Sint64)(vecX * M[8])) + ((Sint64)(vecY * M[9])) + \
+			((Sint64)(vecZ * M[10])); \
+		vec4out.W = FP16_TO(M[15]) + ((Sint64)(vecX * M[12])) + ((Sint64)(vecY * M[13])) + \
+			((Sint64)(vecZ * M[14])); \
 	}
 #define COPY_VECTOR(vecout, vecin) vecout = vecin
 #define COPY_NORMAL(vec4out, vec3in) \
