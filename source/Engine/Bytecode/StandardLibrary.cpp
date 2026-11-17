@@ -14951,6 +14951,30 @@ VMValue Scene_SetLayerScrollInfoConstantScroll(int argCount, VMValue* args, Uint
 	layer->ScrollInfos[scrollIndex].ConstantParallax = constant;
 	return NULL_VAL;
 }
+/***
+ * Scene.SetLayerScrollInfoCanDeform
+ * \desc Sets whether an individual scroll info group uses the layer's tile deforms.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \param canDeform (boolean): Whether the group can deform.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerScrollInfoCanDeform(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+	bool canDeform = !!GET_ARG(2, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	layer->ScrollInfos[scrollIndex].CanDeform = canDeform;
+	return NULL_VAL;
+}
 struct BufferedScrollInfo {
 	float relative;
 	float constant;
@@ -15243,6 +15267,38 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 	scanLine->MaxVertCells = argCount >= 8 ? GET_ARG(7, GetInteger) : 0;
 
 	return NULL_VAL;
+}
+/***
+ * Scene.GetTileScanlineSrcX
+ * \desc Gets the source X position of a tile scanline (for use only inside a Custom Scanline Function). Vertical layers fill one scanline per screen column before their Custom Scanline Function runs, so it can read and adjust them.
+ * \param scanline (integer): Index of the scanline.
+ * \return decimal Returns the source X position.
+ * \ns Scene
+ */
+VMValue Scene_GetTileScanlineSrcX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int scanlineIndex = GET_ARG(0, GetInteger);
+	if (scanlineIndex < 0 || scanlineIndex >= MAX_FRAMEBUFFER_HEIGHT) {
+		OUT_OF_RANGE_ERROR("Scanline index", scanlineIndex, 0, MAX_FRAMEBUFFER_HEIGHT - 1);
+		return NULL_VAL;
+	}
+	return DECIMAL_VAL((float)Graphics::TileScanLineBuffer[scanlineIndex].SrcX / 0x10000);
+}
+/***
+ * Scene.GetTileScanlineSrcY
+ * \desc Gets the source Y position of a tile scanline (for use only inside a Custom Scanline Function). Vertical layers fill one scanline per screen column before their Custom Scanline Function runs, so it can read and adjust them.
+ * \param scanline (integer): Index of the scanline.
+ * \return decimal Returns the source Y position.
+ * \ns Scene
+ */
+VMValue Scene_GetTileScanlineSrcY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int scanlineIndex = GET_ARG(0, GetInteger);
+	if (scanlineIndex < 0 || scanlineIndex >= MAX_FRAMEBUFFER_HEIGHT) {
+		OUT_OF_RANGE_ERROR("Scanline index", scanlineIndex, 0, MAX_FRAMEBUFFER_HEIGHT - 1);
+		return NULL_VAL;
+	}
+	return DECIMAL_VAL((float)Graphics::TileScanLineBuffer[scanlineIndex].SrcY / 0x10000);
 }
 /***
  * Scene.SetLayerCustomRenderFunction
@@ -22526,6 +22582,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerScrollInfoOffset);
 	DEF_NATIVE(Scene, SetLayerScrollInfoConstantScroll);
+	DEF_NATIVE(Scene, SetLayerScrollInfoCanDeform);
 	DEF_NATIVE(Scene, SetLayerScrollInfoParallaxFactor);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLines);
@@ -22537,6 +22594,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetLayerDeformOffsetB);
 	DEF_NATIVE(Scene, SetLayerCustomScanlineFunction);
 	DEF_NATIVE(Scene, SetTileScanline);
+	DEF_NATIVE(Scene, GetTileScanlineSrcX);
+	DEF_NATIVE(Scene, GetTileScanlineSrcY);
 	DEF_NATIVE(Scene, SetLayerCustomRenderFunction);
 	DEF_NATIVE(Scene, SetObjectViewRender);
 	DEF_NATIVE(Scene, SetTileViewRender);
@@ -22578,7 +22637,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_ENUM(DrawBehavior_HorizontalParallax);
 	/***
     * \enum DrawBehavior_VerticalParallax
-    * \desc Do not use.
+    * \desc Vertical parallax.
     */
 	DEF_ENUM(DrawBehavior_VerticalParallax);
 	/***
