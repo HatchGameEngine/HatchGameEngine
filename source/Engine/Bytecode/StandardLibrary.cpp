@@ -22637,7 +22637,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_ENUM(DrawBehavior_HorizontalParallax);
 	/***
     * \enum DrawBehavior_VerticalParallax
-    * \desc Do not use.
+    * \desc Vertical parallax.
     */
 	DEF_ENUM(DrawBehavior_VerticalParallax);
 	/***
