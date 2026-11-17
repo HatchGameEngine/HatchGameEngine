@@ -4403,7 +4403,180 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		}
 	}
 }
-void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {}
+void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {
+	static vector<Uint32> srcStrides;
+	static vector<Uint32*> tileSources;
+	static vector<Uint8> isPalettedSources;
+	static vector<unsigned> paletteIDs;
+
+	BlendState blendState = GetBlendState();
+	if (!Graphics::TextureBlend) {
+		blendState.Mode = BlendFlag_OPAQUE;
+		blendState.Opacity = 0xFF;
+	}
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	int dst_x1 = 0;
+	int dst_y1 = 0;
+	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
+	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+	if (dst_x2 > MAX_FRAMEBUFFER_HEIGHT) {
+		dst_x2 = MAX_FRAMEBUFFER_HEIGHT;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
+	srcStrides.reserve(Scene::TileSpriteInfos.size());
+	tileSources.reserve(Scene::TileSpriteInfos.size());
+	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+		AnimFrame& frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
+		Uint32 srcStride = texture->Width;
+		srcStrides.push_back(srcStride);
+		tileSources.push_back(&texturePixelData[frameStr.X + frameStr.Y * srcStride]);
+		isPalettedSources.push_back(Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+	}
+
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+
+	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerHeightInPixels = layer->Height * Scene::TileHeight;
+	int layerWidthInBits = layer->WidthInBits;
+	int tileFlipX = Scene::TileWidth - 1;
+	int tileFlipY = Scene::TileHeight - 1;
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	Uint32 color;
+	Uint32* index;
+
+	for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+		TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_x];
+
+		Sint64 srcDX = scanLine->DeltaX, srcDY = scanLine->DeltaY;
+		// The column's source position is for the top of the view, so start it at the clip's top
+		Sint64 srcX = scanLine->SrcX + srcDX * dst_y1;
+		Sint64 srcY = scanLine->SrcY + srcDY * dst_y1;
+
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+		}
+
+		BlendState columnBlendState = GetBlendState();
+		if (Graphics::TextureBlend) {
+			columnBlendState.Opacity -= 0xFF - scanLine->Opacity;
+			if (columnBlendState.Opacity < 0) {
+				columnBlendState.Opacity = 0;
+			}
+		}
+		else {
+			columnBlendState.Mode = BlendFlag_OPAQUE;
+			columnBlendState.Opacity = 0xFF;
+		}
+
+		if (!AlterBlendState(columnBlendState)) {
+			continue;
+		}
+
+		int blendFlag = columnBlendState.Mode;
+		int* multTableAt = &MultTable[columnBlendState.Opacity << 8];
+		int* multSubTableAt = &MultSubTable[columnBlendState.Opacity << 8];
+
+		PixelFunction columnPixelFunction = NULL;
+		if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
+			columnPixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
+			SetTintFunction(blendFlag);
+		}
+		else {
+			columnPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+		}
+
+		Uint32* dstPxColumn = dstPx + (dst_y1 * dstStride) + dst_x;
+		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+			int srcTX = (int)((srcX >> 16) % widthMax);
+			int srcTY = (int)((srcY >> 16) % heightMax);
+			if (srcTX < 0) {
+				srcTX += widthMax;
+			}
+			if (srcTY < 0) {
+				srcTY += heightMax;
+			}
+
+			int tile = layer->Tiles[(srcTX / Scene::TileWidth) + ((srcTY / Scene::TileHeight) << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
+				int tileX = srcTX & tileFlipX;
+				int tileY = srcTY & tileFlipY;
+				if (tile & TILE_FLIPX_MASK) {
+					tileX ^= tileFlipX;
+				}
+				if (tile & TILE_FLIPY_MASK) {
+					tileY ^= tileFlipY;
+				}
+
+				color = tileSources[tileID][tileX + tileY * srcStrides[tileID]];
+				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
+					if (color && (index[color] & 0xFF000000U)) {
+						columnPixelFunction(&index[color], dstPxColumn, columnBlendState, multTableAt, multSubTableAt);
+					}
+				}
+				else if (color & 0xFF000000U) {
+					columnPixelFunction(&color, dstPxColumn, columnBlendState, multTableAt, multSubTableAt);
+				}
+			}
+
+			srcX += srcDX;
+			srcY += srcDY;
+			dstPxColumn += dstStride;
+		}
+	}
+}
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
@@ -5127,6 +5300,10 @@ void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* cur
 	}
 	else {
 		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
+
+		if (layer->UsingCustomScanlineFunction && layer->DrawBehavior == DrawBehavior_VerticalParallax) {
+			Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
+		}
 	}
 
 	// TODO: Implement view rotation
