@@ -44,6 +44,7 @@ public:
 	static bool FileExists(const char* filename);
 	static bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	static bool LoadModFile(ModInfo* mod, const char* filename, Uint8** out, size_t* size);
+	static void AddFile(ModInfo* mod, const char* filename, std::string path);
 	static int GetModCount(bool active);
 	static void Dispose();
 };

@@ -402,6 +402,10 @@ bool ModLoader::LoadModFile(ModInfo* mod, const char* filename, Uint8** out, siz
 	return false;
 }
 
+void ModLoader::AddFile(ModInfo* mod, const char* filename, std::string path) {
+	mod->FileMap[GetLowercasePath(filename)] = path;
+}
+
 int ModLoader::GetModCount(bool active) {
 	int count = 0;
 	for (size_t m = 0; m < Mods.size(); m++) {
