@@ -603,6 +603,57 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	return true;
 }
+static void MoveObjectListsToEnd(MemoryStream* memoryReader) {
+	int objectNameCount = memoryReader->ReadByte();
+	for (int i = 0; i < objectNameCount; i++) {
+		char* objectName = memoryReader->ReadHeaderedString();
+		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
+		if (objectList) {
+			Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
+			Scene::ObjectLists->Remove(objectNameHash);
+			Scene::ObjectLists->Put(objectNameHash, objectList);
+		}
+		Memory::Free(objectName);
+	}
+}
+static void SortObjectLists(const char* parentFolder) {
+	char stageConfigFilename[MAX_RESOURCE_PATH_LENGTH];
+	snprintf(stageConfigFilename, sizeof stageConfigFilename, "%sStageConfig.bin", parentFolder);
+
+	ResourceStream* stageConfigReader = ResourceStream::New(stageConfigFilename);
+	if (!stageConfigReader) {
+		return;
+	}
+
+	MemoryStream* stageReader = MemoryStream::New(stageConfigReader);
+	if (stageReader && stageReader->ReadUInt32() == RSDKSceneReader::Magic) {
+		bool useGameObjects = stageReader->ReadByte();
+		if (useGameObjects) {
+			ResourceStream* gameConfigReader = ResourceStream::New("Game/GameConfig.bin");
+			if (gameConfigReader) {
+				MemoryStream* gameReader = MemoryStream::New(gameConfigReader);
+				if (gameReader && gameReader->ReadUInt32() == RSDKSceneReader::Magic) {
+					Memory::Free(gameReader->ReadHeaderedString());
+					Memory::Free(gameReader->ReadHeaderedString());
+					Memory::Free(gameReader->ReadHeaderedString());
+					gameReader->ReadByte();
+					gameReader->ReadUInt16();
+					MoveObjectListsToEnd(gameReader);
+				}
+				if (gameReader) {
+					gameReader->Close();
+				}
+				gameConfigReader->Close();
+			}
+		}
+
+		MoveObjectListsToEnd(stageReader);
+	}
+	if (stageReader) {
+		stageReader->Close();
+	}
+	stageConfigReader->Close();
+}
 bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Load PropertyList and ObjectList and others
 	// (use regular malloc and calloc as this is technically a hack
@@ -692,6 +743,8 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	}
 
 	free(objSlots);
+
+	SortObjectLists(parentFolder);
 
 	ticks = Clock::GetTicks() - ticks;
 	Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
