@@ -9,6 +9,15 @@ enum {
 	SCENEBROWSER_SCENELIST
 };
 
+enum {
+	DEVMENU_RESUME,
+	DEVMENU_RESTART,
+	DEVMENU_SCENESELECT,
+	DEVMENU_SETTINGS,
+	DEVMENU_MODS,
+	DEVMENU_EXIT
+};
+
 struct DeveloperMenu {
 	void (*State)();
 	int Selection;

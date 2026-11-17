@@ -61,6 +61,7 @@ private:
 	static void EndGame();
 	static void UnloadGame();
 	static void Restart(bool keepScene);
+	static void StopAudioAndRumble();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -158,6 +159,7 @@ public:
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 	static bool DisableDefaultActions;
+	static bool GameMenuEnabled;
 
 	static bool DevMenuActivated;
 	static DeveloperMenu DevMenu;

@@ -127,6 +127,7 @@ int Application::SoundVolume = 100;
 bool HitScreenshotKey = false;
 
 bool Application::DisableDefaultActions = false;
+bool Application::GameMenuEnabled = false;
 bool Application::DevMenuActivated = false;
 DeveloperMenu Application::DevMenu;
 
@@ -1056,6 +1057,8 @@ void Application::EndGame() {
 	Entity::DisableAutoAnimate = false;
 	Entity::UseAnimationFrameSkip = true;
 
+	Application::GameMenuEnabled = false;
+
 	Discord::Dispose();
 }
 
@@ -1588,6 +1591,18 @@ void Application::PollEvents() {
 				Application::ShowFPS = !Application::ShowFPS;
 				break;
 			}
+#ifndef DEVELOPER_MODE
+			// Open game menu (non-dev)
+			else if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle] && !Application::DisableDefaultActions) {
+				if (Application::GameMenuEnabled) {
+					Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
+				}
+				else {
+					Running = false;
+				}
+				break;
+			}
+#endif
 
 			if (Application::DevMode) {
 				// Quit application (dev)
@@ -1668,10 +1683,7 @@ void Application::PollEvents() {
 					BenchmarkFrame = 0;
 					BenchmarkCounter = 0.0f;
 
-					InputManager::ControllerStopRumble();
-					AudioManager::AudioStopAll();
-					AudioManager::ClearMusic();
-					AudioManager::LowPassFilter = 0.0f;
+					Application::StopAudioAndRumble();
 
 					if (Application::DevMenuActivated) {
 						Application::CloseDevMenu();
@@ -1802,11 +1814,7 @@ void Application::RunFrame(int runFrames) {
 	if (DevMenu.ModsChanged && !Application::DevMenuActivated) {
 		DevMenu.ModsChanged = false;
 
-		// TODO: These 4 could probably be put into a new method
-		InputManager::ControllerStopRumble();
-		AudioManager::AudioStopAll();
-		AudioManager::ClearMusic();
-		AudioManager::LowPassFilter = 0.0f;
+		Application::StopAudioAndRumble();
 
 		ModLoader::SaveMods();
 		ModLoader::LoadMods(false);
@@ -2762,10 +2770,7 @@ void Application::DevNavigateSceneList(bool previous) {
 
 	BenchmarkFrame = 0;
 	BenchmarkCounter = 0.0f;
-	InputManager::ControllerStopRumble();
-	AudioManager::AudioStopAll();
-	AudioManager::ClearMusic();
-	AudioManager::LowPassFilter = 0.0f;
+	Application::StopAudioAndRumble();
 
 	Scene::SetCurrent(categoryName, sceneName);
 	StringUtils::Copy(Scene::NextScene,
@@ -3004,6 +3009,13 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 	}
 }
 
+void Application::StopAudioAndRumble() {
+	InputManager::ControllerStopRumble();
+	AudioManager::AudioStopAll();
+	AudioManager::ClearMusic();
+	AudioManager::LowPassFilter = 0.0f;
+}
+
 bool Application::IsResourcesBrowserAvailable() {
 	VFSProvider* mainVfs = ResourceManager::GetMainResource();
 	if (!mainVfs) {
@@ -3141,21 +3153,31 @@ void Application::CloseDevMenu() {
 	AudioManager::Unlock();
 }
 
-void Application::DevMenu_DrawMainMenu() {
-	const char* selectionNames[] = {"Resume", "Restart", "Scene Select", "Settings", "Mods", "Exit"};
+static const char* DevMenuOptionNames[] = {"Resume", "Restart", "Scene Select", "Settings", "Mods", "Exit"};
+static const char* DevMenuOptionTooltips[] = {"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.", "Adjust the application's settings.", "Enable, disable, and reorder mods.", "Close the application."};
 
+// Without DEVELOPER_MODE, the dev menu becomes the game menu with limited options
+#ifdef DEVELOPER_MODE
+#define DEVMENU_TITLE "Hatch Engine Developer Menu"
+static const int DevMenuOptions[] = {DEVMENU_RESUME, DEVMENU_RESTART, DEVMENU_SCENESELECT, DEVMENU_SETTINGS, DEVMENU_MODS, DEVMENU_EXIT};
+#else
+#define DEVMENU_TITLE "Hatch Engine Game Menu"
+static const int DevMenuOptions[] = {DEVMENU_RESUME, DEVMENU_SETTINGS, DEVMENU_MODS, DEVMENU_EXIT};
+#endif
+
+void Application::DevMenu_DrawMainMenu() {
 	DevMenu_DrawTitleBar();
 	DrawRectangle(0, 82, 128, 124, 0x000000, 0xC0);
 	DrawRectangle(144, 82, Application::WindowWidth - 144, 124, 0x000000, 0xC0);
 
-	for (size_t i = 0, y = 109; i < std::size(selectionNames); ++i, y += 14) {
-		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
+	for (size_t i = 0, y = 109; i < std::size(DevMenuOptions); ++i, y += 14) {
+		DrawDevString(DevMenuOptionNames[DevMenuOptions[i]], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
 	}
 }
 
 void Application::DevMenu_DrawTitleBar() {
 	DrawRectangle(0, 16, Application::WindowWidth, 54, 0x000000, 0xC0);
-	DrawDevString("Hatch Engine Developer Menu",
+	DrawDevString(DEVMENU_TITLE,
 		Application::WindowWidth / 2,
 		20,
 		ALIGN_CENTER,
@@ -3220,39 +3242,31 @@ void Application::DevMenu_MainMenu() {
 		Application::GameVersion);
 	DrawDevString(versionDisplay, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
-	const char* tooltips[] = {"Resume the game.",
-		"Restart the current scene.",
-		"Navigate to a certain scene.",
-		"Adjust the application's settings.",
-		"Enable, disable, and reorder mods.",
-		"Close the application."};
-	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
+	int option = DevMenuOptions[DevMenu.Selection];
+	DrawDevString(DevMenuOptionTooltips[option], 160, 86, ALIGN_LEFT, true);
 
-	if (DevMenu.Selection == 2 &&
+	if (option == DEVMENU_SCENESELECT &&
 		SceneInfo::Categories.empty() &&
 		!DevMenu.ResourcesBrowserAvailable) {
 		DrawDevString("Warning: No scene list is loaded.", 160, 101, ALIGN_LEFT, false);
 		DrawDevString("This option is disabled.", 160, 116, ALIGN_LEFT, false);
 	}
 
-	DevMenu_MoveSelection(DevMenu.Selection, (int)std::size(tooltips));
+	DevMenu_MoveSelection(DevMenu.Selection, (int)std::size(DevMenuOptions));
 
 	if (DevMenu_IsConfirmPressed()) {
-		switch (DevMenu.Selection) {
-		case 0:
+		switch (DevMenuOptions[DevMenu.Selection]) {
+		case DEVMENU_RESUME:
 			CloseDevMenu();
 			break;
-		case 1:
+		case DEVMENU_RESTART:
 			CloseDevMenu();
 			BenchmarkFrame = 0;
-			InputManager::ControllerStopRumble();
-			AudioManager::AudioStopAll();
-			AudioManager::ClearMusic();
-			AudioManager::LowPassFilter = 0.0f;
+			Application::StopAudioAndRumble();
 			Scene::Restart();
 			UpdateWindowTitle();
 			break;
-		case 2:
+		case DEVMENU_SCENESELECT:
 			switch (DevMenu.SceneBrowserMode) {
 			case SCENEBROWSER_RESOURCES:
 				DevMenu_OpenResourcesBrowser();
@@ -3270,16 +3284,16 @@ void Application::DevMenu_MainMenu() {
 				break;
 			}
 			break;
-		case 3:
+		case DEVMENU_SETTINGS:
 			DevMenu.State = Application::DevMenu_SettingsMenu;
 			break;
-		case 4:
+		case DEVMENU_MODS:
 			// Detect mods added since the list was last loaded
 			ModLoader::LoadMods(true);
 			DevMenu.State = Application::DevMenu_ModsMenu;
 			DevMenu.SubScrollPos = 0;
 			break;
-		case 5:
+		case DEVMENU_EXIT:
 			Running = false;
 			break;
 		}
@@ -3511,9 +3525,7 @@ void Application::DevMenu_ResourcesBrowserMenu() {
 
 			DevMenu_CloseResourcesBrowser();
 			CloseDevMenu();
-			AudioManager::AudioStopAll();
-			AudioManager::ClearMusic();
-			AudioManager::LowPassFilter = 0.0f;
+			Application::StopAudioAndRumble();
 		}
 
 		DevMenu.SubSelection = 0;
@@ -3580,9 +3592,7 @@ void Application::DevMenu_SceneSelectMenu() {
 
 	if (DevMenu_IsConfirmPressed()) {
 		CloseDevMenu();
-		AudioManager::AudioStopAll();
-		AudioManager::ClearMusic();
-		AudioManager::LowPassFilter = 0.0f;
+		Application::StopAudioAndRumble();
 
 		const char* categoryName = list->Name;
 		const char* sceneName = list->Entries[DevMenu.SubSelection].Name;
@@ -3629,9 +3639,16 @@ void Application::DevMenu_SettingsMenu() {
 		std::string("Scene Browser Mode ") + browserMode[DevMenu.SceneBrowserMode]
 	};
 
+#ifdef DEVELOPER_MODE
+	size_t labelCount = std::size(labels);
+#else
+	// The game menu only has video and audio settings
+	size_t labelCount = 2;
+#endif
+
 	DevMenu_ScrollToSelection();
 
-	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < std::size(labels);
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < labelCount;
 		i++, y += 14) {
 		DrawDevString(labels[DevMenu.SubScrollPos + i].c_str(),
 			160,
@@ -3640,7 +3657,7 @@ void Application::DevMenu_SettingsMenu() {
 			DevMenu.SubSelection - DevMenu.SubScrollPos == i);
 	}
 
-	if (DevMenu_MoveSelection(DevMenu.SubSelection, (int)std::size(labels))) {
+	if (DevMenu_MoveSelection(DevMenu.SubSelection, (int)labelCount)) {
 		DevMenu_ScrollToSelection();
 	}
 

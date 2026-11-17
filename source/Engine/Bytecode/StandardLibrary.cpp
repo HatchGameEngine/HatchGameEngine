@@ -1948,6 +1948,17 @@ VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID)
 	return NULL_VAL;
 }
 /***
+ * Application.EnableGameMenu
+ * \desc Enables or disables the game menu, which the Escape key opens when the engine isn't built with developer mode. While it's disabled, the key closes the application.
+ * \param enable (boolean): Whether to enable the game menu.
+ * \ns Application
+ */
+VMValue Application_EnableGameMenu(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Application::GameMenuEnabled = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
  * Application.GetKeyBind
  * \desc Gets a keybind.
  * \param keyBind (<ref KeyBind_*>): The keybind.
@@ -20789,6 +20800,7 @@ They require the Game SDK library to be present.
 	DEF_NATIVE(Application, UseFixedTimestep);
 	DEF_NATIVE(Application, GetFPS);
 	DEF_NATIVE(Application, ShowFPSCounter);
+	DEF_NATIVE(Application, EnableGameMenu);
 	DEF_NATIVE(Application, GetKeyBind);
 	DEF_NATIVE(Application, SetKeyBind);
 	DEF_NATIVE(Application, GetGameTitle);
