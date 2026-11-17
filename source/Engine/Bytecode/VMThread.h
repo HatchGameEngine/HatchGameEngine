@@ -34,6 +34,8 @@ private:
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool CallForObject(VMValue callee, int argCount);
+	void CallNative(NativeFn nativeFn, int argCount);
+	void CallNativeForObject(NativeFn nativeFn, int argCount);
 	bool InstantiateClass(VMValue callee, int argCount);
 	bool DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc);
 

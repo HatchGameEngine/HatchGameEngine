@@ -10,6 +10,7 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/NativeFunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
@@ -146,11 +147,8 @@ static VMValue VM_SetField(int argCount, VMValue* args, Uint32 threadID) {
 ObjFunction* NewFunction() {
 	return (ObjFunction*)FunctionImpl::New();
 }
-ObjNative* NewNative(NativeFn function) {
-	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE_FUNCTION);
-	Memory::Track(native, "NewNative");
-	native->Function = function;
-	return native;
+ObjNativeFunction* NewNative(NativeFn function) {
+	return (ObjNativeFunction*)NativeFunctionImpl::New(function);
 }
 ObjUpvalue* NewUpvalue(VMValue* slot) {
 	ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
@@ -202,7 +200,7 @@ ObjInstance* NewInstance(ObjClass* klass) {
 ObjEntity* NewEntity(ObjClass* klass) {
 	return (ObjEntity*)EntityImpl::New(klass);
 }
-ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount) {
+ObjBoundMethod* NewBoundMethod(Obj* method, VMValue* args, Uint8 argCount) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
 	Memory::Track(bound, "NewBoundMethod");
 	bound->Method = method;
