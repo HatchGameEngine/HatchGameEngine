@@ -304,16 +304,85 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns `true` if the file was created, `false` if otherwise.
  * \ns VirtualFileSystem
  */
+/***
+ * \method CreateFile
+ * \desc Creates a file with the given filename, copying the contents of the stream from its current position into the file. If the file already exists, this overwrites the file. If the path is an existing directory, this does nothing and returns `false`.
+ * \param filename (string): The file to create.
+ * \param stream (stream): The stream to copy the contents of.
+ * \paramOpt offset (integer): Where to start copying the contents of the stream. By default, starts copying from the stream's current position.
+ * \paramOpt length (integer): How many bytes to copy. By default, copies how many bytes are remaining in the stream.
+ * \return boolean Returns `true` if the file was created, `false` if otherwise.
+ * \ns VirtualFileSystem
+ */
 VMValue VFSImpl::VM_CreateFile(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 
 	ObjInstance* objVfs = AS_VFS(args[0]);
 	char* filename = GET_ARG(1, GetString);
+	ObjStream* objStream = GET_ARG_OPT(2, GetStream, nullptr);
+	int offsetArg = GET_ARG_OPT(3, GetInteger, 0);
+	int lengthArg = GET_ARG_OPT(4, GetInteger, 0);
 
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
 	CHECK_EXISTS(vfs);
 
-	return INTEGER_VAL(vfs->CreateFile(filename));
+	Stream* stream = nullptr;
+	size_t length = 0;
+
+	if (argCount >= 3) {
+		stream = (Stream*)ScriptManager::RegistryGet((Obj*)objStream);
+		if (stream == nullptr) {
+			throw ScriptException("Cannot read closed stream!");
+		}
+		if (!stream->IsReadable()) {
+			throw ScriptException("Stream is not readable!");
+		}
+
+		if (offsetArg < 0) {
+			throw ScriptException("Offset must be a positive integer.");
+		}
+		if (lengthArg < 0) {
+			throw ScriptException("Length must be a positive integer.");
+		}
+
+		size_t streamLength = stream->Length();
+
+		size_t offset = (size_t)offsetArg;
+		if (argCount < 4) {
+			offset = stream->Position();
+		}
+		else {
+			if (offset > streamLength) {
+				offset = streamLength;
+			}
+
+			stream->Seek(offset);
+		}
+
+		size_t maxLength = streamLength - offset;
+
+		length = (size_t)lengthArg;
+		if (argCount < 5) {
+			length = maxLength;
+		}
+		else if (length > maxLength) {
+			length = maxLength;
+		}
+	}
+
+	if (!vfs->CreateFile(filename)) {
+		return INTEGER_VAL(false);
+	}
+
+	if (length > 0 && stream != nullptr) {
+		Stream* outStream = vfs->OpenWriteStream(filename);
+		if (outStream) {
+			stream->CopyTo(outStream, length);
+			vfs->CloseStream(outStream);
+		}
+	}
+
+	return INTEGER_VAL(true);
 }
 /***
  * \method RenameFile

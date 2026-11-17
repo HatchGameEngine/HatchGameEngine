@@ -21,6 +21,7 @@ public:
 	static ISound* GetSound(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID);
+	static ObjStream* GetStream(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);
 	static ObjShader* GetShader(VMValue* args, int index, Uint32 threadID);
 	static ObjFont* GetFont(VMValue* args, int index, Uint32 threadID);

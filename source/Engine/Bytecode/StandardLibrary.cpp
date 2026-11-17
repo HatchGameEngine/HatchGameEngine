@@ -616,6 +616,9 @@ ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threa
 ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetEntity(args, index, threadID);
 }
+ObjStream* StandardLibrary::GetStream(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetStream(args, index, threadID);
+}
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
 }
