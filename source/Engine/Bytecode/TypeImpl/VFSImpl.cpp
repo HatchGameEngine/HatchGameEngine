@@ -31,6 +31,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
 	ScriptManager::DefineNative(Class, "CreateFile", VM_CreateFile);
+	ScriptManager::DefineNative(Class, "DeleteFile", VM_DeleteFile);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -297,8 +298,8 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * \method CreateFile
- * \desc Creates a file with the given filename. If the file already exists, this does nothing, and returns `true`.
- * \param filename (string): The filename.
+ * \desc Creates a file with the given filename. If the file already exists, this does nothing and returns `true`. If the path is an existing directory, this does nothing and returns `false`.
+ * \param filename (string): The filename of the file to create.
  * \return boolean Returns `true` if the file was created, `false` if otherwise.
  * \ns VirtualFileSystem
  */
@@ -312,6 +313,24 @@ VMValue VFSImpl::VM_CreateFile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_EXISTS(vfs);
 
 	return INTEGER_VAL(vfs->CreateFile(filename));
+}
+/***
+ * \method DeleteFile
+ * \desc Deletes a file with the given filename. If the path is an existing directory, this does nothing and returns `false`.
+ * \param filename (string): The filename of the file to delete.
+ * \return boolean Returns `true` if the file was deleted, `false` if otherwise.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_DeleteFile(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* filename = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL(vfs->DeleteFile(filename));
 }
 /***
  * \method Delete

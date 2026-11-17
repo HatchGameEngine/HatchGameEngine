@@ -67,12 +67,14 @@ public:
 	virtual bool CreateFile(const char* filename);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
+	virtual bool DeleteFile(const char* filename);
 	virtual VFSEnumeration EnumerateFiles(const char* path, VFSEnumerationOptions options);
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
 	virtual Stream* OpenAppendStream(const char* filename);
 	bool ReplaceOpenStream(Stream* oldStream, Stream* newStream);
-	virtual bool CloseStream(Stream*);
+	virtual bool CloseStream(Stream* stream);
+	virtual bool CloseStream(VFSEntry* entry);
 	virtual void Close();
 };
 

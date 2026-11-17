@@ -65,6 +65,9 @@ bool VFSProvider::PutFile(const char* filename, VFSEntry* entry) {
 bool VFSProvider::EraseFile(const char* filename) {
 	return false;
 }
+bool VFSProvider::DeleteFile(const char* filename) {
+	return EraseFile(filename);
+}
 
 // Note that this may return the transformed filenames, depending on the provider.
 VFSEnumeration VFSProvider::EnumerateFiles(const char* path, VFSEnumerationOptions options) {
@@ -112,6 +115,19 @@ bool VFSProvider::CloseStream(Stream* stream) {
 
 		if (openStream.StreamPtr == stream) {
 			stream->Close();
+			OpenStreams.erase(OpenStreams.begin() + i);
+			return true;
+		}
+	}
+
+	return false;
+}
+bool VFSProvider::CloseStream(VFSEntry* entry) {
+	for (size_t i = 0; i < OpenStreams.size(); i++) {
+		VFSOpenStream& openStream = OpenStreams[i];
+
+		if (openStream.EntryPtr == entry) {
+			openStream.StreamPtr->Close();
 			OpenStreams.erase(OpenStreams.begin() + i);
 			return true;
 		}

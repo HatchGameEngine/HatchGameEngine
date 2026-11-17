@@ -87,7 +87,13 @@ void FileSystemVFS::RemoveFromCache(const char* filename) {
 	std::string entryName = TransformFilename(filename);
 	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
-		delete it->second;
+		VFSEntry* entry = it->second;
+
+		CloseStream(entry);
+
+		delete entry;
+
+		Cache.erase(it);
 	}
 }
 
@@ -208,6 +214,10 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 
 	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
+
+	if (Directory::Exists(resourcePath)) {
 		return false;
 	}
 
