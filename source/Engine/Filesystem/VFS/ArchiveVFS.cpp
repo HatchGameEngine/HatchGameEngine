@@ -96,6 +96,7 @@ bool ArchiveVFS::CreateFile(const char* filename) {
 
 	return true;
 }
+
 bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 	if (IsWritable()) {
 		std::string entryName = TransformFilename(filename);
@@ -114,6 +115,35 @@ bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 	}
 
 	return false;
+}
+
+bool ArchiveVFS::RenameFile(const char* oldFilename, const char* newFilename) {
+	if (!IsWritable()) {
+		return false;
+	}
+
+	std::string oldEntryName = TransformFilename(oldFilename);
+	std::string newEntryName = TransformFilename(newFilename);
+
+	VFSEntryMap::iterator oldIt = Entries.find(oldEntryName);
+	VFSEntryMap::iterator newIt = Entries.find(newEntryName);
+
+	if (oldIt == Entries.end() || newIt != Entries.end()) {
+		return false;
+	}
+
+	VFSEntry* entry = oldIt->second;
+	entry->Name = newEntryName;
+
+	Entries[newEntryName] = entry;
+	Entries.erase(oldIt);
+
+	auto nameIt = std::find(EntryNames.begin(), EntryNames.end(), oldEntryName);
+	if (nameIt != EntryNames.end()) {
+		*nameIt = newEntryName;
+	}
+
+	return true;
 }
 
 bool ArchiveVFS::EraseFile(const char* filename) {

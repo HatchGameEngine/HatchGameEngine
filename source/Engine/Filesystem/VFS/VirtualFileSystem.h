@@ -47,6 +47,7 @@ public:
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
 	bool CreateFile(const char* filename);
+	bool RenameFile(const char* oldFilename, const char* newFilename);
 	bool DeleteFile(const char* filename);
 
 	Stream* OpenReadStream(const char* filename);

@@ -62,6 +62,9 @@ bool VFSProvider::CreateFile(const char* filename) {
 bool VFSProvider::PutFile(const char* filename, VFSEntry* entry) {
 	return false;
 }
+bool VFSProvider::RenameFile(const char* oldFilename, const char* newFilename) {
+	return false;
+}
 bool VFSProvider::EraseFile(const char* filename) {
 	return false;
 }

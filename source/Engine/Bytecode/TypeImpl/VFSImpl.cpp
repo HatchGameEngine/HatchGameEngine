@@ -31,6 +31,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
 	ScriptManager::DefineNative(Class, "CreateFile", VM_CreateFile);
+	ScriptManager::DefineNative(Class, "RenameFile", VM_RenameFile);
 	ScriptManager::DefineNative(Class, "DeleteFile", VM_DeleteFile);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
@@ -299,7 +300,7 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method CreateFile
  * \desc Creates a file with the given filename. If the file already exists, this does nothing and returns `true`. If the path is an existing directory, this does nothing and returns `false`.
- * \param filename (string): The filename of the file to create.
+ * \param filename (string): The file to create.
  * \return boolean Returns `true` if the file was created, `false` if otherwise.
  * \ns VirtualFileSystem
  */
@@ -315,9 +316,29 @@ VMValue VFSImpl::VM_CreateFile(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(vfs->CreateFile(filename));
 }
 /***
+ * \method RenameFile
+ * \desc Renames file from <param oldFilename> to <param newFilename>. If a file with the name of <param newFilename> already exists, this does nothing and returns `false`. If either path is a directory, this does nothing and returns `false`.
+ * \param oldFilename (string): The file to rename.
+ * \param newFilename (string): The new filename.
+ * \return boolean Returns `true` if the file was renamed, `false` if otherwise.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_RenameFile(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* oldFilename = GET_ARG(1, GetString);
+	char* newFilename = GET_ARG(2, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL(vfs->RenameFile(oldFilename, newFilename));
+}
+/***
  * \method DeleteFile
  * \desc Deletes a file with the given filename. If the path is an existing directory, this does nothing and returns `false`.
- * \param filename (string): The filename of the file to delete.
+ * \param filename (string): The file to delete.
  * \return boolean Returns `true` if the file was deleted, `false` if otherwise.
  * \ns VirtualFileSystem
  */

@@ -181,6 +181,159 @@ bool VirtualFileSystem::CreateFile(const char* filename) {
 
 	return false;
 }
+bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilename) {
+	VFSProvider* vfsA = nullptr;
+	VFSProvider* vfsB = nullptr;
+
+	const char* realOldFilename = nullptr;
+	const char* realNewFilename = nullptr;
+
+	if (LoadedVFS.size() == 0) {
+		return false;
+	}
+
+	// Figure out which mounts could have the given files
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		const char* oldName = GetFilename(mount, oldFilename);
+
+		if (oldName != nullptr && vfs->HasFile(oldName) && vfsA == nullptr) {
+			realOldFilename = oldName;
+			vfsA = vfs;
+
+			// Check if the same VFS is suitable for the destination
+			if (mount.MountPoint.size() > 0) {
+				const char* newName = GetFilename(mount, newFilename);
+				if (newName != nullptr) {
+					realNewFilename = newName;
+					vfsB = vfs;
+					break;
+				}
+			}
+		}
+	}
+
+	// The file that needs to be renamed doesn't exist, or the VFS is not readable
+	if (vfsA == nullptr || !vfsA->IsReadable()) {
+		return false;
+	}
+
+	// If there was no suitable destination VFS:
+	// Try checking in the first (last in the list) mounted VFS, if it has a mount pount
+	VFSMount* firstMount = &LoadedVFS.back();
+
+	if (vfsB == nullptr && firstMount->MountPoint.size() > 0) {
+		VFSProvider* vfs = firstMount->VFSPtr;
+
+		const char* newName = GetFilename(*firstMount, newFilename);
+		if (newName != nullptr) {
+			realNewFilename = newName;
+			vfsB = vfs;
+		}
+	}
+
+	if (vfsB == nullptr) {
+		// Try again with the rest of the list, if they have mount points
+		for (size_t i = 0; i < LoadedVFS.size(); i++) {
+			VFSMount* mount = &LoadedVFS[i];
+			if (mount == firstMount || mount->MountPoint.size() == 0) {
+				continue;
+			}
+
+			VFSProvider* vfs = mount->VFSPtr;
+
+			const char* newName = GetFilename(*mount, newFilename);
+			if (newName != nullptr) {
+				realNewFilename = newName;
+				vfsB = vfs;
+				break;
+			}
+		}
+	}
+
+	// Try checking in the first mounted VFS, if it does not have a mount point
+	if (vfsB == nullptr && firstMount->MountPoint.size() == 0) {
+		VFSProvider* vfs = firstMount->VFSPtr;
+
+		const char* newName = GetFilename(*firstMount, newFilename);
+		if (newName != nullptr) {
+			realNewFilename = newName;
+			vfsB = vfs;
+		}
+	}
+
+	if (vfsB == nullptr) {
+		// Try again with the rest of the list, if they do not have mount points
+		for (size_t i = 0; i < LoadedVFS.size(); i++) {
+			VFSMount* mount = &LoadedVFS[i];
+			if (mount == firstMount || mount->MountPoint.size() > 0) {
+				continue;
+			}
+
+			VFSProvider* vfs = mount->VFSPtr;
+
+			const char* newName = GetFilename(*mount, newFilename);
+			if (newName != nullptr) {
+				realNewFilename = newName;
+				vfsB = vfs;
+				break;
+			}
+		}
+	}
+
+	// No destination VFS found
+	if (vfsB == nullptr) {
+		return false;
+	}
+
+	// The file that needs to be renamed exists, and in the same VFS
+	// Just rename the entry
+	if (vfsA == vfsB) {
+		// The new file already exists.
+		if (vfsA->HasFile(realNewFilename)) {
+			return false;
+		}
+
+		return vfsA->RenameFile(realOldFilename, realNewFilename);
+	}
+
+	// Else, the rename moves the file from a provider into another
+	// Check if both filesystems are writable
+	if (!vfsA->IsWritable() || !vfsB->IsWritable()) {
+		return false;
+	}
+
+	// The new file already exists.
+	if (vfsB->HasFile(realNewFilename)) {
+		return false;
+	}
+
+	// Open both streams
+	Stream* oldStream = vfsA->OpenReadStream(realOldFilename);
+	if (!oldStream) {
+		return false;
+	}
+
+	Stream* newStream = vfsB->OpenWriteStream(realNewFilename);
+	if (!newStream) {
+		vfsA->CloseStream(oldStream);
+		return false;
+	}
+
+	// Copy the data
+	oldStream->CopyTo(newStream);
+
+	// Close the streams
+	vfsA->CloseStream(oldStream);
+	vfsB->CloseStream(newStream);
+
+	// Delete the old file
+	vfsA->DeleteFile(realOldFilename);
+
+	return true;
+}
 bool VirtualFileSystem::DeleteFile(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSMount& mount = LoadedVFS[i];

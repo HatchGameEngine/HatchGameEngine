@@ -28,6 +28,7 @@ public:
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
 	virtual bool CreateFile(const char* filename);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
+	virtual bool RenameFile(const char* oldFilename, const char* newFilename);
 	virtual bool EraseFile(const char* filename);
 	virtual VFSEnumeration EnumerateFiles(const char* path, VFSEnumerationOptions options);
 	virtual Stream* OpenReadStream(const char* filename);

@@ -207,6 +207,57 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 	return true;
 }
 
+bool FileSystemVFS::RenameFile(const char* oldFilename, const char* newFilename) {
+	if (!IsWritable()) {
+		return false;
+	}
+
+	char oldResourcePath[MAX_RESOURCE_PATH_LENGTH];
+	char newResourcePath[MAX_RESOURCE_PATH_LENGTH];
+
+	if (!GetPath(oldFilename, oldResourcePath, sizeof oldResourcePath)) {
+		return false;
+	}
+	if (!GetPath(newFilename, newResourcePath, sizeof newResourcePath)) {
+		return false;
+	}
+
+	if (!File::Exists(oldResourcePath) || File::Exists(newResourcePath)) {
+		return false;
+	}
+
+	if (Directory::Exists(oldResourcePath) || Directory::Exists(newResourcePath)) {
+		return false;
+	}
+
+	// Recursively create the path directories if needed.
+	if (!Path::Create(newResourcePath)) {
+		return false;
+	}
+
+	int success = rename(oldResourcePath, newResourcePath);
+	if (success != 0) {
+		return false;
+	}
+
+	std::string oldEntryName = TransformFilename(oldFilename);
+	std::string newEntryName = TransformFilename(newFilename);
+
+	VFSEntryMap::iterator it = Cache.find(oldEntryName);
+	if (it != Cache.end()) {
+		VFSEntry* entry = it->second;
+
+		CloseStream(entry);
+
+		entry->Name = newEntryName;
+
+		Cache.erase(it);
+		Cache[newEntryName] = entry;
+	}
+
+	return true;
+}
+
 bool FileSystemVFS::EraseFile(const char* filename) {
 	if (!IsWritable()) {
 		return false;
