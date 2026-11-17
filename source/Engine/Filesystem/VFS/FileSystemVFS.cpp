@@ -222,6 +222,10 @@ bool FileSystemVFS::RenameFile(const char* oldFilename, const char* newFilename)
 		return false;
 	}
 
+	if (strcmp(oldResourcePath, newResourcePath) == 0) {
+		return false;
+	}
+
 	if (!File::Exists(oldResourcePath) || File::Exists(newResourcePath)) {
 		return false;
 	}

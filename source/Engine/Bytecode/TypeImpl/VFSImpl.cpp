@@ -32,6 +32,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
 	ScriptManager::DefineNative(Class, "CreateFile", VM_CreateFile);
 	ScriptManager::DefineNative(Class, "RenameFile", VM_RenameFile);
+	ScriptManager::DefineNative(Class, "CopyFile", VM_CopyFile);
 	ScriptManager::DefineNative(Class, "DeleteFile", VM_DeleteFile);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
@@ -299,14 +300,17 @@ VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * \method CreateFile
- * \desc Creates a file with the given filename. If the file already exists, this does nothing and returns `true`. If the path is an existing directory, this does nothing and returns `false`.
+ * \desc Creates a file with the given filename. If the file already exists, this does nothing and returns `true`.<br/>\
+If the path is an existing directory, this does nothing and returns `false`.
  * \param filename (string): The file to create.
  * \return boolean Returns `true` if the file was created, `false` if otherwise.
  * \ns VirtualFileSystem
  */
 /***
  * \method CreateFile
- * \desc Creates a file with the given filename, copying the contents of the stream from its current position into the file. If the file already exists, this overwrites the file. If the path is an existing directory, this does nothing and returns `false`.
+ * \desc Creates a file with the given filename, copying the contents of the stream from its current position into the file.<br/>\
+If the file already exists, this overwrites the file.<br/>\
+If the path is an existing directory, this does nothing and returns `false`.
  * \param filename (string): The file to create.
  * \param stream (stream): The stream to copy the contents of.
  * \paramOpt offset (integer): Where to start copying the contents of the stream. By default, starts copying from the stream's current position.
@@ -386,7 +390,10 @@ VMValue VFSImpl::VM_CreateFile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method RenameFile
- * \desc Renames file from <param oldFilename> to <param newFilename>. If a file with the name of <param newFilename> already exists, this does nothing and returns `false`. If either path is a directory, this does nothing and returns `false`.
+ * \desc Renames file from <param oldFilename> to <param newFilename>.<br/>\
+If a file with the name of <param newFilename> already exists, this does nothing and returns `false`.<br/>\
+If either path is a directory, this does nothing and returns `false`.<br/>\
+If both paths are equal, this does nothing and returns `false`.
  * \param oldFilename (string): The file to rename.
  * \param newFilename (string): The new filename.
  * \return boolean Returns `true` if the file was renamed, `false` if otherwise.
@@ -399,14 +406,46 @@ VMValue VFSImpl::VM_RenameFile(int argCount, VMValue* args, Uint32 threadID) {
 	char* oldFilename = GET_ARG(1, GetString);
 	char* newFilename = GET_ARG(2, GetString);
 
+	if (strcmp(oldFilename, newFilename) == 0) {
+		return INTEGER_VAL(false);
+	}
+
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
 	CHECK_EXISTS(vfs);
 
 	return INTEGER_VAL(vfs->RenameFile(oldFilename, newFilename));
 }
 /***
+ * \method CopyFile
+ * \desc Copies file <param sourceFilename> into <param destFilename>.<br/>\
+If a file with the name of <param destFilename> already exists, this overwrites said file.<br/>\
+If either path is a directory, this does nothing and returns `false`.<br/>\
+If both paths are equal, this does nothing and returns `false`.
+ * \param sourceFilename (string): The source file.
+ * \param destFilename (string): The destination file.
+ * \return boolean Returns `true` if the file was renamed, `false` if otherwise.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_CopyFile(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* sourceFilename = GET_ARG(1, GetString);
+	char* destFilename = GET_ARG(2, GetString);
+
+	if (strcmp(sourceFilename, destFilename) == 0) {
+		return INTEGER_VAL(false);
+	}
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL(vfs->CopyFile(sourceFilename, destFilename));
+}
+/***
  * \method DeleteFile
- * \desc Deletes a file with the given filename. If the path is an existing directory, this does nothing and returns `false`.
+ * \desc Deletes a file with the given filename.<br/>\
+If the path is an existing directory, this does nothing and returns `false`.
  * \param filename (string): The file to delete.
  * \return boolean Returns `true` if the file was deleted, `false` if otherwise.
  * \ns VirtualFileSystem
@@ -424,7 +463,9 @@ VMValue VFSImpl::VM_DeleteFile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method Delete
- * \desc Deletes the virtual file system. All mounts are flushed (if needed), then all open streams are closed. The VFS can no longer be used after this function is called.
+ * \desc Deletes the virtual file system.<br/>\
+All mounts are flushed (if needed), then all open streams are closed.<br/>\
+The VFS can no longer be used after this function is called.
  * \ns VirtualFileSystem
  */
 VMValue VFSImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {

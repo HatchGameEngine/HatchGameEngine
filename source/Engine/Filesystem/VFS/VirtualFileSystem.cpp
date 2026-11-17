@@ -181,13 +181,9 @@ bool VirtualFileSystem::CreateFile(const char* filename) {
 
 	return false;
 }
-bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilename) {
-	VFSProvider* vfsA = nullptr;
-	VFSProvider* vfsB = nullptr;
-
-	const char* realOldFilename = nullptr;
-	const char* realNewFilename = nullptr;
-
+bool VirtualFileSystem::FindVFSForFileCopy(const char* oldFilename, const char* newFilename,
+	VFSProvider** vfsA, VFSProvider** vfsB,
+	const char** realOldFilename, const char** realNewFilename) {
 	if (LoadedVFS.size() == 0) {
 		return false;
 	}
@@ -199,24 +195,25 @@ bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilen
 
 		const char* oldName = GetFilename(mount, oldFilename);
 
-		if (oldName != nullptr && vfs->HasFile(oldName) && vfsA == nullptr) {
-			realOldFilename = oldName;
-			vfsA = vfs;
+		if (oldName != nullptr && vfs->HasFile(oldName)) {
+			(*realOldFilename) = oldName;
+			(*vfsA) = vfs;
 
 			// Check if the same VFS is suitable for the destination
 			if (mount.MountPoint.size() > 0) {
 				const char* newName = GetFilename(mount, newFilename);
 				if (newName != nullptr) {
-					realNewFilename = newName;
-					vfsB = vfs;
-					break;
+					(*realNewFilename) = newName;
+					(*vfsB) = vfs;
 				}
 			}
+
+			break;
 		}
 	}
 
-	// The file that needs to be renamed doesn't exist, or the VFS is not readable
-	if (vfsA == nullptr || !vfsA->IsReadable()) {
+	// There was no suitable source VFS
+	if ((*vfsA) == nullptr) {
 		return false;
 	}
 
@@ -224,67 +221,73 @@ bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilen
 	// Try checking in the first (last in the list) mounted VFS, if it has a mount pount
 	VFSMount* firstMount = &LoadedVFS.back();
 
-	if (vfsB == nullptr && firstMount->MountPoint.size() > 0) {
+	if ((*vfsB) == nullptr && firstMount->MountPoint.size() > 0) {
 		VFSProvider* vfs = firstMount->VFSPtr;
 
 		const char* newName = GetFilename(*firstMount, newFilename);
 		if (newName != nullptr) {
-			realNewFilename = newName;
-			vfsB = vfs;
+			(*realNewFilename) = newName;
+			(*vfsB) = vfs;
+			return true;
 		}
 	}
 
-	if (vfsB == nullptr) {
-		// Try again with the rest of the list, if they have mount points
-		for (size_t i = 0; i < LoadedVFS.size(); i++) {
-			VFSMount* mount = &LoadedVFS[i];
-			if (mount == firstMount || mount->MountPoint.size() == 0) {
-				continue;
-			}
+	// Try again with the rest of the list, if they have mount points
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount* mount = &LoadedVFS[i];
+		if (mount == firstMount || mount->MountPoint.size() == 0) {
+			continue;
+		}
 
-			VFSProvider* vfs = mount->VFSPtr;
+		VFSProvider* vfs = mount->VFSPtr;
 
-			const char* newName = GetFilename(*mount, newFilename);
-			if (newName != nullptr) {
-				realNewFilename = newName;
-				vfsB = vfs;
-				break;
-			}
+		const char* newName = GetFilename(*mount, newFilename);
+		if (newName != nullptr) {
+			(*realNewFilename) = newName;
+			(*vfsB) = vfs;
+			return true;
 		}
 	}
 
 	// Try checking in the first mounted VFS, if it does not have a mount point
-	if (vfsB == nullptr && firstMount->MountPoint.size() == 0) {
+	if (firstMount->MountPoint.size() == 0) {
 		VFSProvider* vfs = firstMount->VFSPtr;
 
 		const char* newName = GetFilename(*firstMount, newFilename);
 		if (newName != nullptr) {
-			realNewFilename = newName;
-			vfsB = vfs;
+			(*realNewFilename) = newName;
+			(*vfsB) = vfs;
+			return true;
 		}
 	}
 
-	if (vfsB == nullptr) {
-		// Try again with the rest of the list, if they do not have mount points
-		for (size_t i = 0; i < LoadedVFS.size(); i++) {
-			VFSMount* mount = &LoadedVFS[i];
-			if (mount == firstMount || mount->MountPoint.size() > 0) {
-				continue;
-			}
+	// Try again with the rest of the list, if they do not have mount points
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount* mount = &LoadedVFS[i];
+		if (mount == firstMount || mount->MountPoint.size() > 0) {
+			continue;
+		}
 
-			VFSProvider* vfs = mount->VFSPtr;
+		VFSProvider* vfs = mount->VFSPtr;
 
-			const char* newName = GetFilename(*mount, newFilename);
-			if (newName != nullptr) {
-				realNewFilename = newName;
-				vfsB = vfs;
-				break;
-			}
+		const char* newName = GetFilename(*mount, newFilename);
+		if (newName != nullptr) {
+			(*realNewFilename) = newName;
+			(*vfsB) = vfs;
+			return true;
 		}
 	}
 
-	// No destination VFS found
-	if (vfsB == nullptr) {
+	return false;
+}
+bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilename) {
+	VFSProvider* vfsA = nullptr;
+	VFSProvider* vfsB = nullptr;
+
+	const char* realOldFilename = nullptr;
+	const char* realNewFilename = nullptr;
+
+	if (!FindVFSForFileCopy(oldFilename, newFilename, &vfsA, &vfsB, &realOldFilename, &realNewFilename)) {
 		return false;
 	}
 
@@ -299,14 +302,24 @@ bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilen
 		return vfsA->RenameFile(realOldFilename, realNewFilename);
 	}
 
-	// Else, the rename moves the file from a provider into another
-	// Check if both filesystems are writable
-	if (!vfsA->IsWritable() || !vfsB->IsWritable()) {
+	// The new file already exists.
+	if (vfsB->HasFile(realNewFilename)) {
 		return false;
 	}
 
-	// The new file already exists.
-	if (vfsB->HasFile(realNewFilename)) {
+	// Else, the rename moves the file from a provider into another
+	if (CopyFile(vfsA, vfsB, realOldFilename, realNewFilename)) {
+		// Delete the old file
+		vfsA->DeleteFile(realOldFilename);
+
+		return true;
+	}
+
+	return false;
+}
+bool VirtualFileSystem::CopyFile(VFSProvider* vfsA, VFSProvider* vfsB, const char* realOldFilename, const char* realNewFilename) {
+	// Check if both filesystems are writable
+	if (!vfsA->IsWritable() || !vfsB->IsWritable()) {
 		return false;
 	}
 
@@ -329,10 +342,20 @@ bool VirtualFileSystem::RenameFile(const char* oldFilename, const char* newFilen
 	vfsA->CloseStream(oldStream);
 	vfsB->CloseStream(newStream);
 
-	// Delete the old file
-	vfsA->DeleteFile(realOldFilename);
-
 	return true;
+}
+bool VirtualFileSystem::CopyFile(const char* oldFilename, const char* newFilename) {
+	VFSProvider* vfsA = nullptr;
+	VFSProvider* vfsB = nullptr;
+
+	const char* realOldFilename = nullptr;
+	const char* realNewFilename = nullptr;
+
+	if (!FindVFSForFileCopy(oldFilename, newFilename, &vfsA, &vfsB, &realOldFilename, &realNewFilename)) {
+		return false;
+	}
+
+	return CopyFile(vfsA, vfsB, realOldFilename, realNewFilename);
 }
 bool VirtualFileSystem::DeleteFile(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {

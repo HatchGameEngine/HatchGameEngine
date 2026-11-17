@@ -125,6 +125,10 @@ bool ArchiveVFS::RenameFile(const char* oldFilename, const char* newFilename) {
 	std::string oldEntryName = TransformFilename(oldFilename);
 	std::string newEntryName = TransformFilename(newFilename);
 
+	if (oldEntryName == newEntryName) {
+		return false;
+	}
+
 	VFSEntryMap::iterator oldIt = Entries.find(oldEntryName);
 	VFSEntryMap::iterator newIt = Entries.find(newEntryName);
 

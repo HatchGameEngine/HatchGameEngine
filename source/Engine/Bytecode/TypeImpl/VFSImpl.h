@@ -30,6 +30,7 @@ public:
 	static VMValue VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CreateFile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_RenameFile(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_CopyFile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_DeleteFile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };

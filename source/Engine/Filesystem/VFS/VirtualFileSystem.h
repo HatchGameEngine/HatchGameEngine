@@ -27,6 +27,10 @@ private:
 	std::deque<VFSMount> LoadedVFS;
 
 	const char* GetFilename(VFSMount mount, const char* filename);
+	bool FindVFSForFileCopy(const char* oldFilename, const char* newFilename,
+		VFSProvider** vfsA, VFSProvider** vfsB,
+		const char** realOldFilename, const char** realNewFilename);
+	bool CopyFile(VFSProvider* vfsA, VFSProvider* vfsB, const char* realOldFilename, const char* realNewFilename);
 	void Dispose();
 
 public:
@@ -47,6 +51,7 @@ public:
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
 	bool CreateFile(const char* filename);
+	bool CopyFile(const char* oldFilename, const char* newFilename);
 	bool RenameFile(const char* oldFilename, const char* newFilename);
 	bool DeleteFile(const char* filename);
 
