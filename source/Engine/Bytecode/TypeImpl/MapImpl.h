@@ -15,7 +15,6 @@ public:
 
 	static VMValue VM_Length(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetKeys(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_keys(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Remove(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Clear(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Iterate(int argCount, VMValue* args, Uint32 threadID);

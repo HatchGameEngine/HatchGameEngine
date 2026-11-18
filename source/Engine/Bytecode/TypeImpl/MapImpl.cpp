@@ -17,7 +17,7 @@ void MapImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "Length", MapImpl::VM_Length);
 	ScriptManager::DefineNative(Class, "GetKeys", MapImpl::VM_GetKeys);
-	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_keys);
+	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "Remove", MapImpl::VM_Remove);
 	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_Remove);
 	ScriptManager::DefineNative(Class, "Clear", MapImpl::VM_Clear);
@@ -87,20 +87,6 @@ VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 	else {
 		array->Values->clear();
 	}
-
-	map->Keys->WithAllOrdered([array](Uint32, VMValue value) -> void {
-		array->Values->push_back(value);
-	});
-
-	return OBJECT_VAL(array);
-}
-
-VMValue MapImpl::VM_keys(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
-
-	ObjMap* map = GET_ARG(0, GetMap);
-
-	ObjArray* array = NewArray();
 
 	map->Keys->WithAllOrdered([array](Uint32, VMValue value) -> void {
 		array->Values->push_back(value);
