@@ -276,7 +276,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	}
 
 	layer->UsingScrollIndexes = true;
-	layer->ScrollIndexes = (Uint8*)Memory::Malloc(16 * layer->HeightData);
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(layer->ScrollIndexCount * 16);
 	layer->ScrollInfoCount = (int)r->ReadUInt16();
 	layer->ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer->ScrollInfoCount * sizeof(ScrollingInfo));
@@ -295,12 +295,12 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 
 	Uint16* tileBoys = (Uint16*)malloc(sizeof(Uint16) * Width * Height);
 
-	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, 16 * layer->HeightData);
-	if (scrollIndexRead > 16 * layer->HeightData) {
+	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, layer->ScrollIndexCount * 16);
+	if (scrollIndexRead > layer->ScrollIndexCount * 16) {
 		Log::Print(Log::LOG_ERROR,
 			"Read more parallax indexes (%u) than buffer (%d) allows!",
 			scrollIndexRead,
-			16 * layer->HeightData);
+			layer->ScrollIndexCount * 16);
 	}
 	Uint32 tileBoysRead = r->ReadCompressed(tileBoys, sizeof(Uint16) * Width * Height);
 	if (tileBoysRead > sizeof(Uint16) * Width * Height) {

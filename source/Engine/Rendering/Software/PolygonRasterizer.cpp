@@ -441,11 +441,12 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		Contour contour = ContourField[dst_y]; \
 		contLen = contour.MaxX - contour.MinX; \
-		if (contLen <= 0) { \
+		if (contLen < 0) { \
 			dst_strideY += dstStride; \
 			continue; \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+		int spanEnd = contour.MaxX < spanRight ? contour.MaxX + 1 : spanRight; \
+		for (int dst_x = contour.MinX; dst_x < spanEnd; dst_x++) { \
 			pixelRead(); \
 		} \
 		dst_strideY += dstStride; \
@@ -454,20 +455,28 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		Contour contour = ContourField[dst_y]; \
 		contLen = contour.MaxX - contour.MinX; \
-		if (contLen <= 0) { \
+		if (contLen < 0) { \
 			dst_strideY += dstStride; \
 			continue; \
 		} \
+		if (contLen == 0) \
+			contLen = 1; \
 		SCANLINE_INIT_Z(); \
 		if (contour.MapLeft < contour.MinX) { \
 			SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+		int spanEnd = contour.MaxX < spanRight ? contour.MaxX + 1 : spanRight; \
+		for (int dst_x = contour.MinX; dst_x < spanEnd; dst_x++) { \
 			SCANLINE_GET_MAPZ(); \
 			pixelRead(); \
 			SCANLINE_STEP_Z(); \
 		} \
 		dst_strideY += dstStride; \
+	}
+
+	int spanRight = (int)Graphics::CurrentRenderTarget->Width;
+	if (Graphics::CurrentClip.Enabled && Graphics::CurrentClip.X + Graphics::CurrentClip.Width < spanRight) {
+		spanRight = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
 	}
 
 	if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {

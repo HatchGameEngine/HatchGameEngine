@@ -2599,6 +2599,60 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 		break;
 	}
 	case DrawBehavior_VerticalParallax: {
+		int layerWidth = layer->Width * Scene::TileWidth;
+		int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
+		if (viewWidth > MAX_FRAMEBUFFER_HEIGHT) {
+			viewWidth = MAX_FRAMEBUFFER_HEIGHT;
+		}
+
+		for (int i = 0; i < layer->ScrollInfoCount; i++) {
+			ScrollingInfo* info = &layer->ScrollInfos[i];
+			Sint64 position = (Sint64)((Scene::Frame * info->ConstantParallax) + (currentView->Y * info->RelativeParallax) + layer->OffsetY + info->Offset) % layerHeight;
+			if (position < 0) {
+				position += layerHeight;
+			}
+			info->Position = position;
+		}
+
+		Sint64 scrollPos = (Sint64)((Scene::Frame * layer->ConstantY) + (currentView->X * layer->RelativeY) + layer->OffsetX) % layerWidth;
+		if (scrollPos < 0) {
+			scrollPos += layerWidth;
+		}
+
+		Sint64 defaultPosY = (Sint64)(currentView->Y + layer->OffsetY) % layerHeight;
+		if (defaultPosY < 0) {
+			defaultPosY += layerHeight;
+		}
+
+		int scrollIndexCount = layer->ScrollIndexCount * 16;
+
+		TileScanLine* scanLine = TileScanLineBuffer;
+		for (int i = 0; i < viewWidth; i++) {
+			Sint64 srcY = defaultPosY;
+			if (layer->ScrollInfoCount) {
+				int index = 0;
+				if (layer->UsingScrollIndexes && scrollPos < scrollIndexCount) {
+					index = layer->ScrollIndexes[scrollPos];
+				}
+				if (index >= layer->ScrollInfoCount) {
+					index = 0;
+				}
+				srcY = (Sint64)layer->ScrollInfos[index].Position;
+			}
+
+			scanLine->SrcX = scrollPos << 16;
+			scanLine->SrcY = srcY << 16;
+			scanLine->DeltaX = 0;
+			scanLine->DeltaY = 0x10000;
+			scanLine->Opacity = 0xFF;
+			scanLine->MaxHorzCells = 0;
+			scanLine->MaxVertCells = 0;
+
+			if (++scrollPos == layerWidth) {
+				scrollPos = 0;
+			}
+			scanLine++;
+		}
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
@@ -3588,37 +3642,45 @@ void Graphics::MakeSpritePolygonUVs(VertexAttribute data[4],
 	int uv_top = frameY;
 	int uv_bottom = frameY + frameH;
 
-	int left_u, right_u, top_v, bottom_v;
+	Sint64 insetU = FP16_DIVIDE(FP16_TO(1), textureWidth) >> 2;
+	Sint64 insetV = FP16_DIVIDE(FP16_TO(1), textureHeight) >> 2;
+
+	Sint64 frameLeft = FP16_DIVIDE(FP16_TO(uv_left), textureWidth) + insetU;
+	Sint64 frameRight = FP16_DIVIDE(FP16_TO(uv_right), textureWidth) - insetU;
+	Sint64 frameTop = FP16_DIVIDE(FP16_TO(uv_top), textureHeight) + insetV;
+	Sint64 frameBottom = FP16_DIVIDE(FP16_TO(uv_bottom), textureHeight) - insetV;
+
+	Sint64 left_u, right_u, top_v, bottom_v;
 
 	if (flipX) {
-		left_u = uv_right;
-		right_u = uv_left;
+		left_u = frameRight;
+		right_u = frameLeft;
 	}
 	else {
-		left_u = uv_left;
-		right_u = uv_right;
+		left_u = frameLeft;
+		right_u = frameRight;
 	}
 
 	if (flipY) {
-		top_v = uv_bottom;
-		bottom_v = uv_top;
+		top_v = frameBottom;
+		bottom_v = frameTop;
 	}
 	else {
-		top_v = uv_top;
-		bottom_v = uv_bottom;
+		top_v = frameTop;
+		bottom_v = frameBottom;
 	}
 
-	data[3].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
-	data[3].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+	data[3].UV.X = left_u;
+	data[3].UV.Y = bottom_v;
 
-	data[2].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
-	data[2].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+	data[2].UV.X = right_u;
+	data[2].UV.Y = bottom_v;
 
-	data[1].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
-	data[1].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+	data[1].UV.X = right_u;
+	data[1].UV.Y = top_v;
 
-	data[0].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
-	data[0].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+	data[0].UV.X = left_u;
+	data[0].UV.Y = top_v;
 }
 
 void Graphics::MakeFrameBufferID(ISprite* sprite) {
