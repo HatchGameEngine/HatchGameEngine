@@ -25,6 +25,10 @@ public:
 	static VMValue VM_Mount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Unmount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsMounted(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetMountCount(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetMountNameByIndex(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetMountPoint(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetMountIndex(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_FileExists(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID);

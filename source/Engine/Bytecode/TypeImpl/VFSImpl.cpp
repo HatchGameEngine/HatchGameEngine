@@ -27,6 +27,10 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "Mount", VM_Mount);
 	ScriptManager::DefineNative(Class, "Unmount", VM_Unmount);
 	ScriptManager::DefineNative(Class, "IsMounted", VM_IsMounted);
+	ScriptManager::DefineNative(Class, "GetMountCount", VM_GetMountCount);
+	ScriptManager::DefineNative(Class, "GetMountNameByIndex", VM_GetMountNameByIndex);
+	ScriptManager::DefineNative(Class, "GetMountPoint", VM_GetMountPoint);
+	ScriptManager::DefineNative(Class, "GetMountIndex", VM_GetMountIndex);
 	ScriptManager::DefineNative(Class, "FileExists", VM_FileExists);
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
@@ -227,6 +231,101 @@ VMValue VFSImpl::VM_IsMounted(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	return INTEGER_VAL(false);
+}
+/***
+ * \method GetMountCount
+ * \desc Gets the amount of mounts.
+ * \return integer Returns an integer value.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_GetMountCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL((int)vfs->GetMountCount());
+}
+/***
+ * \method GetMountNameByIndex
+ * \desc Gets the name of the mount of the given index.
+ * \param index (string): The mount index.
+ * \return string Returns a string value.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_GetMountNameByIndex(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	int index = GET_ARG(1, GetInteger);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	if (index < 0 || index >= (int)vfs->GetMountCount()) {
+		char error[128];
+		snprintf(error, sizeof error, "Mount index %d out of range. (0 - %d)", index, vfs->GetMountCount() - 1);
+		throw ScriptException(error);
+	}
+
+	const char* name = vfs->GetMountName(index);
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(name);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetMountPoint
+ * \desc Gets the mount point of a mount.
+ * \param name (string): The mount name.
+ * \return string Returns a string value, or `null` if there is no mount point.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_GetMountPoint(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* name = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	const char* mountPoint = vfs->GetMountPoint(name);
+	if (mountPoint == nullptr) {
+		return NULL_VAL;
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(mountPoint);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetMountIndex
+ * \desc Gets the index of the mount of the given name.
+ * \param name (string): The mount name.
+ * \return integer Returns an integer value, or `-1` if there is no mount with the given name.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_GetMountIndex(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* name = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	return INTEGER_VAL(vfs->GetMountIndex(name));
 }
 /***
  * \method FileExists

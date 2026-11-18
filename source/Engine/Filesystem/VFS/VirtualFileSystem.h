@@ -36,9 +36,13 @@ private:
 public:
 	~VirtualFileSystem();
 
-	size_t GetIndex(const char* name);
+	int GetMountIndex(const char* name);
 	VFSProvider* Get(const char* name);
 	VFSProvider* Get(size_t index);
+	size_t GetMountCount();
+	const char* GetMountName(size_t index);
+	const char* GetMountPoint(const char* name);
+	const char* GetMountPoint(size_t index);
 	VFSMountStatus Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,
@@ -46,7 +50,6 @@ public:
 		Uint16 flags);
 	bool IsMounted(const char* name);
 	VFSMountStatus Unmount(const char* name);
-	int NumMounted();
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);

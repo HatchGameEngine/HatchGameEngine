@@ -8,28 +8,68 @@
 #include <Engine/Filesystem/VFS/MemoryVFS.h>
 #include <Engine/Utilities/StringUtils.h>
 
+int VirtualFileSystem::GetMountIndex(const char* name) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+
+		if (strcmp(mount.Name.c_str(), name) == 0) {
+			return (int)i;
+		}
+	}
+
+	return -1;
+}
 VFSProvider* VirtualFileSystem::Get(const char* name) {
-	size_t index = GetIndex(name);
+	int index = GetMountIndex(name);
 	if (index != -1) {
 		return LoadedVFS[index].VFSPtr;
 	}
 
 	return nullptr;
 }
-size_t VirtualFileSystem::GetIndex(const char* name) {
-	for (size_t i = 0; i < LoadedVFS.size(); i++) {
-		VFSMount& mount = LoadedVFS[i];
-
-		if (strcmp(mount.Name.c_str(), name) == 0) {
-			return i;
-		}
-	}
-
-	return -1;
-}
 VFSProvider* VirtualFileSystem::Get(size_t index) {
 	if (index < LoadedVFS.size()) {
 		return LoadedVFS[index].VFSPtr;
+	}
+
+	return nullptr;
+}
+
+size_t VirtualFileSystem::GetMountCount() {
+	return LoadedVFS.size();
+}
+
+const char* VirtualFileSystem::GetMountName(size_t index) {
+	if (index >= 0 && index < LoadedVFS.size()) {
+		return LoadedVFS[index].Name.c_str();
+	}
+
+	return nullptr;
+}
+
+const char* VirtualFileSystem::GetMountPoint(const char* name) {
+	int index = GetMountIndex(name);
+	if (index != -1) {
+		VFSMount& mount = LoadedVFS[index];
+		std::string mountPoint = mount.MountPoint;
+		if (mountPoint.size() == 0) {
+			return nullptr;
+		}
+
+		return mountPoint.c_str();
+	}
+
+	return nullptr;
+}
+const char* VirtualFileSystem::GetMountPoint(size_t index) {
+	if (index >= 0 && index < LoadedVFS.size()) {
+		VFSMount& mount = LoadedVFS[index];
+		std::string mountPoint = mount.MountPoint;
+		if (mountPoint.size() == 0) {
+			return nullptr;
+		}
+
+		return mountPoint.c_str();
 	}
 
 	return nullptr;
@@ -90,7 +130,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 	return VFSMountStatus::MOUNTED;
 }
 bool VirtualFileSystem::IsMounted(const char* name) {
-	size_t index = GetIndex(name);
+	int index = GetMountIndex(name);
 	if (index == -1) {
 		return false;
 	}
@@ -98,7 +138,7 @@ bool VirtualFileSystem::IsMounted(const char* name) {
 	return true;
 }
 VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
-	size_t index = GetIndex(name);
+	int index = GetMountIndex(name);
 	if (index == -1) {
 		return VFSMountStatus::NOT_FOUND;
 	}
@@ -111,9 +151,6 @@ VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
 	LoadedVFS.erase(LoadedVFS.begin() + index);
 
 	return VFSMountStatus::UNMOUNTED;
-}
-int VirtualFileSystem::NumMounted() {
-	return LoadedVFS.size();
 }
 
 const char* VirtualFileSystem::GetFilename(VFSMount mount, const char* filename) {
