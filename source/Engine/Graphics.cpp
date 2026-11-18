@@ -67,6 +67,12 @@ int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
 
+Uint16 Graphics::DotPatternX = 0;
+Uint16 Graphics::DotPatternY = 0;
+
+int Graphics::DotPatternOffsetX = 0;
+int Graphics::DotPatternOffsetY = 0;
+
 Texture* Graphics::FramebufferTexture = NULL;
 int Graphics::FramebufferWidth = 0;
 int Graphics::FramebufferHeight = 0;
@@ -257,6 +263,10 @@ void Graphics::Reset() {
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
 	Graphics::StencilOpFail = StencilOp_Keep;
+
+	SetDotPattern(0);
+	SetDotPatternOffsetX(0);
+	SetDotPatternOffsetY(0);
 }
 void Graphics::Dispose() {
 	Graphics::UnloadData();
@@ -918,7 +928,7 @@ void Graphics::DoScreenPostProcess() {
 	Graphics::UpdateOrthoFlipped(ww, wh);
 	Graphics::SetDepthTesting(false);
 	Graphics::SetBlendMode(BlendMode_NORMAL);
-	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 	Graphics::TextureBlend = false;
 
 	Graphics::SetUserShader(Graphics::PostProcessShader);
@@ -929,8 +939,8 @@ void Graphics::DoScreenPostProcess() {
 		Graphics::FramebufferTexture->Height,
 		0.0,
 		0.0,
-		Application::WindowWidth,
-		Application::WindowHeight);
+		ww,
+		wh);
 	Graphics::SetUserShader(nullptr);
 }
 void Graphics::CopyFramebuffer(int sourceX,
@@ -1387,7 +1397,7 @@ void Graphics::DrawTriangle(Texture* texture,
 	float* tu,
 	float* tv,
 	int* colors) {
-	if (Graphics::GfxFunctions->DrawQuad) {
+	if (Graphics::GfxFunctions->DrawTriangle) {
 		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
 	}
 }
@@ -1614,8 +1624,8 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			glyph,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * baseline),
 			false,
 			false,
 			1.0f,
@@ -2149,8 +2159,8 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x - lineWidths[line] * params->Align,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x - lineWidths[line] * params->Align),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2241,10 +2251,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 					Graphics::DrawSprite(sprite,
 						0,
 						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								params->Baseline,
+						std::floor(x),
+						std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 						false,
 						false,
 						1.0f,
@@ -2316,8 +2324,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2476,8 +2484,9 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
-	float relative) {
-	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
+	float relative,
+	float lineOffset) {
+	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX + lineOffset);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		int layerWidth = layer->Width * Scene::TileWidth;
@@ -2505,8 +2514,9 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 		end = MAX_FRAMEBUFFER_HEIGHT - 1;
 	}
 
+	int deformLine = scrollLine + deformOffset;
 	// Iterate lines
-	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+	for (int i = start; i < end; i++, scrollLine++, deformLine++, scanLine++) {
 		if (i < 0) {
 			continue;
 		}
@@ -2521,14 +2531,12 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
 			scanLine->SrcX = info->Position;
 			if (info->CanDeform) {
-				int deformTableOffset = scrollLine + deformOffset;
-				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
-				scanLine->SrcX += deformValues[deformTableOffset];
+				scanLine->SrcX += deformValues[deformLine & ((MAX_DEFORM_LINES >> 1) - 1)];
 			}
 		}
 		else {
 			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, layer->ConstantX, layer->RelativeX);
+				layer, viewX, layer->ConstantX, layer->RelativeX, 0.0f);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2552,8 +2560,9 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				layer->ConstantX * info->ConstantParallax,
-				layer->RelativeX * info->RelativeParallax);
+				layer->ConstantX + info->ConstantParallax,
+				layer->RelativeX * info->RelativeParallax,
+				info->Offset);
 		}
 
 		// Create scanlines
@@ -2590,6 +2599,60 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 		break;
 	}
 	case DrawBehavior_VerticalParallax: {
+		int layerWidth = layer->Width * Scene::TileWidth;
+		int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
+		if (viewWidth > MAX_FRAMEBUFFER_HEIGHT) {
+			viewWidth = MAX_FRAMEBUFFER_HEIGHT;
+		}
+
+		for (int i = 0; i < layer->ScrollInfoCount; i++) {
+			ScrollingInfo* info = &layer->ScrollInfos[i];
+			Sint64 position = (Sint64)((Scene::Frame * info->ConstantParallax) + (currentView->Y * info->RelativeParallax) + layer->OffsetY + info->Offset) % layerHeight;
+			if (position < 0) {
+				position += layerHeight;
+			}
+			info->Position = position;
+		}
+
+		Sint64 scrollPos = (Sint64)((Scene::Frame * layer->ConstantY) + (currentView->X * layer->RelativeY) + layer->OffsetX) % layerWidth;
+		if (scrollPos < 0) {
+			scrollPos += layerWidth;
+		}
+
+		Sint64 defaultPosY = (Sint64)(currentView->Y + layer->OffsetY) % layerHeight;
+		if (defaultPosY < 0) {
+			defaultPosY += layerHeight;
+		}
+
+		int scrollIndexCount = layer->ScrollIndexCount * 16;
+
+		TileScanLine* scanLine = TileScanLineBuffer;
+		for (int i = 0; i < viewWidth; i++) {
+			Sint64 srcY = defaultPosY;
+			if (layer->ScrollInfoCount) {
+				int index = 0;
+				if (layer->UsingScrollIndexes && scrollPos < scrollIndexCount) {
+					index = layer->ScrollIndexes[scrollPos];
+				}
+				if (index >= layer->ScrollInfoCount) {
+					index = 0;
+				}
+				srcY = (Sint64)layer->ScrollInfos[index].Position;
+			}
+
+			scanLine->SrcX = scrollPos << 16;
+			scanLine->SrcY = srcY << 16;
+			scanLine->DeltaX = 0;
+			scanLine->DeltaY = 0x10000;
+			scanLine->Opacity = 0xFF;
+			scanLine->MaxHorzCells = 0;
+			scanLine->MaxVertCells = 0;
+
+			if (++scrollPos == layerWidth) {
+				scrollPos = 0;
+			}
+			scanLine++;
+		}
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
@@ -2853,13 +2916,17 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 					for (int gg = 0; gg < tileWidth; gg++) {
 						int col = tileCfg->CollisionTop[gg];
 						if (col < 0xF0) {
-							col = (tileHeight - col) + 1;
+							col = tileHeight - col;
 							BatchRectangleFill(xx, yy + (tileHeight - col), 1, col, colorR, colorG, colorB, 1.0);
 						}
 						xx++;
 					}
 				}
 
+				continue;
+			}
+
+			if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -2943,6 +3010,10 @@ void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* cur
 
 			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
+				if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
+					continue;
+				}
+
 				TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
 
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
@@ -3799,4 +3870,28 @@ void Graphics::ClearStencil() {
 	if (Graphics::GfxFunctions->ClearStencil) {
 		Graphics::GfxFunctions->ClearStencil();
 	}
+}
+void Graphics::SetDotPattern(int mask) {
+	SetDotPatternX(mask);
+	SetDotPatternY(mask);
+}
+void Graphics::SetDotPatternX(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternX = mask;
+}
+void Graphics::SetDotPatternY(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternY = mask;
+}
+void Graphics::SetDotPatternOffsetX(int offset) {
+	DotPatternOffsetX = offset;
+}
+void Graphics::SetDotPatternOffsetY(int offset) {
+	DotPatternOffsetY = offset;
 }

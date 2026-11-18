@@ -268,13 +268,15 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
 	}
 
+	layer->UsePaletteIndexLines = true;
+
 	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
 		layer->Visible = false;
 	}
 
 	layer->UsingScrollIndexes = true;
-	layer->ScrollIndexes = (Uint8*)Memory::Malloc(16 * layer->HeightData);
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(layer->ScrollIndexCount * 16);
 	layer->ScrollInfoCount = (int)r->ReadUInt16();
 	layer->ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer->ScrollInfoCount * sizeof(ScrollingInfo));
@@ -287,16 +289,18 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 
 		layer->ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
+
+		layer->ScrollInfos[g].Offset = 0.0f;
 	}
 
 	Uint16* tileBoys = (Uint16*)malloc(sizeof(Uint16) * Width * Height);
 
-	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, 16 * layer->HeightData);
-	if (scrollIndexRead > 16 * layer->HeightData) {
+	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, layer->ScrollIndexCount * 16);
+	if (scrollIndexRead > layer->ScrollIndexCount * 16) {
 		Log::Print(Log::LOG_ERROR,
 			"Read more parallax indexes (%u) than buffer (%d) allows!",
 			scrollIndexRead,
-			16 * layer->HeightData);
+			layer->ScrollIndexCount * 16);
 	}
 	Uint32 tileBoysRead = r->ReadCompressed(tileBoys, sizeof(Uint16) * Width * Height);
 	if (tileBoysRead > sizeof(Uint16) * Width * Height) {
@@ -311,7 +315,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint32* tileRow = &layer->Tiles[0];
 	for (int y = 0; y < layer->Height; y++) {
 		for (int x = 0; x < layer->Width; x++) {
-			tileRow[x] = (tileBoys[t] & 0x3FF);
+			tileRow[x] = (tileBoys[t] == 0xFFFF) ? Scene::EmptyTile : (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
 			tileRow[x] |= (tileBoys[t] & 0xC000) << 12; // Collision B
@@ -412,8 +416,8 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		}
 
 		// Read positions
-		Uint32 posX = r->ReadUInt32();
-		Uint32 posY = r->ReadUInt32();
+		Sint32 posX = r->ReadInt32();
+		Sint32 posY = r->ReadInt32();
 
 		// Read all properties
 		// No need to allocate the HashMap if the entity won't be added.
@@ -482,6 +486,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					val = Property::MakeArray(array);
 					break;
 				}
+				// Float
+				case 0xA:
+					val = Property::MakeDecimal(r->ReadFloat());
+					break;
 				// Color
 				case 0xB:
 					val = Property::MakeInteger((int)r->ReadUInt32());
@@ -532,6 +540,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				// Position
 				case 0x9:
 					r->Skip(8);
+					break;
+				// Float
+				case 0xA:
+					r->Skip(4);
 					break;
 				// Color
 				case 0xB:
@@ -616,7 +628,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::SceneType = SCENETYPE_RSDK;
 
 	Scene::TileCount = 0x400;
-	Scene::EmptyTile = 0x3FF;
+	Scene::EmptyTile = 0xFFFF;
 
 	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;

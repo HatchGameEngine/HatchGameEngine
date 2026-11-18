@@ -1605,19 +1605,10 @@ int VMThread::RunInstruction() {
 				frame->Slots[receiverSlot] = OBJECT_VAL(objectStart->Instance);
 				break;
 			}
-			else if (IS_INSTANCEABLE(receiver)) {
-				// Backup original receiver
-				*frame->WithReceiverStackTop = frame->Slots[receiverSlot];
-				frame->WithReceiverStackTop++;
-				// Replace receiver
-				frame->Slots[receiverSlot] = receiver;
-
+			else {
+				ThrowRuntimeError(false, "Not a valid value for 'with'!");
+				JUMP(offset);
 				Pop(); // pop receiver
-
-				// Add dummy iterator
-				*frame->WithIteratorStackTop =
-					NEW_STRUCT_MACRO(WithIter){NULL, NULL, 0, NULL};
-				frame->WithIteratorStackTop++;
 				break;
 			}
 			break;
@@ -1674,14 +1665,6 @@ int VMThread::RunInstruction() {
 						(ScriptEntity*)registry->GetNth(it.index);
 					frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
 				}
-			}
-			else {
-				Log::Print(Log::LOG_ERROR,
-					"hey you might need to handle the stack here (receiverStack: %d, iterator: %d)",
-					frame->WithReceiverStackTop - frame->WithReceiverStack,
-					frame->WithIteratorStackTop - frame->WithIteratorStack);
-				PrintStack();
-				assert(false);
 			}
 			break;
 		}

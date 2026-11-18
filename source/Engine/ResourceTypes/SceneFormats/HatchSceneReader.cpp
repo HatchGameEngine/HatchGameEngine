@@ -20,7 +20,8 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_COLLB_MASK 0x00030000U
 #define HSCN_FLIPX_MASK 0x00001000U
 #define HSCN_FLIPY_MASK 0x00002000U
-#define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
+#define HSCN_IDENT_MASK 0x00000FFFU // Max. 4096 tiles
+#define HSCN_FXYID_MASK (HSCN_FLIPY_MASK | HSCN_FLIPY_MASK | HSCN_IDENT_MASK)
 
 bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
@@ -177,14 +178,14 @@ void HatchSceneReader::ReadTileData(Stream* r, TileLayer* layer) {
 }
 
 void HatchSceneReader::ConvertTileData(TileLayer* layer) {
-	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
+	for (size_t i = 0; i < (size_t)layer->WidthData * layer->HeightData; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
 		}
 
 		Uint32 tileID = (layer->Tiles[i] & HSCN_FXYID_MASK);
-		Uint32 tile = (tileID & TILE_IDENT_MASK);
+		Uint32 tile = tileID & 0xFFF;
 		if (tile >= Scene::TileSpriteInfos.size()) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
@@ -217,6 +218,8 @@ void HatchSceneReader::ReadScrollData(Stream* r, TileLayer* layer) {
 		info->RelativeParallax = (float)relativeParallax / 0x100;
 		info->ConstantParallax = (float)constantParallax / 0x100;
 		info->CanDeform = (bool)r->ReadByte();
+
+		info->Offset = 0.0f;
 
 		r->ReadByte(); // ?
 	}
@@ -424,8 +427,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		classHash.C = r->ReadUInt32();
 		classHash.D = r->ReadUInt32();
 
-		float posX = r->ReadUInt32() / 65536.0;
-		float posY = r->ReadUInt32() / 65536.0;
+		float posX = r->ReadInt32() / 65536.0;
+		float posY = r->ReadInt32() / 65536.0;
 		Uint8 filter = r->ReadByte();
 		Uint8 numProps = r->ReadByte();
 

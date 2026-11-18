@@ -471,6 +471,12 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
+#ifdef GL_HAVE_YUV
+	if (isYUV) {
+		return;
+	}
+#endif
+
 	if (Graphics::TextureBlend || !texture) {
 		features |= SHADER_FEATURE_BLENDING;
 	}
@@ -502,16 +508,44 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
-#ifdef GL_HAVE_YUV
-	if (isYUV) {
-		return;
+	if (Graphics::DotPatternX) {
+		features |= SHADER_FEATURE_DOT_PATTERN_X;
 	}
-#endif
+	if (Graphics::DotPatternY) {
+		features |= SHADER_FEATURE_DOT_PATTERN_Y;
+	}
 
 	GL_SetShapeShader(features);
 
+	GLShader* shader = GLRenderer::CurrentShader;
+
 	if (Graphics::UsePalettes) {
-		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+		GL_PreparePaletteShader(shader, texture, paletteID);
+	}
+
+	if (shader->LocDotPatternX != -1) {
+		if (shader->CachedDotPatternX != Graphics::DotPatternX) {
+			glUniform1i(shader->LocDotPatternX, Graphics::DotPatternX);
+			shader->CachedDotPatternX = Graphics::DotPatternX;
+		}
+	}
+	if (shader->LocDotPatternOffsetX != -1) {
+		if (shader->CachedDotPatternOffsetX != Graphics::DotPatternOffsetX) {
+			glUniform1i(shader->LocDotPatternOffsetX, Graphics::DotPatternOffsetX);
+			shader->CachedDotPatternOffsetX = Graphics::DotPatternOffsetX;
+		}
+	}
+	if (shader->LocDotPatternY != -1) {
+		if (shader->CachedDotPatternY != Graphics::DotPatternY) {
+			glUniform1i(shader->LocDotPatternY, Graphics::DotPatternY);
+			shader->CachedDotPatternY = Graphics::DotPatternY;
+		}
+	}
+	if (shader->LocDotPatternOffsetY != -1) {
+		if (shader->CachedDotPatternOffsetY != Graphics::DotPatternOffsetY) {
+			glUniform1i(shader->LocDotPatternOffsetY, Graphics::DotPatternOffsetY);
+			shader->CachedDotPatternOffsetY = Graphics::DotPatternOffsetY;
+		}
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
@@ -2756,7 +2790,15 @@ void GLRenderer::ClearStencil() {
 }
 
 // Primitive drawing functions
-void GL_StrokeLine(float x1, float y1, float x2, float y2) {
+void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL);
+
 	float v[6];
 	v[0] = x1;
 	v[1] = y1;
@@ -2769,17 +2811,6 @@ void GL_StrokeLine(float x1, float y1, float x2, float y2) {
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_LINES, 0, 2);
 	CHECK_GL();
-}
-void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
-	}
-#endif
-
-	GL_Predraw(NULL);
-
-	GL_StrokeLine(x1, y1, x2, y2);
 
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothStroke) {
@@ -2830,25 +2861,37 @@ void GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
 #endif
 }
 void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
+	w--;
+	h--;
+
+	if (w <= 0.0 || h <= 0.0) {
+		return;
 	}
-#endif
 
 	GL_Predraw(NULL);
 
-	GL_StrokeLine(x, y, x + w, y);
-	GL_StrokeLine(x, y + h, x + w, y + h);
+#define MAKE_QUAD_SHAPE_WITH_TRIS(v, x1, y1, x2, y2) { \
+	(v)[0] = GL_Vec2{x1, y1}; \
+	(v)[1] = GL_Vec2{x2, y1}; \
+	(v)[2] = GL_Vec2{x1, y2}; \
+	(v)[3] = GL_Vec2{x2, y1}; \
+	(v)[4] = GL_Vec2{x1, y2}; \
+	(v)[5] = GL_Vec2{x2, y2}; \
+}
 
-	GL_StrokeLine(x, y, x, y + h);
-	GL_StrokeLine(x + w, y, x + w, y + h);
+	GL_Vec2 v[24];
 
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glDisable(GL_LINE_SMOOTH);
-	}
-#endif
+	MAKE_QUAD_SHAPE_WITH_TRIS(v, x, y, x + w, y + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 6, x + w, y, x + w + 1, y + h + 1); // +1 in the last arg is intentional
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 12, x, y + h, x + w, y + h + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 18, x, y + 1, x + 1, y + h); // +1 in the third arg is intentional
+
+#undef MAKE_QUAD_SHAPE_WITH_TRIS
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLES, 0, 24);
+	CHECK_GL();
 }
 void GLRenderer::FillCircle(float x, float y, float rad) {
 #ifdef GL_SUPPORTS_SMOOTHING
@@ -3062,7 +3105,7 @@ void GLRenderer::DrawTriangle(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
@@ -3112,7 +3155,7 @@ void GLRenderer::DrawQuad(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
@@ -4018,7 +4061,7 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
@@ -4072,7 +4115,7 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -4178,7 +4221,7 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
@@ -4221,7 +4264,7 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -4284,11 +4327,22 @@ void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 
 	size_t tileIndex = x + (y << layer->WidthInBits);
 	int tile = layer->Tiles[tileIndex];
+	if ((size_t)tile >= Scene::TileSpriteInfos.size()) {
+		return;
+	}
+
 	TileSpriteInfo info = Scene::TileSpriteInfos[tile & TILE_IDENT_MASK];
 	if (info.IsAnimated) {
 		return;
 	}
 
+	// If replacing a tile with EmptyTile, remake the tile buffers
+	if (tile == Scene::EmptyTile) {
+		layer->RemakeTileBuffers = true;
+		return;
+	}
+
+	// If there is currently no tile in this position, remake the tile buffers
 	size_t tileBufferIndex = layer->TileBufferIndexes[tileIndex];
 	if (tileBufferIndex == SIZE_MAX) {
 		layer->RemakeTileBuffers = true;

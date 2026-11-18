@@ -1,5 +1,5 @@
 #include <Engine/Application.h>
-#include <Engine/Filesystem/File.h>
+#include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/Screenshot.h>
 
 std::vector<ScreenshotOperation> Queue;
@@ -73,7 +73,7 @@ bool Screenshot::Exists(std::string path) {
 		}
 	}
 
-	return File::ProtectedExists(path.c_str(), true);
+	return FileStream::Exists(path.c_str(), true);
 }
 
 void Screenshot::QueueOperation(ScreenshotOperation operation) {

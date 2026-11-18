@@ -1,6 +1,7 @@
 #ifndef ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 #define ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/VFSProvider.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Includes/Standard.h>
@@ -8,8 +9,9 @@
 class ResourceManager {
 public:
 	static bool UsingDataFolder;
+	static char DataFolderPath[MAX_PATH_LENGTH];
 
-	static bool Init(const char* dataFilePath);
+	static bool Init(const char* dataFilePath = nullptr, bool useResourcesFolder = false);
 	static bool Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,

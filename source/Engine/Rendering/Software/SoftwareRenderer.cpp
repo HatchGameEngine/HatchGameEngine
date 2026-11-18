@@ -55,12 +55,6 @@ Uint8 StencilMask = 0xFF;
 
 size_t StencilBufferSize = 0;
 
-Uint8 DotMaskH = 0;
-Uint8 DotMaskV = 0;
-
-int DotMaskOffsetH = 0;
-int DotMaskOffsetV = 0;
-
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
@@ -76,10 +70,6 @@ void SoftwareRenderer::Init() {
 	SoftwareRenderer::BackendFunctions.Init();
 
 	UseSpriteDeform = false;
-
-	SetDotMask(0);
-	SetDotMaskOffsetH(0);
-	SetDotMaskOffsetV(0);
 }
 Uint32 SoftwareRenderer::GetWindowFlags() {
 	return Graphics::Internal.GetWindowFlags();
@@ -808,46 +798,15 @@ void SoftwareRenderer::PixelStencil(Uint32* src,
 	}
 }
 
-void SoftwareRenderer::SetDotMask(int mask) {
-	SetDotMaskH(mask);
-	SetDotMaskV(mask);
-}
-void SoftwareRenderer::SetDotMaskH(int mask) {
-	if (mask < 0) {
-		mask = 0;
-	}
-	else if (mask > 255) {
-		mask = 255;
-	}
-
-	DotMaskH = mask;
-}
-void SoftwareRenderer::SetDotMaskV(int mask) {
-	if (mask < 0) {
-		mask = 0;
-	}
-	else if (mask > 255) {
-		mask = 255;
-	}
-
-	DotMaskV = mask;
-}
-void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
-	DotMaskOffsetH = offset;
-}
-void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
-	DotMaskOffsetV = offset;
-}
-
-void SoftwareRenderer::PixelDotMaskH(Uint32* src,
+void SoftwareRenderer::PixelDotPatternX(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
-	if (x & DotMaskH) {
+	int x = (pos % Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetX;
+	if (((x / Graphics::DotPatternX) % 2) * Graphics::DotPatternX != 0) {
 		return;
 	}
 
@@ -858,15 +817,15 @@ void SoftwareRenderer::PixelDotMaskH(Uint32* src,
 		CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 	}
 }
-void SoftwareRenderer::PixelDotMaskV(Uint32* src,
+void SoftwareRenderer::PixelDotPatternY(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
-	if (y & DotMaskV) {
+	int y = (pos / Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetY;
+	if (((y / Graphics::DotPatternY) % 2) * Graphics::DotPatternY != 0) {
 		return;
 	}
 
@@ -877,16 +836,19 @@ void SoftwareRenderer::PixelDotMaskV(Uint32* src,
 		CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 	}
 }
-void SoftwareRenderer::PixelDotMaskHV(Uint32* src,
+void SoftwareRenderer::PixelDotPatternXY(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
-	int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
-	if (x & DotMaskH || y & DotMaskV) {
+	int x = (pos % Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetX;
+	int y = (pos / Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetY;
+	if (((x / Graphics::DotPatternX) % 2) * Graphics::DotPatternX != 0) {
+		return;
+	}
+	if (((y / Graphics::DotPatternY) % 2) * Graphics::DotPatternY != 0) {
 		return;
 	}
 
@@ -964,7 +926,7 @@ static int CalcVertexColor(Scene3D* scene, VertexAttribute* vertex, int normalY)
 	CLAMP_VAL(specularB, 0x00, 0xFF);
 	col_b = specularB;
 
-	return col_r << 16 | col_g << 8 | col_b;
+	return ColorUtils::ToRGB(col_r, col_g, col_b);
 }
 
 // Drawing 3D
@@ -1136,10 +1098,11 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
-#define LINE_X(pos, z) ((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000
-#define LINE_Y(pos, z) ((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000
+#define LINE_X(pos, z) (((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000 + cx)
+#define LINE_Y(pos, z) (((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					int vertexZ = vertex->Position.Z;
 					if (vertexZ < 0x10000) {
@@ -1166,8 +1129,8 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					LINE_Y(vertexFirst->Position.Y, vertexFirst->Position.Z));
 			}
 			else {
-#define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
-#define LINE_ORTHO_Y(pos) ((float)ORTHO_Y(pos)) / 0x10000
+#define LINE_ORTHO_X(pos) (((float)ORTHO_X(pos)) / 0x10000 + cx)
+#define LINE_ORTHO_Y(pos) (((float)ORTHO_Y(pos)) / 0x10000 + cy)
 				while (vertexCountPerFaceMinus1--) {
 					SetColor(vertex->Color);
 					SoftwareRenderer::StrokeLine(
@@ -1205,6 +1168,7 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 			SetColor(CalcVertexColor(scene, vertex, averageNormalY >> 8));
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 			CurrentBlendState = blendState;
+			CurrentBlendState.Mode = Graphics::TextureBlend ? faceInfoPtr->Blend.Mode : BlendMode_NORMAL;
 
 			if (usePerspective) {
 				while (vertexCountPerFaceMinus1--) {
@@ -1630,15 +1594,15 @@ PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
 		CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 	}
 
-	if (DotMaskH || DotMaskV) {
-		if (DotMaskH && DotMaskV) {
-			return SoftwareRenderer::PixelDotMaskHV;
+	if (Graphics::DotPatternX || Graphics::DotPatternY) {
+		if (Graphics::DotPatternX && Graphics::DotPatternY) {
+			return SoftwareRenderer::PixelDotPatternXY;
 		}
-		else if (DotMaskH) {
-			return SoftwareRenderer::PixelDotMaskH;
+		else if (Graphics::DotPatternX) {
+			return SoftwareRenderer::PixelDotPatternX;
 		}
-		else if (DotMaskV) {
-			return SoftwareRenderer::PixelDotMaskV;
+		else {
+			return SoftwareRenderer::PixelDotPatternY;
 		}
 	}
 	else if (Graphics::StencilEnabled && Graphics::CurrentView->StencilBuffer) {
@@ -2856,8 +2820,8 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 			vectors[i].Y = FP16_TO(yy);
 			vectors[i].Z = FP16_TO(1.0f);
 			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
-			uv[i].X = ((int)pu[i]) << 16;
-			uv[i].Y = ((int)pv[i]) << 16;
+			uv[i].X = FP16_TO(pu[i]);
+			uv[i].Y = FP16_TO(pv[i]);
 		}
 
 		PolygonRasterizer::DrawBlendPerspective(
@@ -3936,7 +3900,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
 		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 			if (tScanLine->SrcX < 0) {
-				tScanLine->SrcX = -(tScanLine->SrcX % layerWidthInPixels);
+				tScanLine->SrcX = (tScanLine->SrcX % layerWidthInPixels + layerWidthInPixels) % layerWidthInPixels;
 			}
 			else {
 				tScanLine->SrcX %= layerWidthInPixels;
@@ -4439,7 +4403,180 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		}
 	}
 }
-void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {}
+void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {
+	static vector<Uint32> srcStrides;
+	static vector<Uint32*> tileSources;
+	static vector<Uint8> isPalettedSources;
+	static vector<unsigned> paletteIDs;
+
+	BlendState blendState = GetBlendState();
+	if (!Graphics::TextureBlend) {
+		blendState.Mode = BlendFlag_OPAQUE;
+		blendState.Opacity = 0xFF;
+	}
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	int dst_x1 = 0;
+	int dst_y1 = 0;
+	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
+	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+	if (dst_x2 > MAX_FRAMEBUFFER_HEIGHT) {
+		dst_x2 = MAX_FRAMEBUFFER_HEIGHT;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
+	srcStrides.reserve(Scene::TileSpriteInfos.size());
+	tileSources.reserve(Scene::TileSpriteInfos.size());
+	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+		AnimFrame& frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
+		Uint32 srcStride = texture->Width;
+		srcStrides.push_back(srcStride);
+		tileSources.push_back(&texturePixelData[frameStr.X + frameStr.Y * srcStride]);
+		isPalettedSources.push_back(Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+	}
+
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+
+	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerHeightInPixels = layer->Height * Scene::TileHeight;
+	int layerWidthInBits = layer->WidthInBits;
+	int tileFlipX = Scene::TileWidth - 1;
+	int tileFlipY = Scene::TileHeight - 1;
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	Uint32 color;
+	Uint32* index;
+
+	for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+		TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_x];
+
+		Sint64 srcDX = scanLine->DeltaX, srcDY = scanLine->DeltaY;
+		// The column's source position is for the top of the view, so start it at the clip's top
+		Sint64 srcX = scanLine->SrcX + srcDX * dst_y1;
+		Sint64 srcY = scanLine->SrcY + srcDY * dst_y1;
+
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+		}
+
+		BlendState columnBlendState = GetBlendState();
+		if (Graphics::TextureBlend) {
+			columnBlendState.Opacity -= 0xFF - scanLine->Opacity;
+			if (columnBlendState.Opacity < 0) {
+				columnBlendState.Opacity = 0;
+			}
+		}
+		else {
+			columnBlendState.Mode = BlendFlag_OPAQUE;
+			columnBlendState.Opacity = 0xFF;
+		}
+
+		if (!AlterBlendState(columnBlendState)) {
+			continue;
+		}
+
+		int blendFlag = columnBlendState.Mode;
+		int* multTableAt = &MultTable[columnBlendState.Opacity << 8];
+		int* multSubTableAt = &MultSubTable[columnBlendState.Opacity << 8];
+
+		PixelFunction columnPixelFunction = NULL;
+		if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
+			columnPixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
+			SetTintFunction(blendFlag);
+		}
+		else {
+			columnPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+		}
+
+		Uint32* dstPxColumn = dstPx + (dst_y1 * dstStride) + dst_x;
+		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+			int srcTX = (int)((srcX >> 16) % widthMax);
+			int srcTY = (int)((srcY >> 16) % heightMax);
+			if (srcTX < 0) {
+				srcTX += widthMax;
+			}
+			if (srcTY < 0) {
+				srcTY += heightMax;
+			}
+
+			int tile = layer->Tiles[(srcTX / Scene::TileWidth) + ((srcTY / Scene::TileHeight) << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
+				int tileX = srcTX & tileFlipX;
+				int tileY = srcTY & tileFlipY;
+				if (tile & TILE_FLIPX_MASK) {
+					tileX ^= tileFlipX;
+				}
+				if (tile & TILE_FLIPY_MASK) {
+					tileY ^= tileFlipY;
+				}
+
+				color = tileSources[tileID][tileX + tileY * srcStrides[tileID]];
+				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
+					if (color && (index[color] & 0xFF000000U)) {
+						columnPixelFunction(&index[color], dstPxColumn, columnBlendState, multTableAt, multSubTableAt);
+					}
+				}
+				else if (color & 0xFF000000U) {
+					columnPixelFunction(&color, dstPxColumn, columnBlendState, multTableAt, multSubTableAt);
+				}
+			}
+
+			srcX += srcDX;
+			srcY += srcDY;
+			dstPxColumn += dstStride;
+		}
+	}
+}
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
@@ -4594,14 +4731,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4752,14 +4889,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -4937,14 +5074,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -5097,14 +5234,14 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 			int srcTY = srcY >> 16;
 
 			if (srcTX < 0) {
-				srcTX = -(srcTX % widthMax);
+				srcTX = (srcTX % widthMax + widthMax) % widthMax;
 			}
 			else if (srcTX >= widthMax) {
 				srcTX %= widthMax;
 			}
 
 			if (srcTY < 0) {
-				srcTY = -(srcTY % heightMax);
+				srcTY = (srcTY % heightMax + heightMax) % heightMax;
 			}
 			else if (srcTY >= heightMax) {
 				srcTY %= heightMax;
@@ -5163,6 +5300,10 @@ void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* cur
 	}
 	else {
 		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
+
+		if (layer->UsingCustomScanlineFunction && layer->DrawBehavior == DrawBehavior_VerticalParallax) {
+			Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
+		}
 	}
 
 	// TODO: Implement view rotation

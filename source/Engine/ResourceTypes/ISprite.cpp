@@ -292,7 +292,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 	Animations.resize(previousAnimationCount + animationCount);
 
 	// Load animations
-	int frameID = 0;
+	int frameID = FrameCount;
 	for (int a = 0; a < animationCount; a++) {
 		Animation an;
 		an.Name = reader->ReadHeaderedString();
@@ -344,6 +344,30 @@ bool ISprite::LoadAnimation(const char* filename) {
 			anfrm.Height = reader->ReadUInt16();
 			anfrm.OffsetX = reader->ReadInt16();
 			anfrm.OffsetY = reader->ReadInt16();
+
+			if (anfrm.SheetNumber < Spritesheets.size() && Spritesheets[anfrm.SheetNumber] != nullptr) {
+				Texture* sheet = Spritesheets[anfrm.SheetNumber];
+				int sheetWidth = (int)sheet->Width;
+				int sheetHeight = (int)sheet->Height;
+
+				if (anfrm.X >= sheetWidth || anfrm.Y >= sheetHeight) {
+					Log::Print(Log::LOG_WARN,
+						"Frame out of sheet bounds! (X:%d, Y:%d vs sheet size: %d, %d) in Animation '%s', Frame %d",
+						anfrm.X, anfrm.Y, sheetWidth, sheetHeight, an.Name, i);
+					anfrm.X = 0;
+					anfrm.Y = 0;
+					anfrm.Width = 0;
+					anfrm.Height = 0;
+				}
+				else {
+					if (anfrm.X + anfrm.Width > sheetWidth) {
+						anfrm.Width = sheetWidth - anfrm.X;
+					}
+					if (anfrm.Y + anfrm.Height > sheetHeight) {
+						anfrm.Height = sheetHeight - anfrm.Y;
+					}
+				}
+			}
 
 			for (int h = 0; h < hitboxCount; h++) {
 				CollisionBox box;

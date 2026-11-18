@@ -2,6 +2,7 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #if UNIX
@@ -120,13 +121,17 @@ bool Path::GetCurrentWorkingDirectory(char* out, size_t sz) {
 #endif
 }
 
-std::string Path::GetPortableModePath() {
+std::string Path::GetCurrentWorkingDirectory() {
 	char workingDir[MAX_PATH_LENGTH];
 	if (!GetCurrentWorkingDirectory(workingDir, sizeof workingDir)) {
 		return "";
 	}
 
 	return std::string(workingDir);
+}
+
+std::string Path::GetPortableModePath() {
+	return GetCurrentWorkingDirectory();
 }
 
 bool Path::AreMatching(std::string base, std::string path) {
@@ -786,11 +791,21 @@ bool Path::IsAbsolute(const char* filename) {
 }
 
 bool Path::IsValidDefaultLocation(const char* filename) {
+	if (ResourceManager::DataFolderPath[0] != '\0' &&
+		StringUtils::StartsWith(filename, ResourceManager::DataFolderPath)) {
+		// It's allowed to access anything inside of the current Resources directory.
+		return true;
+	}
+
+	// Otherwise, check if this is in the current directory.
+	// If it is, allow access.
 	if (!IsInCurrentDir(filename)) {
 		return false;
 	}
 
-	if (Path::IsAbsolute(filename)) {
+	// Lastly check if the path is absolute.
+	// If it is, disallow access.
+	if (IsAbsolute(filename)) {
 		return false;
 	}
 

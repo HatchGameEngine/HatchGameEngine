@@ -5,6 +5,7 @@ TODO
 - @subpage scripting
 - @subpage gameconfig
 - @subpage settings
+- @subpage command_line_options
 - @subpage scenes
 - @subpage entities
 - @subpage resource_management

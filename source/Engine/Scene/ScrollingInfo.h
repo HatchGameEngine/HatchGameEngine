@@ -7,6 +7,7 @@ public:
 	float ConstantParallax;
 	bool CanDeform;
 	float Position;
+	float Offset;
 };
 
 #endif /* ENGINE_SCENE_SCROLLINGINFO_H */

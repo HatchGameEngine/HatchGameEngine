@@ -18,7 +18,8 @@ enum {
 	// for x bound)
 	ACTIVE_RBOUNDS = 7, // Updates within a radius (UpdateRegionW)
 	ACTIVE_DISABLED =
-		0XFF, // For stopping entities from even checking for an update in some cases
+		0XFF, // Disables automatic bounds checking, leaving
+	// update eligibility frozen in its last known state
 };
 
 namespace CollideSide {
@@ -98,8 +99,19 @@ struct ViewableHitbox {
 	int Collision;
 	Entity* Instance;
 	CollisionBox Hitbox;
-	int X;
-	int Y;
+	float X;
+	float Y;
+};
+
+#define VIEWABLE_SENSOR_COUNT 0x80
+
+struct ViewableSensor {
+	int Type;
+	bool Collided;
+	float StartX;
+	float StartY;
+	float EndX;
+	float EndY;
 };
 
 #endif /* ENTITYTYPES_H */

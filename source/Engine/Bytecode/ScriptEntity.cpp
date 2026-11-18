@@ -369,9 +369,9 @@ void ScriptEntity::LinkFields() {
     * \type boolean
     * \default true
     * \ns Entity
-    * \desc See <ref Entity.InRange>.
+    * \desc Alias for <ref Entity.InRange>.
     */
-	LINK_INT(OnScreen);
+    Instance->InstanceObj.Fields->Put("OnScreen", INTEGER_LINK_VAL(&InRange));
 	/***
     * \field WasOffScreen
     * \type boolean
@@ -908,7 +908,7 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 		other->InitProperties();
 
 		Properties->WithAll([other](Uint32 key, Property value) -> void {
-			other->Properties->Put(key, value);
+			other->Properties->Put(key, Property::Duplicate(value));
 		});
 	}
 }
@@ -952,7 +952,7 @@ void ScriptEntity::Initialize() {
 	RunInitializer();
 }
 void ScriptEntity::Create(VMValue flag) {
-	if (!Instance) {
+	if (!Instance || !Active) {
 		return;
 	}
 
@@ -967,7 +967,7 @@ void ScriptEntity::Create() {
 	Create(INTEGER_VAL(0));
 }
 void ScriptEntity::PostCreate() {
-	if (!Instance) {
+	if (!Instance || !Active) {
 		return;
 	}
 
@@ -1045,6 +1045,10 @@ void ScriptEntity::RenderLate() {
 		(IS_NATIVE_FUNCTION(callable) && \
 			AS_NATIVE_FUNCTION(callable) == EntityImpl::VM_##fnName))
 void ScriptEntity::SetAnimation(int animation, int frame) {
+	if (!Active) {
+		return;
+	}
+
 	VMValue callable;
 	if (CAN_CALL_ENTITY_IMPL(SetAnimation)) {
 		Entity::SetAnimation(animation, frame);
@@ -1060,6 +1064,10 @@ void ScriptEntity::SetAnimation(int animation, int frame) {
 	thread->StackTop = stackTop;
 }
 void ScriptEntity::ResetAnimation(int animation, int frame) {
+	if (!Active) {
+		return;
+	}
+
 	VMValue callable;
 	if (CAN_CALL_ENTITY_IMPL(ResetAnimation)) {
 		Entity::ResetAnimation(animation, frame);
@@ -1076,6 +1084,10 @@ void ScriptEntity::ResetAnimation(int animation, int frame) {
 }
 #undef CAN_CALL_ENTITY_IMPL
 void ScriptEntity::OnAnimationFinish() {
+	if (!Active) {
+		return;
+	}
+
 	RunFunction(Hash_OnAnimationFinish);
 }
 void ScriptEntity::OnSceneLoad() {
@@ -1093,6 +1105,7 @@ void ScriptEntity::OnSceneRestart() {
 	RunFunction(Hash_OnSceneRestart);
 }
 void ScriptEntity::GameStart() {
+	// NOTE: Intentionally no Active check here
 	RunFunction(Hash_GameStart);
 }
 void ScriptEntity::Remove() {
@@ -1122,10 +1135,6 @@ void ScriptEntity::Unlink() {
 	}
 }
 void ScriptEntity::Dispose() {
-	if (Instance) {
-		Unlink();
-	}
-
 	Entity::Dispose();
 }
 bool ScriptEntity::IsValid() {

@@ -400,13 +400,6 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 void ScriptManager::DestroyObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_STRING:
-		// Remove interned string
-		if (Strings) {
-			ObjString* string = (ObjString*)object;
-			std::string_view view(string->Chars, string->Length);
-			Strings->erase(view);
-		}
-
 		StringImpl::Dispose(object);
 		break;
 	case OBJ_ARRAY:

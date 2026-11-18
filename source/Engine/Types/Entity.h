@@ -63,6 +63,9 @@ typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 #define REGISTER_ENTITY_SETTER(name, entity)
 #endif
 
+#define ALL_REGISTRY "ALL"
+#define ONSCREEN_REGISTRY "ONSCREEN"
+
 class Entity {
 public:
 	float InitialX = 0.0f;
@@ -177,6 +180,7 @@ public:
 	virtual void SetUpdatePriority(int priority);
 	virtual bool BasicCollideWithObject(Entity* other);
 	virtual bool CollideWithObject(Entity* other);
+	int CheckSolidCollision(Entity* other, int flag);
 	virtual int SolidCollideWithObject(Entity* other, int flag);
 	virtual bool TopSolidCollideWithObject(Entity* other, int flag);
 	virtual void ApplyPhysics();

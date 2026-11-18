@@ -69,7 +69,7 @@ bool INI::Save() {
 	return Save(Filename);
 }
 bool INI::IsPersisted() {
-	return File::ProtectedExists(Filename, true);
+	return FileStream::Exists(Filename, true);
 }
 void INI::SetFilename(const char* filename) {
 	Memory::Free(Filename);

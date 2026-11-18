@@ -27,6 +27,7 @@ public:
 	static bool ToDecimal(double* dst, string src);
 	static bool HexToUint32(Uint32* dst, const char* hexstr);
 	static char* GetPath(const char* filename);
+	static bool GetPathInPlace(char* filename);
 	static const char* GetFilename(const char* filename);
 	static const char* GetExtension(const char* filename);
 	static char* ReplacePathSeparators(const char* path);

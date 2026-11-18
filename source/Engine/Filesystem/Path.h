@@ -153,6 +153,7 @@ public:
 	static bool Create(const char* path);
 	static std::string Concat(std::string pathA, std::string pathB);
 	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
+	static std::string GetCurrentWorkingDirectory();
 	static bool IsInDir(const char* dirPath, const char* path);
 	static bool IsInCurrentDir(const char* path);
 	static bool HasRelativeComponents(const char* path);

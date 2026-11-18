@@ -72,6 +72,7 @@ private:
 	static void MainLoopCallback(void* p);
 	static void TakeScreenshotCallback(OperationResult result);
 	static void DrawPerformance();
+	static void DrawPaletteViewer();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
@@ -92,6 +93,13 @@ private:
 	static void RunDevMenu();
 	static void DevMenu_DrawMainMenu();
 	static void DevMenu_DrawTitleBar();
+	static void DevMenu_ScrollToSelection();
+	static bool DevMenu_IsActionPressed(const char* action);
+	static bool DevMenu_IsActionHeld(const char* action);
+	static bool DevMenu_IsActionRepeated(const char* action);
+	static bool DevMenu_IsConfirmPressed();
+	static void DevMenu_UpdateTimer();
+	static bool DevMenu_MoveSelection(int& selection, int count);
 	static void DevMenu_MainMenu();
 	static void DevMenu_CategorySelectMenu();
 	static void DevMenu_OpenResourcesBrowser();
@@ -122,6 +130,7 @@ public:
 	static int WindowWidth;
 	static int WindowHeight;
 	static int WindowScale;
+	static bool WindowResizable;
 	static bool WindowFullscreen;
 	static bool WindowBorderless;
 	static int DefaultMonitor;
@@ -144,6 +153,7 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
+	static bool DevMode;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 	static bool DisableDefaultActions;
@@ -155,6 +165,12 @@ public:
 	static std::vector<PerformanceMeasure*> AllMetrics;
 
 	static void Init(int argc, char* args[]);
+	static bool HasCmdLineArg(std::string match);
+	static int GetCmdLineArgIndex(std::string match);
+	static std::string GetCmdLineOption(std::string match);
+	static std::string GetCmdLineOption(size_t index);
+	static void ParseCommandLineArgs();
+	static size_t ProcessCommandLineOption(std::string arg, size_t i);
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
@@ -184,10 +200,11 @@ public:
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
-	static bool IsWindowResizeable();
+	static bool IsWindowResizable();
 	static void SetWindowSize(int window_w, int window_h);
 	static bool GetWindowFullscreen();
 	static void SetWindowFullscreen(bool isFullscreen);
+	static void SetWindowResizable(bool isResizable);
 	static void SetWindowBorderless(bool isBorderless);
 	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
@@ -196,6 +213,7 @@ public:
 	static void Cleanup();
 	static void TerminateScripting();
 	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
+	static void DevNavigateSceneList(bool previous);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();

@@ -18,6 +18,7 @@ public:
 	size_t TileCount = 0;
 	unsigned PaletteID = 0;
 	std::map<int, TileAnimator> AnimatorMap;
+	std::vector<HashMap<Property>*> PropertiesPerTile;
 
 	Tileset(ISprite* sprite,
 		int tileWidth,
@@ -37,6 +38,7 @@ public:
 		ISprite* animSprite,
 		int animID);
 	TileAnimator* GetTileAnimSequence(int tileID);
+	void Dispose();
 };
 
 #endif /* ENGINE_TYPES_TILESET_H */

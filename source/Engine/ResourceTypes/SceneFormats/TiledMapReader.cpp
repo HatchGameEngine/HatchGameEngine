@@ -169,6 +169,20 @@ size_t base64_decode_block(const char* code_in, const int length_in, char* plain
 }
 
 Property TiledMapReader::ParseProperty(XMLNode* property) {
+	Token property_type = property->attributes.Get("type");
+	if (XMLParser::MatchToken(property_type, "list")) {
+		PropertyArray array;
+		PropertyArray::Init(&array);
+
+		for (size_t pr = 0; pr < property->children.size(); pr++) {
+			if (XMLParser::MatchToken(property->children[pr]->name, "item")) {
+				AddPropertyToArray(&array, ParseProperty(property->children[pr]));
+			}
+		}
+
+		return Property::MakeArray(array);
+	}
+
 	// If the property has no value (for example, a multiline
 	// string), the value is assumed to be in the content
 	if (!property->attributes.Exists("value")) {
@@ -181,7 +195,6 @@ Property TiledMapReader::ParseProperty(XMLNode* property) {
 		return Property::MakeString(text->name.Start, (int)text->name.Length);
 	}
 
-	Token property_type = property->attributes.Get("type");
 	Token property_value = property->attributes.Get("value");
 
 	float fx, fy;
@@ -294,7 +307,7 @@ bool TiledMapReader::GetRelativeResourcePath(Token source, const char* parentFol
 
 	// If it starts with "../"
 	if (StringUtils::StartsWith(resourcePath, "../")) {
-		if (ResourceManager::UsingDataFolder) {
+		if (Application::DevMode) {
 			Log::Print(Log::LOG_WARN, "Path \"%s\" is outside of Resources.", resourcePath);
 		}
 		return false;
@@ -413,16 +426,56 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 		return;
 	}
 
+	int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id"));
+	if (tileID < 0 || (size_t)tileID >= tilesetPtr->TileCount) {
+		return;
+	}
+
+	int firstgid = tilesetPtr->FirstGlobalTileID;
+	int globalTileID = tileID + firstgid;
+	if (globalTileID < 0 || (size_t)globalTileID >= Scene::TileSpriteInfos.size()) {
+		return;
+	}
+
+	if (node->attributes.Exists("type")) {
+		Token name = node->attributes.Get("type");
+		SetTileProperty(tilesetPtr, tileID, "Class", Property::MakeString(name.Start, (int)name.Length));
+	}
+
+	if (node->attributes.Exists("probability")) {
+		float val = XMLParser::TokenToNumber(node->attributes.Get("probability"));
+		SetTileProperty(tilesetPtr, tileID, "Probability", Property::MakeDecimal(val));
+	}
+
 	for (size_t e = 0; e < node->children.size(); e++) {
-		if (XMLParser::MatchToken(node->children[e]->name, "animation")) {
-			int firstgid = tilesetPtr->FirstGlobalTileID;
-			int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id")) +
-				firstgid;
-			if ((size_t)tileID < Scene::TileSpriteInfos.size()) {
-				ParseTileAnimation(tileID, firstgid, tilesetPtr, node->children[e]);
+		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
+			XMLNode* properties = node->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (tilesetPtr->PropertiesPerTile[tileID] == nullptr) {
+					tilesetPtr->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], tilesetPtr->PropertiesPerTile[tileID]);
 			}
 		}
+		else if (XMLParser::MatchToken(node->children[e]->name, "animation")) {
+			ParseTileAnimation(globalTileID, firstgid, tilesetPtr, node->children[e]);
+		}
 	}
+}
+
+void TiledMapReader::SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value) {
+	if (tileset->PropertiesPerTile[tileID] == nullptr) {
+		tileset->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+	}
+
+	tileset->PropertiesPerTile[tileID]->Put(name, value);
 }
 
 void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
@@ -430,6 +483,8 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 
 	XMLNode* tilesetXML = NULL;
 	XMLNode* tilesetNode = NULL;
+
+	char tilesetParentFolder[MAX_RESOURCE_PATH_LENGTH];
 
 	// If this is an external tileset, read the XML from that file.
 	if (tileset->attributes.Exists("source")) {
@@ -440,6 +495,10 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 			return;
 		}
 
+		// Use the external tileset's location as the parent path for ParseTilesetImage
+		memcpy(tilesetParentFolder, resourcePath, MAX_RESOURCE_PATH_LENGTH);
+		StringUtils::GetPathInPlace(tilesetParentFolder);
+
 		tilesetXML = XMLParser::ParseFromResource(resourcePath);
 		if (!tilesetXML) {
 			return;
@@ -448,6 +507,9 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 	else {
 		tilesetNode = tileset;
+
+		// Use the .tmx's location as the parent path for ParseTilesetImage
+		StringUtils::Copy(tilesetParentFolder, parentFolder, sizeof(tilesetParentFolder));
 	}
 
 	Tileset* tilesetPtr = nullptr;
@@ -455,7 +517,7 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	for (size_t e = 0; e < tilesetNode->children.size(); e++) {
 		if (XMLParser::MatchToken(tilesetNode->children[e]->name, "image")) {
 			tilesetPtr =
-				ParseTilesetImage(tilesetNode->children[e], firstgid, parentFolder);
+				ParseTilesetImage(tilesetNode->children[e], firstgid, tilesetParentFolder);
 		}
 		else if (XMLParser::MatchToken(tilesetNode->children[e]->name, "tile")) {
 			ParseTile(tilesetPtr, tilesetNode->children[e]);
@@ -740,6 +802,15 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 		offsetY += group->OffsetY;
 	}
 
+	// Entities in the "Classes" group are not instantiated, but are used to load classes into the scene
+	bool isClassRegistry = false;
+	if (objectgroup->attributes.Exists("name")) {
+		Token groupName = objectgroup->attributes.Get("name");
+		if (XMLParser::MatchToken(groupName, "Classes")) {
+			isClassRegistry = true;
+		}
+	}
+
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
 		if (!XMLParser::MatchToken(object->name, "object")) {
@@ -785,6 +856,10 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 				slotID,
 				object_x,
 				object_y);
+			continue;
+		}
+
+		if (isClassRegistry) {
 			continue;
 		}
 
@@ -842,7 +917,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 			if (XMLParser::MatchToken(child->name, "properties")) {
 				for (size_t pr = 0; pr < child->children.size(); pr++) {
 					if (XMLParser::MatchToken(
-						    child->children[pr]->name, "property")) {
+						child->children[pr]->name, "property")) {
 						TiledMapReader::ParsePropertyNode(
 							child->children[pr], obj->Properties);
 					}
