@@ -865,7 +865,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (spriteIndex < 0 || spriteIndex >= (int)Scene::SpriteList.size() || !animator) {
+	if (spriteIndex < 0 || spriteIndex >= (int)Scene::SpriteList.size() || !Scene::SpriteList[spriteIndex]) {
 		if (animator) {
 			animator->Frames.clear();
 			animator->Sprite = -1;
