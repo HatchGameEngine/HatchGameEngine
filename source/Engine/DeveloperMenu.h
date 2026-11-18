@@ -37,6 +37,7 @@ struct DeveloperMenu {
 	bool ResourcesBrowserAvailable;
 	int SceneBrowserMode;
 	bool ModsChanged;
+	bool ReorderingMod;
 };
 
 #endif /* ENGINE_DEVELOPERMENU_H */

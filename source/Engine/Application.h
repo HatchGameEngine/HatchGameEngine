@@ -86,6 +86,8 @@ private:
 	static int HandleAppEvents(void* data, SDL_Event* event);
 	static bool IsResourcesBrowserAvailable();
 	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
+	static float MeasureDevString(const char* string);
+	static std::string FitDevString(std::string string, float maxWidth);
 	static void OpenDevMenu();
 	static void CloseDevMenu();
 	static void SetBlendColor(int color);

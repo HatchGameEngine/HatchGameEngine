@@ -37,7 +37,6 @@ public:
 	static bool ScanModFolder(ModInfo* info);
 	static void OpenPacks(ModInfo* info);
 	static void ClosePacks(ModInfo* info);
-	static void SortMods();
 	static void LoadModSettings();
 	static void SaveMods();
 	static void UnloadMods();

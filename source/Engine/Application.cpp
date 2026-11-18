@@ -3026,6 +3026,37 @@ bool Application::IsResourcesBrowserAvailable() {
 	return mainVfs->TransformFilename(testPath.c_str()) == testPath;
 }
 
+float Application::MeasureDevString(const char* string) {
+	float scaleX = (float)DevMenu.CurrentWindowWidth / Application::WindowWidth;
+
+	TextDrawParams textParams;
+	textParams.FontSize = 15 * scaleX;
+	textParams.Ascent = DefaultFont->Ascent;
+	textParams.Descent = DefaultFont->Descent;
+	textParams.Leading = DefaultFont->Leading;
+
+	float maxW = 0.0, maxH = 0.0;
+	Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
+	return maxW / scaleX;
+}
+
+std::string Application::FitDevString(std::string string, float maxWidth) {
+	if (MeasureDevString(string.c_str()) <= maxWidth) {
+		return string;
+	}
+
+	while (!string.empty() && MeasureDevString((string + "...").c_str()) > maxWidth) {
+		while (!string.empty() && ((unsigned char)string.back() & 0xC0) == 0x80) {
+			string.pop_back();
+		}
+		if (!string.empty()) {
+			string.pop_back();
+		}
+	}
+
+	return string + "...";
+}
+
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
 	float scaleX = (float)DevMenu.CurrentWindowWidth / Application::WindowWidth;
 	float scaleY = (float)DevMenu.CurrentWindowHeight / Application::WindowHeight;
@@ -3109,6 +3140,7 @@ void Application::OpenDevMenu() {
 	DevMenu.SubSelection = 0;
 	DevMenu.SubScrollPos = 0;
 	DevMenu.Timer = 0;
+	DevMenu.ReorderingMod = false;
 
 	DevMenu.WindowScale = Application::WindowScale;
 	SDL_GetWindowSize(
@@ -3292,6 +3324,7 @@ void Application::DevMenu_MainMenu() {
 			ModLoader::LoadMods(true);
 			DevMenu.State = Application::DevMenu_ModsMenu;
 			DevMenu.SubScrollPos = 0;
+			DevMenu.ReorderingMod = false;
 			break;
 		case DEVMENU_EXIT:
 			Running = false;
@@ -3850,7 +3883,7 @@ void Application::DevMenu_AudioMenu() {
 void Application::DevMenu_ModsMenu() {
 	DevMenu_DrawMainMenu();
 
-	DrawDevString("Manage mods...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	DrawDevString(DevMenu.ReorderingMod ? "Reordering mod..." : "Manage mods...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	int modCount = (int)ModLoader::Mods.size();
 	if (!modCount) {
@@ -3868,22 +3901,56 @@ void Application::DevMenu_ModsMenu() {
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < ModLoader::Mods.size(); i++, y += 14) {
 		ModInfo& mod = ModLoader::Mods[DevMenu.SubScrollPos + i];
 		bool isSelected = (DevMenu.SubSelection - DevMenu.SubScrollPos) == i;
-		DrawDevString(mod.Name.c_str(), 160, y, ALIGN_LEFT, isSelected);
-		DrawDevString(mod.Active ? "Y" : "N", Application::WindowWidth - 16, y, ALIGN_RIGHT, isSelected);
+
+		int statusX = Application::WindowWidth - 28;
+
+		float nameWidth = (statusX - 14) - MeasureDevString("<") / 2 - 8 - 160;
+		std::string name = DevMenu.ReorderingMod && isSelected ? "> " + mod.Name : mod.Name;
+		DrawDevString(FitDevString(name, nameWidth).c_str(), 160, y, ALIGN_LEFT, isSelected);
+
+		DrawDevString(mod.Active ? "Y" : "N", statusX, y, ALIGN_CENTER, isSelected);
+		if (isSelected) {
+			DrawDevString("<", statusX - 14, y, ALIGN_CENTER, isSelected);
+			DrawDevString(">", statusX + 14, y, ALIGN_CENTER, isSelected);
+		}
 	}
 
-	int preselection = DevMenu.SubSelection;
+	// A/Enter pick up the selected mod, Up/Down move it, and A/Enter or B put it down
+	if (DevMenu.ReorderingMod) {
+		int direction = 0;
+		if (DevMenu_IsActionRepeated("Up")) {
+			direction = -1;
+		}
+		else if (DevMenu_IsActionRepeated("Down")) {
+			direction = 1;
+		}
+
+		int target = DevMenu.SubSelection + direction;
+		if (direction && target >= 0 && target < modCount) {
+			std::swap(ModLoader::Mods[DevMenu.SubSelection], ModLoader::Mods[target]);
+			DevMenu.SubSelection = target;
+			DevMenu.ModsChanged = true;
+			DevMenu.Timer = 8 * FrameTimeDesired;
+			DevMenu_ScrollToSelection();
+		}
+		DevMenu_UpdateTimer();
+
+		if (DevMenu_IsConfirmPressed() || DevMenu_IsActionPressed("B")) {
+			DevMenu.ReorderingMod = false;
+		}
+		return;
+	}
+
 	if (DevMenu_MoveSelection(DevMenu.SubSelection, modCount)) {
 		DevMenu_ScrollToSelection();
 	}
 
-	if (DevMenu_IsConfirmPressed() || DevMenu_IsActionPressed("Left") || DevMenu_IsActionPressed("Right")) {
+	if (DevMenu_IsConfirmPressed()) {
+		DevMenu.ReorderingMod = true;
+	}
+	else if (DevMenu_IsActionPressed("Left") || DevMenu_IsActionPressed("Right")) {
 		ModInfo& mod = ModLoader::Mods[DevMenu.SubSelection];
 		mod.Active = !mod.Active;
-		DevMenu.ModsChanged = true;
-	}
-	else if (DevMenu_IsActionHeld("C") && preselection != DevMenu.SubSelection) {
-		std::swap(ModLoader::Mods[preselection], ModLoader::Mods[DevMenu.SubSelection]);
 		DevMenu.ModsChanged = true;
 	}
 	else if (DevMenu_IsActionPressed("B")) {

@@ -134,7 +134,6 @@ void ModLoader::LoadMods(bool newOnly) {
 		}
 	}
 
-	SortMods();
 	LoadModSettings();
 }
 
@@ -254,20 +253,15 @@ void ModLoader::ClosePacks(ModInfo* info) {
 	info->Packs.clear();
 }
 
-void ModLoader::SortMods() {
-	std::stable_sort(Mods.begin(), Mods.end(), [](const ModInfo& a, const ModInfo& b) { return a.Active && !b.Active; });
-}
 
 void ModLoader::LoadModSettings() {
 	CustomUserFileDir = "";
 
-	int start = (int)Mods.size() - 1;
-	while (start != -1 && !Mods[start].Active) {
-		start--;
-	}
-
-	for (int i = start; i >= 0; i--) {
+	for (int i = (int)Mods.size() - 1; i >= 0; i--) {
 		ModInfo* mod = &Mods[i];
+		if (!mod->Active) {
+			continue;
+		}
 
 		if (mod->RedirectSave) {
 			CustomUserFileDir = ModsPath + "/" + mod->FolderName + "/";
@@ -276,8 +270,6 @@ void ModLoader::LoadModSettings() {
 }
 
 void ModLoader::SaveMods() {
-	SortMods();
-
 	Log::Print(Log::LOG_INFO, "[MOD] Saving mods...");
 
 	if (!Directory::Exists(ModsPath.c_str())) {
