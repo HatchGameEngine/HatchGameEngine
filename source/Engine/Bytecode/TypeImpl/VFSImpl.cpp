@@ -31,6 +31,7 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetMountNameByIndex", VM_GetMountNameByIndex);
 	ScriptManager::DefineNative(Class, "GetMountPoint", VM_GetMountPoint);
 	ScriptManager::DefineNative(Class, "GetMountIndex", VM_GetMountIndex);
+	ScriptManager::DefineNative(Class, "EnumerateFiles", VM_EnumerateFiles);
 	ScriptManager::DefineNative(Class, "FileExists", VM_FileExists);
 	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
 	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
@@ -296,8 +297,8 @@ VMValue VFSImpl::VM_GetMountPoint(int argCount, VMValue* args, Uint32 threadID) 
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
 	CHECK_EXISTS(vfs);
 
-	const char* mountPoint = vfs->GetMountPoint(name);
-	if (mountPoint == nullptr) {
+	std::string mountPoint = vfs->GetMountPoint(name);
+	if (mountPoint.size() == 0) {
 		return NULL_VAL;
 	}
 
@@ -326,6 +327,89 @@ VMValue VFSImpl::VM_GetMountIndex(int argCount, VMValue* args, Uint32 threadID) 
 	CHECK_EXISTS(vfs);
 
 	return INTEGER_VAL(vfs->GetMountIndex(name));
+}
+/***
+ * \method EnumerateFiles
+ * \desc Gets the paths of all the files.
+ * \paramOpt path (string): The path of the folder to find files in. (default: `/`)
+ * \paramOpt pattern (string): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file) (default: `*`)
+ * \paramOpt allDirs (boolean): Whether to search into all folders in the directory. (default: `true`)
+ * \return array Returns an array containing the filepaths as strings.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_EnumerateFiles(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* directory = GET_ARG_OPT(1, GetString, nullptr);
+	char* pattern = GET_ARG_OPT(2, GetString, nullptr);
+	int allDirs = GET_ARG_OPT(3, GetInteger, true);
+
+	if (directory && (directory[0] == '\0' || strcmp(directory, "/") == 0)) {
+		directory = nullptr;
+	}
+	if (pattern && strcmp(pattern, "*") == 0) {
+		pattern = nullptr;
+	}
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	if (!ScriptManager::Lock()) {
+		return NULL_VAL;
+	}
+
+	ObjArray* array = NewArray();
+
+	VFSEnumerationOptions options;
+	options.OnlyCurrentDirectory = !allDirs;
+
+	for (size_t i = 0, sz = vfs->GetMountCount(); i < sz; i++) {
+		VFSProvider* provider = vfs->Get(i);
+
+		const char* realDir = nullptr;
+
+		// Get correct path
+		std::string mountPoint = vfs->GetMountPoint(i);
+
+		if (directory != nullptr) {
+			size_t mountPointLength = mountPoint.size();
+			if (mountPointLength == 0) {
+				realDir = directory;
+			}
+			else if (StringUtils::StartsWith(directory, mountPoint.c_str())) {
+				realDir = directory + mountPointLength;
+			}
+			else {
+				continue;
+			}
+		}
+
+		VFSEnumeration enumeration = provider->EnumerateFiles(realDir, options);
+		VFSEnumerationResult result = enumeration.Result;
+		if (result != VFSEnumerationResult::SUCCESS) {
+			continue;
+		}
+
+		for (size_t j = 0; j < enumeration.Entries.size(); j++) {
+			std::string entryName = enumeration.Entries[j];
+
+			if (mountPoint.size() > 0) {
+				entryName = mountPoint + entryName;
+			}
+
+			if (pattern && !StringUtils::WildcardMatch(entryName.c_str(), pattern)) {
+				continue;
+			}
+
+			ObjString* path = CopyString(entryName);
+			array->Values->push_back(OBJECT_VAL(path));
+		}
+	}
+
+	ScriptManager::Unlock();
+
+	return OBJECT_VAL(array);
 }
 /***
  * \method FileExists

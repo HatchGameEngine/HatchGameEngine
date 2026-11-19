@@ -47,29 +47,19 @@ const char* VirtualFileSystem::GetMountName(size_t index) {
 	return nullptr;
 }
 
-const char* VirtualFileSystem::GetMountPoint(const char* name) {
+std::string VirtualFileSystem::GetMountPoint(const char* name) {
 	int index = GetMountIndex(name);
 	if (index != -1) {
 		VFSMount& mount = LoadedVFS[index];
-		std::string mountPoint = mount.MountPoint;
-		if (mountPoint.size() == 0) {
-			return nullptr;
-		}
-
-		return mountPoint.c_str();
+		return mount.MountPoint;
 	}
 
 	return nullptr;
 }
-const char* VirtualFileSystem::GetMountPoint(size_t index) {
+std::string VirtualFileSystem::GetMountPoint(size_t index) {
 	if (index >= 0 && index < LoadedVFS.size()) {
 		VFSMount& mount = LoadedVFS[index];
-		std::string mountPoint = mount.MountPoint;
-		if (mountPoint.size() == 0) {
-			return nullptr;
-		}
-
-		return mountPoint.c_str();
+		return mount.MountPoint;
 	}
 
 	return nullptr;

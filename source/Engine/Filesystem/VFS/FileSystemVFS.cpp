@@ -318,7 +318,7 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path, VFSEnumerationOpt
 	Directory::SortEntries(&results);
 
 	for (size_t i = 0; i < results.size(); i++) {
-		std::string filename = Path::ToString(results[i]);
+		std::string filename = Path::Normalize(Path::ToString(results[i]));
 		const char* relPath = filename.c_str() + fullPathLength;
 
 		enumeration.Entries.push_back(std::string(relPath));

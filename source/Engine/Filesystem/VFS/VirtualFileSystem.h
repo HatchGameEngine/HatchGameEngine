@@ -41,8 +41,8 @@ public:
 	VFSProvider* Get(size_t index);
 	size_t GetMountCount();
 	const char* GetMountName(size_t index);
-	const char* GetMountPoint(const char* name);
-	const char* GetMountPoint(size_t index);
+	std::string GetMountPoint(const char* name);
+	std::string GetMountPoint(size_t index);
 	VFSMountStatus Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,
