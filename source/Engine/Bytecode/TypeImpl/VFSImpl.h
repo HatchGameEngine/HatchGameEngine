@@ -3,6 +3,7 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
 #define CLASS_VFS "VirtualFileSystem"
 
@@ -10,6 +11,11 @@
 #define AS_VFS(value) ((ObjInstance*)AS_OBJECT(value))
 
 class VFSImpl {
+private:
+	static void EnumerateFiles(VFSProvider* vfs, std::string mountPoint,
+		const char* directory, const char* pattern, VFSEnumerationOptions& options,
+		ObjArray* array);
+
 public:
 	static ObjClass* Class;
 
@@ -30,6 +36,7 @@ public:
 	static VMValue VM_GetMountPoint(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetMountIndex(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_EnumerateFiles(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_EnumerateFilesInMount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_FileExists(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID);
