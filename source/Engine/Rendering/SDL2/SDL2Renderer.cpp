@@ -210,7 +210,7 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 
 	return true;
 }
-Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* SDL2Renderer::CreateTexture(int format, int access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
 	if (!SDL2Renderer::InitializeTexture(texture)) {
@@ -225,8 +225,8 @@ Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width,
 	return texture;
 }
 bool SDL2Renderer::ReinitializeTexture(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	if (texture->DriverData != nullptr) {
@@ -284,8 +284,6 @@ bool SDL2Renderer::SetRenderTarget(Texture* texture) {
 	return SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData) == 0;
 }
 void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
-	Viewport* vp = &Graphics::CurrentViewport;
-
 	SDL_Rect r = {0, 0, width, height};
 
 	int format = 0;

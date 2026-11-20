@@ -13,7 +13,7 @@ public:
 	vector<Uint8*> Samples;
 	size_t SampleSize;
 	size_t SampleIndex = 0;
-	int TotalPossibleSamples;
+	size_t TotalPossibleSamples;
 	Uint8* SampleBuffer = NULL;
 	int LoopPoint = -1;
 

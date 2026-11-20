@@ -263,7 +263,7 @@ void BytecodeDebugger::DebugChunk(Chunk* chunk, const char* name, int minArity, 
 		DEBUGGER_LOG("== %s (argCount: %d) ==\n", name, maxArity);
 	}
 	DEBUGGER_LOG("byte   ln\n");
-	for (int offset = 0; offset < chunk->Count;) {
+	for (size_t offset = 0; offset < chunk->Count;) {
 		offset = DebugInstruction(chunk, offset);
 	}
 

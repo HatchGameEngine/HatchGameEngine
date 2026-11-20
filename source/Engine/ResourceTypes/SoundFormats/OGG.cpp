@@ -296,14 +296,16 @@ int OGG::LoadSamples(size_t count) {
 int OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 #ifdef USING_LIBOGG
 	int read;
-	Uint32 total = 0, bytesForSample = 0;
+	Uint32 total = 0;
 
 	if (count > TotalPossibleSamples - Samples.size()) {
 		count = TotalPossibleSamples - Samples.size();
 	}
 
 	size_t remainingBytes = count * SampleSize;
+#ifndef OGG_USE_TREMOR
 	size_t sampleSizeForOneChannel = SampleSize / InputFormat.channels;
+#endif
 
 	VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;
 
@@ -359,14 +361,13 @@ int OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 	return total;
 #else
 	int read;
-	Uint32 total = 0, bytesForSample = 0;
+	Uint32 total = 0;
 
 	if (count > TotalPossibleSamples - Samples.size()) {
 		count = TotalPossibleSamples - Samples.size();
 	}
 
 	size_t remainingBytes = count * SampleSize;
-	size_t sampleSizeForOneChannel = SampleSize / InputFormat.channels;
 
 	VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;
 

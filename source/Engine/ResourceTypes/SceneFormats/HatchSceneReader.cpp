@@ -457,7 +457,6 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		}
 
 		// Get the correct object list from the class name
-		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
 		if (!filter) {
@@ -577,8 +576,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 						"Out of memory in HatchSceneReader::ReadEntities!");
 				}
 
-				for (size_t i = 0; i < strLength; i++) {
-					strVar[i] = r->ReadInt16();
+				for (size_t k = 0; k < strLength; k++) {
+					strVar[k] = r->ReadInt16();
 				}
 
 				val = Property::MakeString(strVar, strLength);

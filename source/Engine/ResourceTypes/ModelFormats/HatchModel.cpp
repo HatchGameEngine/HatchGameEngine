@@ -207,7 +207,7 @@ void HatchModel::ReadColorStore(Stream* stream) {
 }
 
 Vector3 HatchModel::GetStoredVertex(Uint32 idx) {
-	if (idx < 0 || idx >= NumVertexStore) {
+	if (idx >= NumVertexStore) {
 		return {};
 	}
 
@@ -215,7 +215,7 @@ Vector3 HatchModel::GetStoredVertex(Uint32 idx) {
 }
 
 Vector3 HatchModel::GetStoredNormal(Uint32 idx) {
-	if (idx < 0 || idx >= NumNormalStore) {
+	if (idx >= NumNormalStore) {
 		return {};
 	}
 
@@ -223,7 +223,7 @@ Vector3 HatchModel::GetStoredNormal(Uint32 idx) {
 }
 
 Vector2 HatchModel::GetStoredTexCoord(Uint32 idx) {
-	if (idx < 0 || idx >= NumTexCoordStore) {
+	if (idx >= NumTexCoordStore) {
 		return {};
 	}
 
@@ -231,7 +231,7 @@ Vector2 HatchModel::GetStoredTexCoord(Uint32 idx) {
 }
 
 Uint32 HatchModel::GetStoredColor(Uint32 idx) {
-	if (idx < 0 || idx >= NumColorStore) {
+	if (idx >= NumColorStore) {
 		return 0;
 	}
 

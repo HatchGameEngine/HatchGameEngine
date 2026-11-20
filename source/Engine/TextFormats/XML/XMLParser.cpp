@@ -312,13 +312,6 @@ void SynchronizeToken() {
 	parser.PanicMode = false;
 
 	while (PeekToken().Type != TOKEN_EOF) {
-		// if (PrevToken().Type == TOKEN_SEMICOLON) return;
-
-		switch (PeekToken().Type) {
-		default:
-			break;
-		}
-
 		AdvanceToken();
 	}
 }

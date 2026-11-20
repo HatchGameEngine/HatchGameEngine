@@ -204,7 +204,7 @@ void ScriptManager::Dispose() {
 
 	if (ThreadCount) {
 #ifdef VM_DEBUG
-		for (int i = 0; i < ThreadCount; i++) {
+		for (Uint32 i = 0; i < ThreadCount; i++) {
 			Threads[i].DisposeBreakpoints();
 		}
 #endif
@@ -311,8 +311,8 @@ void ScriptManager::RemoveTemporaryModules() {
 		ObjModule* module = TempModuleList[i];
 
 #ifdef VM_DEBUG
-		for (int i = 0; i < ThreadCount; i++) {
-			Threads[i].RemoveBreakpointsForModule(module);
+		for (Uint32 j = 0; j < ThreadCount; j++) {
+			Threads[j].RemoveBreakpointsForModule(module);
 		}
 #endif
 
@@ -869,7 +869,7 @@ ObjFunction* ScriptManager::GetFunctionAtScriptLine(ObjModule* module, int lineN
 			continue;
 		}
 
-		for (int offset = 0; offset < chunk->Count;) {
+		for (size_t offset = 0; offset < chunk->Count;) {
 			int line = chunk->Lines[offset] & 0xFFFF;
 			if (line == lineNum) {
 				return function;
@@ -1027,7 +1027,7 @@ char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
 		sourceFile = SourceFiles->Get(sourceFilename);
 	}
 
-	if (!sourceFile->Exists || line < 1 || line > sourceFile->Lines.size()) {
+	if (!sourceFile->Exists || line < 1 || (size_t)line > sourceFile->Lines.size()) {
 		return nullptr;
 	}
 

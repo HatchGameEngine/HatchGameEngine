@@ -178,10 +178,10 @@ bool SourceFileMap::CheckForUpdate() {
 		anyChanges = true;
 
 		SourceFileMap::Checksums->Clear();
-		SourceFileMap::ClassMap->WithAll([](Uint32, vector<Uint32>* list) -> void {
-			list->clear();
-			list->shrink_to_fit();
-			delete list;
+		SourceFileMap::ClassMap->WithAll([](Uint32, vector<Uint32>* classList) -> void {
+			classList->clear();
+			classList->shrink_to_fit();
+			delete classList;
 		});
 		SourceFileMap::ClassMap->Clear();
 	}
@@ -284,10 +284,10 @@ bool SourceFileMap::CheckForUpdate() {
 				}
 
 				if (didCompile) {
-					Stream* stream = mainVfs->OpenWriteStream(outFile);
-					if (stream) {
-						stream->WriteBytes(memStream->pointer_start, memStream->Position());
-						mainVfs->CloseStream(stream);
+					Stream* outStream = mainVfs->OpenWriteStream(outFile);
+					if (outStream) {
+						outStream->WriteBytes(memStream->pointer_start, memStream->Position());
+						mainVfs->CloseStream(outStream);
 					}
 					else {
 						Log::Print(Log::LOG_ERROR, "Couldn't open \"%s\"!", outFile);
@@ -342,11 +342,11 @@ bool SourceFileMap::CheckForUpdate() {
 
 			stream->WriteUInt32((Uint32)SourceFileMap::ClassMap->Count()); // Count
 			SourceFileMap::ClassMap->WithAll(
-				[stream](Uint32 hash, vector<Uint32>* list) -> void {
+				[stream](Uint32 hash, vector<Uint32>* classList) -> void {
 					stream->WriteUInt32(hash); // ClassHash
-					stream->WriteUInt32((Uint32)list->size()); // Count
-					for (size_t fn = 0; fn < list->size(); fn++) {
-						stream->WriteUInt32((*list)[fn]);
+					stream->WriteUInt32((Uint32)classList->size()); // Count
+					for (size_t fn = 0; fn < classList->size(); fn++) {
+						stream->WriteUInt32((*classList)[fn]);
 					}
 				});
 

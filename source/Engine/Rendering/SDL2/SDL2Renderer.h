@@ -21,9 +21,9 @@ public:
 	static void SetVSync(bool enabled);
 	static void SetGraphicsFunctions();
 	static void Dispose();
-	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static Texture* CreateTexture(int format, int access, Uint32 width, Uint32 height);
 	static bool
-	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	ReinitializeTexture(Texture*, int format, int access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateTextureYUV(Texture* texture,

@@ -294,13 +294,13 @@ static Uint32* GetPaletteFromArray(ObjArray* paletteArray, unsigned& numPaletteC
 			textureFormat = Graphics::TextureFormat; \
 		} \
 		else if (textureFormat < 0 || textureFormat > TextureFormat_INDEXED) { \
-			char errorString[128]; \
-			snprintf(errorString, \
-				sizeof errorString, \
+			char validateFmtError[128]; \
+			snprintf(validateFmtError, \
+				sizeof validateFmtError, \
 				"Texture format %d out of range. (0 - %d)", \
 				textureFormat, \
 				TextureFormat_INDEXED); \
-			throw ScriptException(errorString); \
+			throw ScriptException(validateFmtError); \
 		} \
 	}
 
@@ -771,7 +771,7 @@ VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Cannot directly get a pixel of a draw target texture!");
 	}
 
-	if (x < 0 || x >= texture->Width || y < 0 || y >= texture->Height) {
+	if (x < 0 || x >= (int)texture->Width || y < 0 || y >= (int)texture->Height) {
 		char errorString[128];
 
 		snprintf(errorString,
@@ -848,7 +848,7 @@ VMValue TextureImpl::VM_GetPixelData(int argCount, VMValue* args, Uint32 threadI
 		return OBJECT_VAL(NewArray());
 	}
 
-	if (x1 < 0 || x2 > texture->Width || y1 < 0 || y2 > texture->Height) {
+	if (x1 < 0 || x2 > (int)texture->Width || y1 < 0 || y2 > (int)texture->Height) {
 		char errorString[128];
 
 		snprintf(errorString,
@@ -906,7 +906,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Cannot directly change a pixel of a draw target texture!");
 	}
 
-	if (x < 0 || x >= texture->Width || y < 0 || y >= texture->Height) {
+	if (x < 0 || x >= (int)texture->Width || y < 0 || y >= (int)texture->Height) {
 		snprintf(errorString,
 			sizeof errorString,
 			"Invalid coordinates! (X: %d, Y: %d, Width: %d, Height: %d)",

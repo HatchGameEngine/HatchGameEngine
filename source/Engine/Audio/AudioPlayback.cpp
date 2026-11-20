@@ -105,7 +105,6 @@ int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to)
 		Format.format == AudioManager::DeviceFormat.format &&
 		Format.channels == AudioManager::DeviceFormat.channels) {
 		int totalObtained = 0;
-		int num_samples = 0;
 
 		// Fill 'samples' worth of sample data.
 		while (totalObtained < samples) {

@@ -80,11 +80,11 @@ public:
 	static Uint16 EmptyTile;
 	static vector<SceneLayer*> Layers;
 	static bool AnyLayerTileChange;
-	static int TileCount;
+	static size_t TileCount;
 	static int TileWidth;
 	static int TileHeight;
-	static int BaseTileCount;
-	static int BaseTilesetCount;
+	static size_t BaseTileCount;
+	static size_t BaseTilesetCount;
 	static bool TileCfgLoaded;
 	static vector<TileConfig*> TileCfg;
 	static vector<ResourceType*> SpriteList;

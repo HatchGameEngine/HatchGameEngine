@@ -6,15 +6,15 @@ class Texture;
 
 class Texture {
 public:
-	Uint32 Format;
-	Uint32 Access;
+	int Format;
+	int Access;
 	Uint32 Width;
 	Uint32 Height;
 	void* Pixels;
 	size_t Pitch;
 	size_t BytesPerPixel;
 	Uint32 ID;
-	Uint32 DriverFormat;
+	int DriverFormat;
 	void* DriverPixelData;
 	void* DriverData;
 	Texture* Prev;
@@ -22,11 +22,11 @@ public:
 	Uint32* PaletteColors;
 	unsigned NumPaletteColors;
 
-	static Texture* New(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static Texture* New(int format, int access, Uint32 width, Uint32 height);
 	static bool
-	Initialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	Initialize(Texture* texture, int format, int access, Uint32 width, Uint32 height);
 	static bool
-	Reinitialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	Reinitialize(Texture* texture, int format, int access, Uint32 width, Uint32 height);
 	void SetPalette(Uint32* palette, unsigned numPaletteColors);
 	static int GetFormatBytesPerPixel(int textureFormat);
 	static int PixelFormatToTextureFormat(int pixelFormat);

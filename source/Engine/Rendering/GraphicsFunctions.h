@@ -13,15 +13,15 @@ struct GraphicsFunctions {
 	void (*SetGraphicsFunctions)();
 	void (*Dispose)();
 
-	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 format,
+	Texture* (*CreateTexture)(int format, int access, Uint32 width, Uint32 height);
+	Texture* (*CreateTextureFromPixels)(int format,
 		Uint32 width,
 		Uint32 height,
 		void* pixels,
 		int pitch);
 	bool (*ReinitializeTexture)(Texture* texture,
-		Uint32 format,
-		Uint32 access,
+		int format,
+		int access,
 		Uint32 width,
 		Uint32 height);
 	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);

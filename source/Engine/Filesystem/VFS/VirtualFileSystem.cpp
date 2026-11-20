@@ -9,14 +9,14 @@
 #include <Engine/Utilities/StringUtils.h>
 
 VFSProvider* VirtualFileSystem::Get(const char* name) {
-	size_t index = GetIndex(name);
+	int index = GetIndex(name);
 	if (index != -1) {
 		return LoadedVFS[index].VFSPtr;
 	}
 
 	return nullptr;
 }
-size_t VirtualFileSystem::GetIndex(const char* name) {
+int VirtualFileSystem::GetIndex(const char* name) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSMount& mount = LoadedVFS[i];
 
@@ -90,7 +90,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 	return VFSMountStatus::MOUNTED;
 }
 VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
-	size_t index = GetIndex(name);
+	int index = GetIndex(name);
 	if (index == -1) {
 		return VFSMountStatus::NOT_FOUND;
 	}

@@ -135,9 +135,9 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 				return;
 			}
 
-			Uint32 maxVertexCount = arrayVertexCount + vertexCount;
-			if (maxVertexCount > vertexBuffer->Capacity) {
-				vertexBuffer->Resize(maxVertexCount);
+			Uint32 maxCount = arrayVertexCount + vertexCount;
+			if (maxCount > vertexBuffer->Capacity) {
+				vertexBuffer->Resize(maxCount);
 				arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 			}
 
@@ -331,9 +331,9 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 						continue;
 					}
 
-					Uint32 maxVertexCount = arrayVertexCount + vertexCount;
-					if (maxVertexCount > vertexBuffer->Capacity) {
-						vertexBuffer->Resize(maxVertexCount);
+					Uint32 maxCount = arrayVertexCount + vertexCount;
+					if (maxCount > vertexBuffer->Capacity) {
+						vertexBuffer->Resize(maxCount);
 						faceInfoItem =
 							&vertexBuffer
 								 ->FaceInfoBuffer[arrayFaceCount];
@@ -362,10 +362,7 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 	vertexBuffer->FaceCount = arrayFaceCount;
 }
 void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
-	if (animation < 0 || frame < 0) {
-		return;
-	}
-	else if (model->Animations.size() > 0 && animation >= model->Animations.size()) {
+	if (model->Animations.size() > 0 && animation >= model->Animations.size()) {
 		return;
 	}
 
@@ -377,7 +374,12 @@ void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
 	ModelRenderer rend = ModelRenderer(this);
 
 	rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
-	rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
+	if (ScenePtr != nullptr) {
+		rend.FaceCullMode = ScenePtr->FaceCullMode;
+	}
+	else {
+		rend.FaceCullMode = FaceCull_None;
+	}
 	rend.CurrentColor = CurrentColor;
 	rend.DoProjection = DoProjection;
 	rend.ClipFaces = DoProjection;
@@ -402,7 +404,12 @@ void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
 	ModelRenderer rend = ModelRenderer(this);
 
 	rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
-	rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
+	if (ScenePtr != nullptr) {
+		rend.FaceCullMode = ScenePtr->FaceCullMode;
+	}
+	else {
+		rend.FaceCullMode = FaceCull_None;
+	}
 	rend.CurrentColor = CurrentColor;
 	rend.DoProjection = DoProjection;
 	rend.ClipFaces = DoProjection;
@@ -437,7 +444,7 @@ void PolygonRenderer::DrawVertexBuffer() {
 	// Copy the vertices into the vertex buffer
 	VertexAttribute* srcVertexItem = &VertexBuf->Vertices[0];
 
-	for (int f = 0; f < VertexBuf->FaceCount; f++) {
+	for (Uint32 f = 0; f < VertexBuf->FaceCount; f++) {
 		FaceInfo* srcFaceInfoItem = &VertexBuf->FaceInfoBuffer[f];
 		int vertexCount = srcFaceInfoItem->NumVertices;
 		int vertexCountPerFace = vertexCount;
@@ -480,9 +487,9 @@ void PolygonRenderer::DrawVertexBuffer() {
 					continue;
 				}
 
-				Uint32 maxVertexCount = arrayVertexCount + vertexCount;
-				if (maxVertexCount > destVertexBuffer->Capacity) {
-					destVertexBuffer->Resize(maxVertexCount + 256);
+				Uint32 maxCount = arrayVertexCount + vertexCount;
+				if (maxCount > destVertexBuffer->Capacity) {
+					destVertexBuffer->Resize(maxCount + 256);
 					faceInfoItem =
 						&destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
 					arrayVertexBuffer =

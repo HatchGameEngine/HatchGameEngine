@@ -646,9 +646,6 @@ void StandardLibrary::CheckAtLeastArgCount(int argCount, int expects) {
 
 using namespace LOCAL;
 
-Uint8 String_ToUpperCase_Map_ExtendedASCII[0x100];
-Uint8 String_ToLowerCase_Map_ExtendedASCII[0x100];
-
 typedef float MatrixHelper[4][4];
 
 void MatrixHelper_CopyFrom(MatrixHelper* helper, ObjArray* array) {
@@ -1017,8 +1014,8 @@ VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 		animator->CurrentFrame >= 0) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
 
-		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
-			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentAnimation].Frames.size()) {
+		if (!sprite || animator->CurrentAnimation >= (int)sprite->Animations.size()
+			|| animator->CurrentFrame >= (int)sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return INTEGER_VAL(0);
 		}
 
@@ -1046,12 +1043,11 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentAnimation >= sprite->Animations.size()) {
+		if (animator->CurrentAnimation >= (int)sprite->Animations.size()) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentFrame >=
-			sprite->Animations[animator->CurrentAnimation].Frames.size()) {
+		if (animator->CurrentFrame >= (int)sprite->Animations[animator->CurrentAnimation].Frames.size()) {
 			return NULL_VAL;
 		}
 
@@ -1064,7 +1060,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 				animator->CurrentAnimation);
 			return NULL_VAL;
 		}
-		else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		else if (!(hitboxID > -1 && (size_t)hitboxID < frame.Boxes.size())) {
 			THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 				hitboxID,
 				animator->CurrentFrame,
@@ -2518,24 +2514,32 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
-		size_t startIndex = GET_ARG(1, GetInteger);
-		size_t endIndex = GET_ARG(2, GetInteger);
+		int startIndexArg = GET_ARG(1, GetInteger);
+		int endIndexArg = GET_ARG(2, GetInteger);
 		VMValue value = args[3];
 
 		size_t arraySize = array->Values->size();
 		if (arraySize > 0) {
-			if (startIndex < 0) {
+			size_t startIndex;
+			if (startIndexArg < 0) {
 				startIndex = 0;
 			}
-			else if (startIndex >= arraySize) {
+			else if ((size_t)startIndexArg >= arraySize) {
 				startIndex = arraySize - 1;
 			}
+			else {
+				startIndex = (size_t)startIndexArg;
+			}
 
-			if (endIndex < 0) {
+			size_t endIndex;
+			if (endIndexArg < 0) {
+				endIndex = 0;
+			}
+			else if ((size_t)endIndexArg >= arraySize) {
 				endIndex = arraySize - 1;
 			}
-			else if (endIndex >= arraySize) {
-				endIndex = arraySize - 1;
+			else {
+				endIndex = (size_t)endIndexArg;
 			}
 
 			for (size_t i = startIndex; i <= endIndex; i++) {
@@ -3577,7 +3581,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 	if (sprite && animation >= 0 && frame >= 0) {
 		if (Graphics::UseIntegerRotation) {
 			int rot = (int)rotation;
-			switch (int rotationStyle = sprite->Animations[animation].Flags) {
+			switch (sprite->Animations[animation].Flags) {
 			case ROTSTYLE_NONE:
 				rot = 0;
 				break;
@@ -4047,7 +4051,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	if (sprite && animation >= 0 && frame >= 0) {
 		if (Graphics::UseIntegerRotation) {
 			int rot = (int)rotation;
-			switch (int rotationStyle = sprite->Animations[animation].Flags) {
+			switch (sprite->Animations[animation].Flags) {
 			case ROTSTYLE_NONE:
 				rot = 0;
 				break;
@@ -6277,7 +6281,7 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+	int vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		OUT_OF_RANGE_ERROR("Vertex index", vertexBufferIndex, 0, MAX_VERTEX_BUFFERS);
 		return NULL_VAL;
@@ -6300,8 +6304,7 @@ VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) 
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
 		OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1); \
 		return NULL_VAL; \
-	} \
-	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
+	}
 /***
  * Draw3D.BindScene
  * \desc Binds a 3D scene for drawing polygons in 3D space.
@@ -6310,7 +6313,7 @@ VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Draw3D_BindScene(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
 		OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
 		return NULL_VAL;
@@ -6915,9 +6918,8 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 	VERTEX_ARGS(3, 1);
 	VERTEX_COLOR_ARGS(3);
 
-	// 0
-	// | \
-	// 1--2
+	// First index is top left vertex, second index is bottom left vertex,
+	// third index is bottom right vertex.
 
 	data[1].UV.X = FP16_TO(1.0f);
 
@@ -6980,9 +6982,8 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 	VERTEX_ARGS(4, 1);
 	VERTEX_COLOR_ARGS(4);
 
-	// 0--1
-	// |  |
-	// 3--2
+	// First index is top left vertex, second index is top right vertex,
+	// third index is bottom right vertex, fourth index is bottom left vertex.
 
 	data[1].UV.X = FP16_TO(1.0f);
 
@@ -7222,7 +7223,7 @@ VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+	int vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return NULL_VAL;
 	}
@@ -7243,7 +7244,7 @@ VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
 	GET_SCENE_3D();
 	Graphics::DrawScene3D(scene3DIndex, drawMode);
@@ -8691,13 +8692,13 @@ static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
 		if (strcmp("key", key) == 0) {
 			value = map->Values->Get(hash);
 			if (IS_INTEGER(value)) {
-				int key = AS_INTEGER(value);
-				if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-					bind->Key = AS_INTEGER(value);
+				int bindKey = AS_INTEGER(value);
+				if (bindKey >= 0 && bindKey < NUM_KEYBOARD_KEYS) {
+					bind->Key = bindKey;
 				}
 				else {
 					OUT_OF_RANGE_ERROR(
-						"Keyboard key", key, 0, NUM_KEYBOARD_KEYS - 1);
+						"Keyboard key", bindKey, 0, NUM_KEYBOARD_KEYS - 1);
 				}
 			}
 			else if (!IS_NULL(value)) {
@@ -11562,7 +11563,7 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	else {
 		char* materialName = GET_ARG(1, GetString);
-		size_t idx = model->FindMaterial(materialName);
+		int idx = model->FindMaterial(materialName);
 		if (idx == -1) {
 			THROW_ERROR("Model has no material named \"%s\".", materialName);
 			return NULL_VAL;
@@ -11986,7 +11987,6 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
 	char* objectName = GET_ARG(0, GetString);
-	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
 	if (Scene::ObjectLists->Exists(objectName)) {
 		Scene::GetObjectList(objectName)->Activity = GET_ARG(1, GetInteger);
@@ -12005,7 +12005,6 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
 	char* objectName = GET_ARG(0, GetString);
-	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
 	if (Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(Scene::GetObjectList(objectName)->Activity);
@@ -13189,7 +13188,7 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(index < Scene::Layers.size());
+	return INTEGER_VAL((size_t)index < Scene::Layers.size());
 }
 /***
  * Scene.GetLayerDeformSplitLine
@@ -13923,13 +13922,12 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
-		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
-		for (int i = 0; i < animation->Frames.size(); i++) {
+		for (size_t i = 0; i < animation->Frames.size(); i++) {
 			int x = animation->Frames[i].X / tileset->TileWidth;
 			int y = animation->Frames[i].Y / tileset->TileHeight;
-			int tileID = ((y * tileset->NumCols) + x) + tileset->StartTile;
-			array->Values->push_back(INTEGER_VAL(tileID));
+			int id = ((y * tileset->NumCols) + x) + tileset->StartTile;
+			array->Values->push_back(INTEGER_VAL(id));
 		}
 		ScriptManager::Unlock();
 		return OBJECT_VAL(array);
@@ -13959,9 +13957,8 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
-		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
-		for (int i = 0; i < animation->Frames.size(); i++) {
+		for (size_t i = 0; i < animation->Frames.size(); i++) {
 			array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
 		}
 		ScriptManager::Unlock();
@@ -15674,12 +15671,12 @@ VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Uint32 unloadPolicy = GET_ARG(0, GetInteger);
-	Uint32 scene3DIndex = Graphics::CreateScene3D(unloadPolicy);
-	if (scene3DIndex == 0xFFFFFFFF) {
+	int scene3DIndex = Graphics::CreateScene3D(unloadPolicy);
+	if (scene3DIndex == -1) {
 		THROW_ERROR("No more 3D scenes available.");
 		return NULL_VAL;
 	}
-	return INTEGER_VAL((int)scene3DIndex);
+	return INTEGER_VAL(scene3DIndex);
 }
 /***
  * Scene3D.Delete
@@ -15689,7 +15686,7 @@ VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
 		OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
 		return NULL_VAL;
@@ -15706,9 +15703,10 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	Uint32 drawMode = GET_ARG(1, GetInteger);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->DrawMode = drawMode;
 	return NULL_VAL;
 }
@@ -15721,13 +15719,14 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	int cullMode = GET_ARG(1, GetInteger);
 	GET_SCENE_3D();
 	if (cullMode < (int)FaceCull_None || cullMode > (int)FaceCull_Front) {
 		THROW_ERROR("Invalid face cull mode %d.", cullMode);
 		return NULL_VAL;
 	}
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->FaceCullMode = cullMode;
 	return NULL_VAL;
 }
@@ -15740,9 +15739,10 @@ VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float fieldOfView = GET_ARG(1, GetDecimal);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->FOV = fieldOfView;
 	return NULL_VAL;
 }
@@ -15755,9 +15755,10 @@ VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float farClippingPlane = GET_ARG(1, GetDecimal);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->FarClippingPlane = farClippingPlane;
 	return NULL_VAL;
 }
@@ -15770,9 +15771,10 @@ VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float nearClippingPlane = GET_ARG(1, GetDecimal);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->NearClippingPlane = nearClippingPlane;
 	return NULL_VAL;
 }
@@ -15785,7 +15787,7 @@ VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	ObjArray* viewMatrix = GET_ARG(1, GetArray);
 
 	Matrix4x4 matrix4x4;
@@ -15795,6 +15797,7 @@ VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetViewMatrix(&matrix4x4);
 	return NULL_VAL;
 }
@@ -15807,10 +15810,11 @@ VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	ObjArray* projMatrix;
 	if (IS_NULL(args[1])) {
 		GET_SCENE_3D();
+		Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 		scene3D->SetCustomProjectionMatrix(nullptr);
 		return NULL_VAL;
 	}
@@ -15832,6 +15836,7 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
 	}
 
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetCustomProjectionMatrix(&matrix4x4);
 	return NULL_VAL;
 }
@@ -15846,11 +15851,12 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
  */
 VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
 	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
 	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetAmbientLighting(r, g, b);
 	return NULL_VAL;
 }
@@ -15865,11 +15871,12 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
 	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
 	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetDiffuseLighting(r, g, b);
 	return NULL_VAL;
 }
@@ -15884,11 +15891,12 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 256.0f);
 	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 256.0f);
 	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 256.0f);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetSpecularLighting(r, g, b);
 	return NULL_VAL;
 }
@@ -15901,13 +15909,14 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	int fogEquation = GET_ARG(1, GetInteger);
 	GET_SCENE_3D();
 	if (fogEquation < (int)FogEquation_Linear || fogEquation > (int)FogEquation_Exp) {
 		THROW_ERROR("Invalid fog equation %d.", fogEquation);
 		return NULL_VAL;
 	}
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogEquation((FogEquation)fogEquation);
 	return NULL_VAL;
 }
@@ -15920,8 +15929,9 @@ VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogStart(GET_ARG(1, GetDecimal));
 	return NULL_VAL;
 }
@@ -15934,8 +15944,9 @@ VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogEnd(GET_ARG(1, GetDecimal));
 	return NULL_VAL;
 }
@@ -15948,8 +15959,9 @@ VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
 	return NULL_VAL;
 }
@@ -15964,11 +15976,12 @@ VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
 	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
 	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogColor(r, g, b);
 	return NULL_VAL;
 }
@@ -15981,9 +15994,10 @@ VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float smoothness = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->SetFogSmoothness(smoothness);
 	return NULL_VAL;
 }
@@ -15996,9 +16010,10 @@ VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	float pointSize = !!GET_ARG(1, GetDecimal);
 	GET_SCENE_3D();
+	Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex];
 	scene3D->PointSize = pointSize;
 	return NULL_VAL;
 }
@@ -16010,7 +16025,7 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+	int scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
 		OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
 		return NULL_VAL;
@@ -17235,7 +17250,7 @@ VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
 		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
 		return NULL_VAL;
 	}
-	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+	else if (!(hitboxID > -1 && (size_t)hitboxID < frame.Boxes.size())) {
 		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,
 			frameID,
@@ -17504,9 +17519,20 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 
 			int w = 0;
 			for (int c = startIndex; c < length; c++) {
-				int charFrame =
-					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
-				if (charFrame < anim.Frames.size()) {
+				VMValue value = (*text->Values)[c];
+
+				int charFrame = 0;
+				if (IS_INTEGER(value)) {
+					charFrame = AS_INTEGER(value);
+				}
+				else {
+					THROW_ERROR("Expected array index %d to be of type %s instead of %s.",
+						c,
+						GetTypeString(VAL_INTEGER),
+						GetValueTypeString(value));
+				}
+
+				if (charFrame < (int)anim.Frames.size()) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
 						ScriptManager::Unlock();
@@ -18865,7 +18891,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
-		collisionField >= Scene::TileCfg.size()) {
+		collisionField < 0 || (size_t)collisionField >= Scene::TileCfg.size()) {
 		return INTEGER_VAL(-1);
 	}
 
@@ -18923,7 +18949,7 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
-		collisionField >= Scene::TileCfg.size()) {
+		collisionField < 0 || (size_t)collisionField >= Scene::TileCfg.size()) {
 		return INTEGER_VAL(-1);
 	}
 
@@ -18967,7 +18993,7 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
-		collisionPlane >= Scene::TileCfg.size()) {
+		collisionPlane < 0 || (size_t)collisionPlane >= Scene::TileCfg.size()) {
 		return INTEGER_VAL(0);
 	}
 
@@ -18994,7 +19020,7 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
-		collisionPlane >= Scene::TileCfg.size()) {
+		collisionPlane < 0 || (size_t)collisionPlane >= Scene::TileCfg.size()) {
 		return INTEGER_VAL(0);
 	}
 
@@ -19180,8 +19206,8 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-	Uint32 numVertices = GET_ARG(1, GetInteger);
+	int vertexBufferIndex = GET_ARG(0, GetInteger);
+	int numVertices = GET_ARG(1, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return NULL_VAL;
 	}
@@ -19201,7 +19227,7 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+	int vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return NULL_VAL;
 	}
@@ -19221,7 +19247,7 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue VertexBuffer_Delete(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+	int vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return NULL_VAL;
 	}
@@ -19243,6 +19269,8 @@ VMValue Video_Play(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	video->Player->Play();
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19257,6 +19285,8 @@ VMValue Video_Pause(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	video->Player->Pause();
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19271,6 +19301,8 @@ VMValue Video_Resume(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	video->Player->Play();
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19286,6 +19318,8 @@ VMValue Video_Stop(int argCount, VMValue* args, Uint32 threadID) {
 #ifdef USING_FFMPEG
 	video->Player->Stop();
 	video->Player->Seek(0);
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19307,6 +19341,8 @@ VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 #ifdef USING_FFMPEG
 	video->Source->Close();
 	video->Player->Close();
+#else
+	(void)video;
 #endif
 
 	if (!resource) {
@@ -19332,6 +19368,8 @@ VMValue Video_IsBuffering(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return INTEGER_VAL(video->Player->IsOutputEmpty());
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19346,6 +19384,8 @@ VMValue Video_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return INTEGER_VAL(video->Player->GetPlayerState() == MediaPlayer::KIT_PLAYING);
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19360,6 +19400,8 @@ VMValue Video_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return INTEGER_VAL(video->Player->GetPlayerState() == MediaPlayer::KIT_PAUSED);
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19375,6 +19417,9 @@ VMValue Video_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	float position = GET_ARG(1, GetDecimal);
 #ifdef USING_FFMPEG
 	video->Player->Seek(position);
+#else
+	(void)video;
+	(void)position;
 #endif
 	return NULL_VAL;
 }
@@ -19407,6 +19452,8 @@ VMValue Video_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return DECIMAL_VAL((float)video->Player->GetPosition());
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19421,6 +19468,8 @@ VMValue Video_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return DECIMAL_VAL((float)video->Player->GetDuration());
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -19444,6 +19493,8 @@ VMValue Video_GetBufferEnd(int argCount, VMValue* args, Uint32 threadID) {
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
 	return DECIMAL_VAL((float)video->Player->GetBufferPosition());
+#else
+	(void)video;
 #endif
 	return NULL_VAL;
 }
@@ -20628,10 +20679,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#define String_CaseMapBind(lowerCase, upperCase) \
-	String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
-	String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
-
 #define DEF_CONST_INT(a, b) ScriptManager::GlobalConstInteger(NULL, a, b)
 #define DEF_LINK_INT(a, b) ScriptManager::GlobalLinkInteger(NULL, a, b)
 #define DEF_CONST_DECIMAL(a, b) ScriptManager::GlobalConstDecimal(NULL, a, b)
@@ -20643,25 +20690,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 
 void StandardLibrary::Link() {
 	ObjClass* klass;
-
-	for (int i = 0; i < 0x100; i++) {
-		String_ToUpperCase_Map_ExtendedASCII[i] = (Uint8)i;
-		String_ToLowerCase_Map_ExtendedASCII[i] = (Uint8)i;
-	}
-	for (int i = 'a'; i <= 'z'; i++) {
-		int upperCase = i + ('A' - 'a');
-		String_ToUpperCase_Map_ExtendedASCII[i] = (Uint8)upperCase;
-		String_ToLowerCase_Map_ExtendedASCII[upperCase] = (Uint8)i;
-	}
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ü', L'Ü');
-	String_CaseMapBind(L'á', L'Ç');
-	String_CaseMapBind(L'é', L'É');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
 
 	textAlign = 0.0f;
 	textBaseline = 0.0f;

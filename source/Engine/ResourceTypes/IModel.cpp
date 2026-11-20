@@ -107,7 +107,7 @@ bool IModel::Load(Stream* stream, const char* filename) {
 	return true;
 }
 
-size_t IModel::FindMaterial(const char* name) {
+int IModel::FindMaterial(const char* name) {
 	if (name == nullptr) {
 		return -1;
 	}
@@ -122,7 +122,7 @@ size_t IModel::FindMaterial(const char* name) {
 }
 
 size_t IModel::AddMaterial(Material* material) {
-	size_t existing = FindMaterial(material->Name);
+	int existing = FindMaterial(material->Name);
 	if (existing != -1) {
 		Materials[existing] = material;
 		return existing;

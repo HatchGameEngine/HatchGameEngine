@@ -57,6 +57,10 @@ void Serializer::WriteValue(VMValue val) {
 				return;
 			}
 		}
+		else {
+			StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
+		}
+		return;
 	}
 	default:
 		StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);

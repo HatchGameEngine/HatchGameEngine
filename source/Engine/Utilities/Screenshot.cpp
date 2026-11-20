@@ -13,7 +13,7 @@ std::string Screenshot::GetFilename() {
 	time_t timeInfo;
 	time(&timeInfo);
 
-	char timeString[256];
+	char timeString[32];
 	strftime(timeString, sizeof(timeString), "%Y-%m-%d-%H-%M-%S", localtime(&timeInfo));
 
 	char filenameBuffer[MAX_FILENAME_LENGTH];

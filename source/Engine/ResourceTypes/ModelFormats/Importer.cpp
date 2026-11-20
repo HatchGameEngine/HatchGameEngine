@@ -32,11 +32,6 @@ static void LogError(const char* format, ...) {
 	Log::Print(Log::LOG_ERROR, "Model importer: %s", string);
 }
 
-static void LogVerbose(const char* format, ...) {
-	LOG_FMT(string);
-	Log::Print(Log::LOG_VERBOSE, "Model importer: %s", string);
-}
-
 static void CopyColors(float dest[4], aiColor4D& src) {
 	dest[0] = src.r;
 	dest[1] = src.g;
@@ -130,7 +125,7 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 	if (amesh->HasVertexColors(0)) {
 		mesh->VertexFlag |= VertexType_Color;
 		mesh->ColorBuffer = color = (Uint32*)Memory::Malloc(numVertices * sizeof(Uint32));
-		for (int i = 0; i < numVertices; i++) {
+		for (size_t i = 0; i < numVertices; i++) {
 			mesh->ColorBuffer[i] = 0xFFFFFFFF;
 		}
 	}

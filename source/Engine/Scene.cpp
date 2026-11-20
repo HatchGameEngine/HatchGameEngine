@@ -80,11 +80,11 @@ Entity* Scene::ObjectLast = NULL;
 // Tile variables
 vector<Tileset> Scene::Tilesets;
 vector<TileSpriteInfo> Scene::TileSpriteInfos;
-int Scene::TileCount = 0;
+size_t Scene::TileCount = 0;
 int Scene::TileWidth = 16;
 int Scene::TileHeight = 16;
-int Scene::BaseTileCount = 0;
-int Scene::BaseTilesetCount = 0;
+size_t Scene::BaseTileCount = 0;
+size_t Scene::BaseTilesetCount = 0;
 bool Scene::TileCfgLoaded = false;
 vector<TileConfig*> Scene::TileCfg;
 Uint16 Scene::EmptyTile = 0x000;
@@ -678,7 +678,6 @@ void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
 		return;
 	}
 
-	SceneListCategory& category = SceneInfo::Categories[categoryID];
 	Scene::ActiveCategory = categoryID;
 
 	int entryID = SceneInfo::GetEntryID(categoryID, sceneName);
@@ -971,7 +970,7 @@ Tileset* Scene::GetTileset(int tileID) {
 	// TODO: Optimize this.
 	for (size_t i = Scene::Tilesets.size(); i > 0; i--) {
 		Tileset* tileset = &Scene::Tilesets[i - 1];
-		if (tileID >= tileset->StartTile) {
+		if (tileID >= (int)tileset->StartTile) {
 			return tileset;
 		}
 	}
@@ -1048,7 +1047,13 @@ bool Scene::SetView(int viewIndex) {
 		Texture* tar = currentView->DrawTarget;
 
 		size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
-		int format = currentView->Software ? TextureFormat_RGBA8888 : Graphics::TextureFormat;
+		int format;
+		if (currentView->Software) {
+			format = TextureFormat_RGBA8888;
+		}
+		else {
+			format = Graphics::TextureFormat;
+		}
 		if (tar->Width != stride || tar->Height != view_h || tar->Format != format) {
 			Graphics::GfxFunctions = &Graphics::Internal;
 			Graphics::SetTextureInterpolation(false);
@@ -2395,7 +2400,7 @@ Entity* Scene::SpawnObject(const char* objectName, float x, float y) {
 Entity* Scene::TrySpawnObject(ObjectList* list, float x, float y) {
 	try {
 		return Scene::SpawnObject(list, x, y);
-	} catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error&) {
 		return nullptr;
 	}
 }
@@ -2404,7 +2409,7 @@ Entity* Scene::TrySpawnObject(ObjectList* list, float x, float y) {
 Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
 	try {
 		return Scene::SpawnObject(objectName, x, y);
-	} catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error&) {
 		return nullptr;
 	}
 }
@@ -3852,7 +3857,7 @@ void Scene::SetTile(int layerIndex,
 
 // Tile Collision
 int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* angle) {
-	if (collisionField < 0 || collisionField >= Scene::TileCfg.size()) {
+	if (collisionField < 0 || (size_t)collisionField >= Scene::TileCfg.size()) {
 		return -1;
 	}
 
@@ -3977,7 +3982,7 @@ int Scene::CollisionInLine(int x,
 	int collisionField,
 	bool compareAngle,
 	Sensor* sensor) {
-	if (checkLen < 0 || collisionField < 0 || collisionField >= Scene::TileCfg.size()) {
+	if (checkLen < 0 || collisionField < 0 || (size_t)collisionField >= Scene::TileCfg.size()) {
 		return -1;
 	}
 
@@ -4320,7 +4325,10 @@ void Scene::AddViewableEntitySensors(Entity* entity, bool wasOnGround) {
 	float x = entity->X;
 	float y = entity->Y;
 
-	bool sameState = (wasOnGround == entity->OnGround);
+	bool sameState = false;
+	if (wasOnGround == entity->OnGround) {
+		sameState = true;
+	}
 
 	if (entity->OnGround) {
 		// Copy the sensors so we don't overwrite the original results
