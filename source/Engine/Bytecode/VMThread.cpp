@@ -2121,7 +2121,7 @@ int VMThread::RunInstruction() {
 		if (IS_LOCATION(location)) {
 			VMLocation loc = AS_LOCATION(location);
 			object = LoadIndirect(loc);
-			if (!IsStructureLocation(loc) && IS_OBJECT(object)) {
+			if (!IsStructureLocation(loc) || IS_OBJECT(object)) {
 				Pop();
 			}
 		}
