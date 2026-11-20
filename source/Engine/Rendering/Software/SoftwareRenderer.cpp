@@ -4583,15 +4583,15 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 
 	if (Scene::TileWidth == 16 && Scene::TileHeight == 16) {
 		if (blendState.Mode == BlendFlag_OPAQUE) {
-			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer);
 		}
 		else {
-			DrawTileLayer_CustomTileScanLines_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_16x16(layer);
 		}
 		return;
 	}
 	else if (blendState.Mode == BlendFlag_OPAQUE) {
-		DrawTileLayer_CustomTileScanLines_Opaque(layer, currentView);
+		DrawTileLayer_CustomTileScanLines_Opaque(layer);
 		return;
 	}
 
@@ -4784,7 +4784,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4933,7 +4933,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -5129,7 +5129,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;

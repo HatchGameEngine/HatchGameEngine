@@ -3856,7 +3856,7 @@ void Scene::SetTile(int layerIndex,
 }
 
 // Tile Collision
-int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* angle) {
+int Scene::CollisionAt(int x, int y, int collisionField, int collideSide) {
 	if (collisionField < 0 || (size_t)collisionField >= Scene::TileCfg.size()) {
 		return -1;
 	}

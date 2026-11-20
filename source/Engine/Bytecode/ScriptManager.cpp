@@ -217,7 +217,7 @@ void ScriptManager::Dispose() {
 	ForceGarbageCollection();
 
 	if (Sources) {
-		Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
+		Sources->WithAll([](Uint32, BytecodeContainer bytecode) -> void {
 			Memory::Free(bytecode.Data);
 		});
 		Sources->Clear();
@@ -235,7 +235,7 @@ void ScriptManager::Dispose() {
 		Modules = NULL;
 	}
 	if (Tokens) {
-		Tokens->WithAll([](Uint32 hash, char* token) -> void {
+		Tokens->WithAll([](Uint32, char* token) -> void {
 			Memory::Free(token);
 		});
 		Tokens->Clear();

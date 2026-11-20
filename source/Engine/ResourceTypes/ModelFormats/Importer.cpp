@@ -174,7 +174,7 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 	return mesh;
 }
 
-Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
+Material* ModelImporter::LoadMaterial(struct aiMaterial* mat, unsigned i) {
 	aiString matName;
 
 	aiString texDiffuse;
@@ -323,8 +323,7 @@ Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* am
 	return skeleton;
 }
 
-SkeletalAnim*
-ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
+SkeletalAnim* ModelImporter::LoadAnimation(ModelAnim* parentAnim, struct aiAnimation* aanim) {
 	SkeletalAnim* anim = new SkeletalAnim;
 	anim->Channels.resize(aanim->mNumChannels);
 	anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
@@ -418,7 +417,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 	// Load materials
 	if (scene->HasMaterials()) {
 		for (size_t i = 0; i < scene->mNumMaterials; i++) {
-			Material* material = LoadMaterial(imodel, scene->mMaterials[i], i);
+			Material* material = LoadMaterial(scene->mMaterials[i], i);
 			imodel->AddUniqueMaterial(material);
 		}
 	}
@@ -491,7 +490,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 			ModelAnim* parentAnim = new ModelAnim;
 			parentAnim->Name = GetString(aanim->mName);
 
-			SkeletalAnim* skAnim = LoadAnimation(imodel, parentAnim, aanim);
+			SkeletalAnim* skAnim = LoadAnimation(parentAnim, aanim);
 			skAnim->ParentAnim = parentAnim;
 			parentAnim->Skeletal = skAnim;
 

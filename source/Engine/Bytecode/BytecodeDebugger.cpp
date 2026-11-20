@@ -277,7 +277,7 @@ void BytecodeDebugger::DebugChunk(Chunk* chunk, const char* name, int minArity, 
 
 BytecodeDebugger::~BytecodeDebugger() {
 	if (Tokens) {
-		Tokens->WithAll([](Uint32 hash, char* token) -> void {
+		Tokens->WithAll([](Uint32, char* token) -> void {
 			Memory::Free(token);
 		});
 		Tokens->Clear();

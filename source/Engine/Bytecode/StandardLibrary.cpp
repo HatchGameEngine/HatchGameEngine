@@ -18736,7 +18736,7 @@ VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
 	int y = (int)std::floor(GET_ARG(1, GetDecimal));
 
 	// 15, or 0b1111
-	return INTEGER_VAL(Scene::CollisionAt(x, y, 0, 15, NULL) >= 0);
+	return INTEGER_VAL(Scene::CollisionAt(x, y, 0, 15) >= 0);
 }
 /***
  * TileCollision.PointExtended
@@ -18755,7 +18755,7 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
 	int collisionField = GET_ARG(2, GetInteger);
 	int collisionSide = GET_ARG(3, GetInteger);
 
-	return INTEGER_VAL(Scene::CollisionAt(x, y, collisionField, collisionSide, NULL));
+	return INTEGER_VAL(Scene::CollisionAt(x, y, collisionField, collisionSide));
 }
 /***
  * TileCollision.Line
