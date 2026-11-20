@@ -19,8 +19,6 @@ public:
 	static ObjShader* New(void* shaderPtr);
 	static void Dispose(Obj* object);
 
-	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-
 	static VMValue VM_HasStage(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CanCompile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsValid(int argCount, VMValue* args, Uint32 threadID);
@@ -28,6 +26,7 @@ public:
 	static VMValue VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetUniformNames(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasUniform(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Compile(int argCount, VMValue* args, Uint32 threadID);
