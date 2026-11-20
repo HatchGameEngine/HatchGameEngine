@@ -24,7 +24,7 @@ Uint32 Value::Hash(VMValue value) {
 			return Murmur::EncryptData(str->Chars, str->Length);
 		}
 		default:
-			return (uintptr_t)value.as.Object;
+			return (uintptr_t)value.as.Value.Object;
 		}
 		break;
 	default:
