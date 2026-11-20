@@ -264,7 +264,7 @@ Development-related settings.
 | `writeLogFile` | boolean | Whether to write to the log file. | `true` |
 | `trackMemory` | boolean | Track memory allocations. | `false` |
 
-### Rendering
+### Rendering settings
 
 | Name             | Type             | Description        | Default         |
 | ---------------- | ---------------- | ------------------ | --------------- |
@@ -273,7 +273,7 @@ Development-related settings.
 | `noObjectRender` | boolean | Disables entity rendering. | `false` |
 | `viewCollision` | integer | Shows tile collision.<br><b>Accepted options:</b><br>0 = Disabled.<br>1 = View Path A.<br>2 = View Path B. | `0` |
 
-### Scripting
+### Scripting settings
 
 | Name             | Type             | Description        | Default         |
 | ---------------- | ---------------- | ------------------ | --------------- |
@@ -282,7 +282,7 @@ Development-related settings.
 | `loadAllClasses` | boolean | Loads all script classes on startup. | `false` |
 | `debugCompiler` | boolean | Logs a listing of the bytecode after compilation. | `false` |
 
-### Performance measuring
+### Performance measuring settings
 
 | Name             | Type             | Description        | Default         |
 | ---------------- | ---------------- | ------------------ | --------------- |
@@ -298,7 +298,7 @@ Development-related settings.
 | `useMemoryFileCache` | boolean | Keep the file cache in-memory. | `false` |
 | `allowWritableResource` | boolean | Makes the main resource file writable.<br>Note that when the application mounts the Resources directory as the main resource file, the mount is writable by default. | `false` |
 
-### Miscellaneous
+### Miscellaneous settings
 
 | Name             | Type             | Description        | Default         |
 | ---------------- | ---------------- | ------------------ | --------------- |
@@ -306,7 +306,7 @@ Development-related settings.
 | `convertModels` | boolean | Converts and saves 3D models as .hmdl when they are loaded. | `false` |
 | `doNothing` | boolean | Makes the game, uh, do nothing. | `false` |
 
-# Scripting
+# Accessing settings through HSL
 
 The @ref Settings class in HSL can be used to access and modify the current settings, as well as load from and save to different .ini files. You may use @ref Settings to store and load settings for your own game. Example:
 
