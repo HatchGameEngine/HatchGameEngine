@@ -16130,10 +16130,10 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Settings.GetNumber
- * \desc Looks for a property in a section, and returns its value, as a number.
+ * \desc Looks for a property in a section, and returns its value, as a decimal.
  * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
  * \param property (string): The property to look for.
- * \return integer Returns the property as a number, or `null` if the section or property aren't valid.
+ * \return decimal Returns the property as a decimal, or `null` if the section or property aren't valid.
  * \ns Settings
  */
 VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
@@ -16233,7 +16233,7 @@ VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Sets a property in a section to a decimal value.
  * \param section (string): The section where the property resides. If the section doesn't exist, it will be created. If this is `null`, the global section is used instead.
  * \param property (string): The property to set.
- * \param value (number): The value of the property.
+ * \param value (decimal): The value of the property.
  * \ns Settings
  */
 VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
@@ -16387,7 +16387,7 @@ VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
  * Settings.GetPropertyCount
  * \desc Returns how many properties exist in the section.
  * \param section (string): The section. If this is `null`, the global section is used instead.
- * \return integer The total section count, as an integer.
+ * \return integer The total section count.
  * \ns Settings
  */
 VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) {
