@@ -203,7 +203,6 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 	WIN32_FIND_DATA data;
 	HANDLE hFind = FindFirstFile(winPath, &data);
 
-	int i;
 	char fullpath[MAX_PATH_LENGTH];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
@@ -248,7 +247,6 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 	char fullpath[MAX_PATH_LENGTH];
 	DIR* dir = opendir(path);
 	if (dir) {
-		int i;
 		struct dirent* d;
 
 		while ((d = readdir(dir)) != NULL) {

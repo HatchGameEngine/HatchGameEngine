@@ -64,8 +64,8 @@ public:
 	static bool LayerTileBufferingEnabled;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
-	static Uint32 PreferredPixelFormat;
-	static Uint32 TextureFormat;
+	static int PreferredPixelFormat;
+	static int TextureFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
 	static Uint32 MaxTextureUnits;
@@ -135,14 +135,14 @@ public:
 	static void Reset();
 	static void Dispose();
 	static Point ProjectToScreen(float x, float y, float z);
-	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static Texture* CreateTextureFromPixels(Uint32 format,
+	static Texture* CreateTexture(int format, int access, Uint32 width, Uint32 height);
+	static Texture* CreateTextureFromPixels(int format,
 		Uint32 width,
 		Uint32 height,
 		void* pixels,
 		int pitch);
 	static bool
-	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	ReinitializeTexture(Texture*, int format, int access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateYUVTexture(Texture* texture,
@@ -495,7 +495,7 @@ public:
 	static void BindScene3D(Uint32 sceneIndex);
 	static void ClearScene3D(Uint32 sceneIndex);
 	static void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
-	static Uint32 CreateScene3D(int unloadPolicy);
+	static int CreateScene3D(int unloadPolicy);
 	static void DeleteScene3D(Uint32 sceneIndex);
 	static void InitScene3D(Uint32 sceneIndex, Uint32 numVertices);
 	static void MakeSpritePolygon(VertexAttribute data[4],

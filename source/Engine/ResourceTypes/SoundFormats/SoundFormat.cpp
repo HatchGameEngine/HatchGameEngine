@@ -8,6 +8,8 @@ int SoundFormat::LoadSamples(size_t count) {
 	return 0;
 }
 int SoundFormat::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
+	(void)loopIndex;
+
 	if (SampleIndex >= Samples.size()) {
 		if (LoadSamples(count) == 0) { // If we've reached end of file
 			return 0;

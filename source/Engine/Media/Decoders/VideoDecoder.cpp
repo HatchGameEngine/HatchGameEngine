@@ -106,7 +106,7 @@ void VideoDecoder::FreeVideoPacket(void* p) {
 }
 
 // Unique format info functions
-AVPixelFormat VideoDecoder::FindAVPixelFormat(Uint32 format) {
+AVPixelFormat VideoDecoder::FindAVPixelFormat(int format) {
 	switch (format) {
 	case TextureFormat_YV12:
 		return AV_PIX_FMT_YUV420P;

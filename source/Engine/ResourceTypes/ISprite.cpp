@@ -164,7 +164,7 @@ void ISprite::RefreshGraphicsID() {
 }
 
 void ISprite::ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors) {
-	for (int a = 0; a < Spritesheets.size(); a++) {
+	for (size_t a = 0; a < Spritesheets.size(); a++) {
 		Uint32* palette = palColors;
 		if (!palette) {
 			if (Spritesheets[a]->PaletteColors) {
@@ -190,7 +190,7 @@ void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
 		}
 	}
 
-	for (int a = 0; a < Spritesheets.size(); a++) {
+	for (size_t a = 0; a < Spritesheets.size(); a++) {
 		Graphics::ConvertTextureToFormat(Spritesheets[a],
 			TextureFormat_INDEXED,
 			palColors,
@@ -226,10 +226,10 @@ bool ISprite::LoadAnimation(const char* filename) {
 	reader->ReadUInt32();
 
 	// Get texture count
-	unsigned spritesheetCount = reader->ReadByte();
+	Uint8 spritesheetCount = reader->ReadByte();
 
 	// Load textures
-	for (int i = 0; i < spritesheetCount; i++) {
+	for (Uint8 i = 0; i < spritesheetCount; i++) {
 		char fullPath[MAX_RESOURCE_PATH_LENGTH];
 
 		str = reader->ReadHeaderedString();
@@ -426,7 +426,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 		return false;
 	}
 
-	// Check MAGIC
+	// Write MAGIC
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);
 
 	// Total frame count
@@ -436,15 +436,15 @@ bool ISprite::SaveAnimation(const char* filename) {
 	}
 	stream->WriteUInt32(totalFrameCount);
 
-	// Get texture count
+	// Write texture count
 	stream->WriteByte(this->Spritesheets.size());
 
-	// Load textures
-	for (int i = 0; i < this->Spritesheets.size(); i++) {
+	// Writetextures
+	for (size_t i = 0; i < this->Spritesheets.size(); i++) {
 		stream->WriteHeaderedString(SpritesheetFilenames[i].c_str());
 	}
 
-	// Get collision group count
+	// Write collision group count
 	// In Hatch, the hitboxes are stored per frame. In RSDK's sprite format, the list of hitboxes
 	// is shared for all frames. So we look through all sprite frames and build a list of unique
 	// hitbox names. Frames hitboxes with a matching entry in boxNames are saved in that order.
@@ -477,7 +477,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 		stream->WriteHeaderedString(boxNames[i].c_str());
 	}
 
-	// Get animation count
+	// Write animation count
 	stream->WriteUInt16(Animations.size());
 
 	// Write animations

@@ -135,7 +135,7 @@ void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
 	for (size_t i = 0; i < maxLocals; i++) {
 		buffer_printf(buffer, "%s=", (*function->Chunk.Locals)[i].Name);
 
-		if (i < StackTop - frame->Slots) {
+		if (i < (size_t)(StackTop - frame->Slots)) {
 			VMValue value = frame->Slots[i];
 			if (IS_STRING(value)) {
 				buffer_printf(buffer, "\"");
@@ -460,6 +460,7 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	// Ignore All
 	case 2:
 		VMThread::InstructionIgnoreMap[000000001] = true;
+		return false;
 	// Break Out
 	case 0:
 		return false;
@@ -736,7 +737,7 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 
 int VMThread::RunInstruction() {
 #if USING_VM_FUNCPTRS
-#define VM_START(ins) \
+#define VM_START() \
 	return RunOpcodeFunc(frame); \
 	}
 #define VM_END() \
@@ -862,7 +863,9 @@ int VMThread::RunInstruction() {
 #endif
 
 	CallFrame* frame;
+#ifndef USING_VM_FUNCPTRS
 	Uint8 instruction;
+#endif
 
 	frame = &Frames[FrameCount - 1];
 	frame->IPLast = frame->IP;
@@ -899,7 +902,12 @@ int VMThread::RunInstruction() {
 	}
 #endif
 
+#ifdef USING_VM_FUNCPTRS
+	VM_START()
+#else
 	VM_START(instruction = ReadByte(frame))
+#endif
+
 	// Globals (heap)
 	VM_CASE(OP_GET_GLOBAL) {
 		Uint32 hash = ReadUInt32(frame);
@@ -1750,7 +1758,7 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_CLASS) {
 		Uint32 hash = ReadUInt32(frame);
-		Uint8 type = ReadByte(frame); // Unused
+		ReadByte(frame); // Unused
 
 		ObjClass* klass = NewClass(hash);
 
@@ -1988,14 +1996,14 @@ int VMThread::RunInstruction() {
 				VM_BREAK;
 			}
 
-			ns->Fields->WithAll([this](Uint32 hash, VMValue value) -> void {
+			ns->Fields->WithAll([this](Uint32 itHash, VMValue value) -> void {
 				VMValue originalValue;
 
 				bool replace = true;
 
-				if (ScriptManager::Globals->GetIfExists(hash, &originalValue) ||
+				if (ScriptManager::Globals->GetIfExists(itHash, &originalValue) ||
 					ScriptManager::Constants->GetIfExists(
-						hash, &originalValue)) {
+						itHash, &originalValue)) {
 					if (IS_CLASS(value) && IS_CLASS(originalValue)) {
 						DoClassExtension(value, originalValue, false);
 						replace = false;
@@ -2003,7 +2011,7 @@ int VMThread::RunInstruction() {
 				}
 
 				if (replace) {
-					ScriptManager::Globals->Put(hash, value);
+					ScriptManager::Globals->Put(itHash, value);
 				}
 			});
 
@@ -2711,7 +2719,7 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 		if (ScriptManager::Lock()) {
 			ObjArray* array = AS_ARRAY(object);
 			int index = AS_INTEGER(at);
-			if (index < 0 || (Uint32)index >= array->Values->size()) {
+			if (index < 0 || (size_t)index >= array->Values->size()) {
 				ThrowRuntimeError(false,
 					"Index %d is out of bounds of array of size %d.",
 					index,
@@ -2800,7 +2808,7 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 		if (ScriptManager::Lock()) {
 			ObjArray* array = AS_ARRAY(object);
 			int index = AS_INTEGER(at);
-			if (index < 0 || (Uint32)index >= array->Values->size()) {
+			if (index < 0 || (size_t)index >= array->Values->size()) {
 				ThrowRuntimeError(false,
 					"Index %d is out of bounds of array of size %d.",
 					index,
@@ -3469,15 +3477,15 @@ bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clear
 	ObjClass* src = AS_CLASS(value);
 	ObjClass* dst = AS_CLASS(originalValue);
 
-	src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
-		dst->Methods->Put(hash, value);
+	src->Methods->WithAll([dst](Uint32 hash, VMValue itValue) -> void {
+		dst->Methods->Put(hash, itValue);
 	});
 	if (clearSrc) {
 		src->Methods->Clear();
 	}
 
-	src->Fields->WithAll([dst](Uint32 hash, VMValue value) -> void {
-		dst->Fields->Put(hash, value);
+	src->Fields->WithAll([dst](Uint32 hash, VMValue itValue) -> void {
+		dst->Fields->Put(hash, itValue);
 	});
 	if (clearSrc) {
 		src->Fields->Clear();

@@ -2421,8 +2421,8 @@ void Compiler::GetSwitchStatement() {
 
 		EmitCopy(1);
 
-		for (Uint32 i = 0; i < case_info.CodeLength; i++) {
-			chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
+		for (Uint32 j = 0; j < case_info.CodeLength; j++) {
+			chunk->Write(case_info.CodeBlock[j], case_info.LineBlock[j]);
 		}
 
 		EmitByte(OP_EQUAL);
@@ -2507,8 +2507,6 @@ void Compiler::GetCaseStatement() {
 
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
-	Uint8* code_block_copy = NULL;
-	int* line_block_copy = NULL;
 
 	GetExpression();
 
@@ -3655,7 +3653,7 @@ Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	}
 
 	int opcodeCount = 0;
-	for (int offset = 0; offset < chunk->Count;) {
+	for (size_t offset = 0; offset < chunk->Count;) {
 		offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 		opcodeCount++;
 	}
@@ -3915,7 +3913,6 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 		if (unOp == OP_TYPEOF) {
 			return preConstant;
 		}
-		Uint8 op = CurrentChunk()->Code[preCount];
 		VMValue constant;
 		if (preCount + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + preCount) !=
 				CodePointer() - 1 ||
@@ -4015,12 +4012,10 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		// but this is a very solid start that already can shrink a good amount
 
 		int off1 = preCount;
-		Uint8 op1 = CurrentChunk()->Code[off1];
 		int off2 = Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + off1) + off1;
 		if (off2 >= CodePointer()) {
 			return preConstant;
 		}
-		Uint8 op2 = CurrentChunk()->Code[off2];
 		int offB = Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
 		if (offB != CodePointer() - 1) { // CHANGE TO >= ONCE CASCADING IS ADDED
 			return preConstant;
@@ -4553,7 +4548,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 	for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 		Chunk* chunk = &Compiler::Functions[c]->Chunk;
 		chunk->OpcodeCount = 0;
-		for (int offset = 0; offset < chunk->Count;) {
+		for (size_t offset = 0; offset < chunk->Count;) {
 			offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 			chunk->OpcodeCount++;
 		}
@@ -4645,7 +4640,7 @@ void Compiler::Finish() {
 	if (AllLocals.size()) {
 		chunk->Locals = new vector<ChunkLocal>;
 
-		for (int i = 0; i < AllLocals.size(); i++) {
+		for (size_t i = 0; i < AllLocals.size(); i++) {
 			Local srcLocal = AllLocals[i];
 			if (srcLocal.Index < 0) {
 				continue;
@@ -4653,7 +4648,7 @@ void Compiler::Finish() {
 
 			Token nameToken = srcLocal.Name;
 			Uint32 position = 0;
-			if (i >= Function->Arity + 1) {
+			if ((int)i >= Function->Arity + 1) {
 				position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
 			}
 

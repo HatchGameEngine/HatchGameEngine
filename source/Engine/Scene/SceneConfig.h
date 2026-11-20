@@ -17,7 +17,7 @@ struct SceneListEntry {
 
 	void Dispose() {
 		if (Properties) {
-			Properties->WithAll([](Uint32 hash, char* string) -> void {
+			Properties->WithAll([](Uint32, char* string) -> void {
 				Memory::Free(string);
 			});
 
@@ -45,7 +45,7 @@ struct SceneListCategory {
 		Entries.clear();
 
 		if (Properties) {
-			Properties->WithAll([](Uint32 hash, char* string) -> void {
+			Properties->WithAll([](Uint32, char* string) -> void {
 				Memory::Free(string);
 			});
 

@@ -29,8 +29,8 @@ bool Graphics::SupportsBatching = false;
 bool Graphics::LayerTileBufferingEnabled = true;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
-Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
-Uint32 Graphics::TextureFormat = TextureFormat_RGBA8888;
+int Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+int Graphics::TextureFormat = TextureFormat_RGBA8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
 Uint32 Graphics::MaxTextureUnits = 1;
@@ -167,14 +167,13 @@ void Graphics::InitCapabilities() {
 	Application::AddCapability("gpu_maxTextureUnits", (int)Graphics::MaxTextureUnits);
 }
 void Graphics::ChooseBackend() {
-	char renderer[64];
-
 	SoftwareRenderer::SetGraphicsFunctions();
 
 	// Set renderers
 	Graphics::Renderer = NULL;
 
 #ifdef DEVELOPER_MODE
+	char renderer[64];
 	if (Application::Settings->GetString("dev", "renderer", renderer, sizeof renderer)) {
 #ifdef USING_OPENGL
 		if (!strcmp(renderer, "opengl")) {
@@ -343,7 +342,7 @@ Point Graphics::ProjectToScreen(float x, float y, float z) {
 	return p;
 }
 
-Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* Graphics::CreateTexture(int format, int access, Uint32 width, Uint32 height) {
 	Texture* texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
 	if (!texture) {
 		return NULL;
@@ -358,7 +357,7 @@ Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uin
 
 	return texture;
 }
-Texture* Graphics::CreateTextureFromPixels(Uint32 format,
+Texture* Graphics::CreateTextureFromPixels(int format,
 	Uint32 width,
 	Uint32 height,
 	void* pixels,
@@ -371,8 +370,8 @@ Texture* Graphics::CreateTextureFromPixels(Uint32 format,
 	return texture;
 }
 bool Graphics::ReinitializeTexture(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
@@ -668,7 +667,7 @@ Uint32 Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
 	return idx;
 }
 void Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
-	if (vertexBufferIndex < 0 || vertexBufferIndex >= Graphics::VertexBuffers.size()) {
+	if (vertexBufferIndex >= Graphics::VertexBuffers.size()) {
 		return;
 	}
 	if (!Graphics::VertexBuffers[vertexBufferIndex]) {
@@ -716,7 +715,7 @@ void Graphics::SetUserShader(Shader* shader) {
 		Graphics::GfxFunctions->SetUserShader(shader);
 	} catch (const std::runtime_error& error) {
 		Graphics::CurrentShader = nullptr;
-		throw;
+		throw error;
 	}
 }
 
@@ -988,10 +987,10 @@ void Graphics::CopyFramebuffer(int sourceX,
 	if (destY < 0) {
 		destY = 0;
 	}
-	if (destW > texture->Width) {
+	if (destW > (int)texture->Width) {
 		destW = texture->Width;
 	}
-	if (destH > texture->Height) {
+	if (destH > (int)texture->Height) {
 		destH = texture->Height;
 	}
 	if (destX >= destW || destY >= sourceH) {
@@ -1102,12 +1101,12 @@ void Graphics::GetScreenSize(int& outWidth, int& outHeight) {
 void Graphics::SetViewport(float x, float y, float w, float h) {
 	Viewport* vp = &Graphics::CurrentViewport;
 	if (x < 0) {
-		int w, h;
+		int screenW, screenH;
 		vp->X = 0.0;
 		vp->Y = 0.0;
-		Graphics::GetScreenSize(w, h);
-		vp->Width = w;
-		vp->Height = h;
+		Graphics::GetScreenSize(screenW, screenH);
+		vp->Width = screenW;
+		vp->Height = screenH;
 	}
 	else {
 		vp->X = x;
@@ -1550,8 +1549,8 @@ std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
 
 	for (size_t i = 0; i < codepoints.size(); i++) {
 		Uint32 codepoint = codepoints[i];
-		if (codepoint != (Uint32)-1 && (char)codepoint == '\n' || (char)codepoint == ' ' ||
-			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+		if (codepoint != (Uint32)-1 && ((char)codepoint == '\n' || (char)codepoint == ' ' ||
+			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint)))) {
 			output.push_back(codepoint);
 		}
 	}
@@ -1906,8 +1905,6 @@ void Graphics::DrawGlyph(Font* font,
 
 	bool texBlend = Graphics::TextureBlend;
 	Graphics::TextureBlend = true;
-
-	FontGlyph& glyph = font->Glyphs[codepoint];
 
 	DrawGlyph(font, codepoint, x, y, scale, xyScale, ascent, paletteID);
 
@@ -2894,9 +2891,9 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 					break;
 				}
 
-				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
-				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
+				int flipX = (tile & TILE_FLIPX_MASK) != 0;
+				int flipY = (tile & TILE_FLIPY_MASK) != 0;
+				int tileFlipOffset = ((flipY << 1) | flipX) * Scene::TileCount;
 
 				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
 				int xx = viewX + (dst_x - (srcX % tileWidth));
@@ -3279,10 +3276,10 @@ void Graphics::DrawTextureLoopHV(Texture* texture,
 			break;
 		}
 
-		float x = xStart;
+		float drawX = xStart;
 
 		for (int lx = 0; lx < maxW; lx++) {
-			if (x > maxWidth) {
+			if (drawX > maxWidth) {
 				break;
 			}
 
@@ -3291,13 +3288,13 @@ void Graphics::DrawTextureLoopHV(Texture* texture,
 				0,
 				texture->Width,
 				texture->Height,
-				x,
+				drawX,
 				y,
 				texture->Width,
 				texture->Height,
 				0);
 
-			x += texture->Width;
+			drawX += texture->Width;
 		}
 
 		y += texture->Height;
@@ -3474,7 +3471,7 @@ void Graphics::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	}
 }
 void Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
-	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+	if (vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		UnbindVertexBuffer();
 		return;
 	}
@@ -3491,7 +3488,7 @@ void Graphics::UnbindVertexBuffer() {
 	CurrentVertexBuffer = -1;
 }
 void Graphics::BindScene3D(Uint32 sceneIndex) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 
@@ -3516,7 +3513,7 @@ void Graphics::BindScene3D(Uint32 sceneIndex) {
 	CurrentScene3D = sceneIndex;
 }
 void Graphics::ClearScene3D(Uint32 sceneIndex) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 
@@ -3533,19 +3530,19 @@ void Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 }
 
-Uint32 Graphics::CreateScene3D(int unloadPolicy) {
+int Graphics::CreateScene3D(int unloadPolicy) {
 	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
 		if (!Graphics::Scene3Ds[i].Initialized) {
 			Graphics::InitScene3D(i, 0);
 			Graphics::Scene3Ds[i].UnloadPolicy = unloadPolicy;
-			return i;
+			return (int)i;
 		}
 	}
 
-	return 0xFFFFFFFF;
+	return -1;
 }
 void Graphics::DeleteScene3D(Uint32 sceneIndex) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 
@@ -3562,7 +3559,7 @@ void Graphics::DeleteScene3D(Uint32 sceneIndex) {
 	}
 }
 void Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertices) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 

@@ -16,7 +16,7 @@ public:
 	VideoDecoder(MediaSource* src, int stream_index);
 	void* CreateVideoPacket(AVFrame* frame, double pts);
 	static void FreeVideoPacket(void* p);
-	AVPixelFormat FindAVPixelFormat(Uint32 format);
+	AVPixelFormat FindAVPixelFormat(int format);
 	int FindEnginePixelFormat(AVPixelFormat fmt);
 	int GetOutputFormat(OutputFormat* output);
 	static void ReadVideo(void* ptr);

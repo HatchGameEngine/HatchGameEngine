@@ -20,7 +20,7 @@ public:
 
 	Uint32 (*HashFunction)(const void*, size_t) = nullptr;
 
-	HashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = nullptr, int capacity = 16) {
+	HashMap(Uint32 (*hashFunc)(const void*, size_t) = nullptr, int capacity = 16) {
 		HashFunction = hashFunc;
 		if (HashFunction == nullptr) {
 			HashFunction = Murmur::EncryptData;
@@ -123,7 +123,7 @@ public:
 		}
 	}
 
-	~HashMap<T>() {
+	~HashMap() {
 		Clear();
 	}
 };

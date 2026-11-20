@@ -80,11 +80,11 @@ public:
 	static Uint16 EmptyTile;
 	static vector<SceneLayer*> Layers;
 	static bool AnyLayerTileChange;
-	static int TileCount;
+	static size_t TileCount;
 	static int TileWidth;
 	static int TileHeight;
-	static int BaseTileCount;
-	static int BaseTilesetCount;
+	static size_t BaseTileCount;
+	static size_t BaseTilesetCount;
 	static bool TileCfgLoaded;
 	static vector<TileConfig*> TileCfg;
 	static vector<ResourceType*> SpriteList;
@@ -222,7 +222,7 @@ public:
 	static void UnloadTilesets();
 	static void
 	SetTile(int layerIndex, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
-	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
+	static int CollisionAt(int x, int y, int collisionField, int collideSide);
 	static int CollisionInLine(int x,
 		int y,
 		int angleMode,

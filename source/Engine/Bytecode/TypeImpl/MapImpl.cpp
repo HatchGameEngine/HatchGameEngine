@@ -134,7 +134,7 @@ VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 		key = map->Values->GetNextKey(GET_ARG(1, GetInteger));
 	}
 
-	if (key != 0xFFFFFFFF) {
+	if ((unsigned)key != 0xFFFFFFFF) {
 		return INTEGER_VAL(key);
 	}
 

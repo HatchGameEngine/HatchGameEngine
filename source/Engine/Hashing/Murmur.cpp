@@ -36,11 +36,14 @@ Uint32 Murmur::EncryptData(const void* key, size_t size, Uint32 hash) {
 	switch (size) {
 	case 3:
 		h ^= data[2] << 16;
+		[[fallthrough]];
 	case 2:
 		h ^= data[1] << 8;
+		[[fallthrough]];
 	case 1:
 		h ^= data[0];
 		h *= m;
+		break;
 	}
 
 	// Do a few final mixes of the hash to ensure the last few

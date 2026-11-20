@@ -1303,7 +1303,7 @@ Uint16 InputManager::ParseKeyModifiers(string& str, string& actionName) {
 		result.push_back(token);
 	}
 
-	for (int i = 0; i < result.size(); i++) {
+	for (size_t i = 0; i < result.size(); i++) {
 		token = result[i];
 
 		auto it = KeymodStrToFlags.find(token);

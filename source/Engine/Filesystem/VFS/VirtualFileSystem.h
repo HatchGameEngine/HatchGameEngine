@@ -31,7 +31,7 @@ private:
 public:
 	~VirtualFileSystem();
 
-	size_t GetIndex(const char* name);
+	int GetIndex(const char* name);
 	VFSProvider* Get(const char* name);
 	VFSProvider* Get(size_t index);
 	VFSMountStatus Mount(const char* name,

@@ -222,9 +222,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 
 	UseUVKeyframes = Version == MD3_EXTRA_VERSION;
 
-	char name[MAX_QPATH + 1];
-	memset(name, '\0', sizeof name);
-	stream->ReadBytes(name, MAX_QPATH);
+	stream->Skip(MAX_QPATH);
 
 	stream->ReadInt32(); // Flags. Purpose seems unknown.
 
@@ -256,13 +254,12 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 			surfCount);
 	}
 
-	stream->ReadInt32(); // Skin count. Apparently a leftover from
-	// the previous MD2 format.
+	stream->ReadInt32(); // Skin count. Apparently a leftover from the previous MD2 format.
 
-	Sint32 frameDataOffset = stream->ReadInt32();
-	Sint32 tagDataOffset = stream->ReadInt32();
-	Sint32 surfaceDataOffset = stream->ReadInt32();
-	Sint32 dataEndOffset = stream->ReadInt32();
+	stream->ReadInt32(); // Frame data offset
+	stream->ReadInt32(); // Tag data offset
+	Sint32 surfaceDataOffset = stream->ReadInt32(); // Surface end offset
+	stream->ReadInt32(); // Data end offset
 
 	// Create model
 	model->VertexCount = 0;
@@ -277,7 +274,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 
 	size_t offset = surfaceDataOffset;
 
-	Sint32 maxFrameCount = frameCount;
+	Uint32 maxFrameCount = (Uint32)frameCount;
 
 	for (Sint32 i = 0; i < surfCount; i++) {
 		Mesh* mesh = ReadSurface(model, stream, offset);
@@ -294,7 +291,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 		model->Meshes.push_back(mesh);
 		model->VertexCount += mesh->VertexCount;
 
-		if (mesh->FrameCount > maxFrameCount) {
+		if (mesh->FrameCount > (unsigned)maxFrameCount) {
 			maxFrameCount = mesh->FrameCount;
 		}
 

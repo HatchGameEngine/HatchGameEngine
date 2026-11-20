@@ -340,7 +340,7 @@ bool VMThreadDebugger::Cmd_Backtrace(std::vector<char*> args, const char* fullLi
 		}
 
 		std::string functionName = VMThread::GetFunctionName(function);
-		printf("  %c (%d) %s", DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
+		printf("  %c (%d) %s", (Uint32)DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
 
 		Thread->PrintFunctionArgs(frame, nullptr);
 
@@ -396,7 +396,7 @@ bool VMThreadDebugger::Cmd_Frame(std::vector<char*> args, const char* fullLine) 
 		return false;
 	}
 
-	if (index < 0 || index >= Thread->FrameCount) {
+	if (index < 0 || (Uint32)index >= Thread->FrameCount) {
 		printf("Frame %d out of range (0-%d)\n", index, Thread->FrameCount - 1);
 		return false;
 	}
@@ -444,7 +444,7 @@ bool VMThreadDebugger::Cmd_Step(std::vector<char*> args, const char* fullLine) {
 		return false;
 	}
 
-	if (DebugFrame != Thread->FrameCount - 1) {
+	if (DebugFrame != (int)(Thread->FrameCount - 1)) {
 		printf("Cannot step outside of top frame\n");
 		return false;
 	}
@@ -494,7 +494,7 @@ bool VMThreadDebugger::Cmd_NextInstruction(std::vector<char*> args, const char* 
 		return false;
 	}
 
-	if (DebugFrame != Thread->FrameCount - 1) {
+	if (DebugFrame != (int)(Thread->FrameCount - 1)) {
 		printf("Cannot step outside of top frame\n");
 		return false;
 	}
@@ -588,8 +588,8 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		bool printMessage = false;
 
 		for (size_t i = 0; i < chunk->Locals->size(); i++) {
-			ChunkLocal local = (*chunk->Locals)[i];
-			if (strcmp(local.Name, varName) != 0) {
+			ChunkLocal cmpLocal = (*chunk->Locals)[i];
+			if (strcmp(cmpLocal.Name, varName) != 0) {
 				continue;
 			}
 
@@ -597,7 +597,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 				printMessage = true;
 			}
 
-			matches.push_back(local);
+			matches.push_back(cmpLocal);
 		}
 
 		if (printMessage) {
@@ -957,7 +957,7 @@ bool VMThreadDebugger::Cmd_Help(std::vector<char*> args, const char* fullLine) {
 }
 
 bool VMThreadDebugger::ExecuteCode(const char* code) {
-	if (Thread->FrameCount && DebugFrame != Thread->FrameCount - 1) {
+	if (Thread->FrameCount && DebugFrame != (int)(Thread->FrameCount - 1)) {
 		printf("Cannot execute code outside of top frame\n");
 		return false;
 	}
@@ -1289,7 +1289,7 @@ ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args,
 		if (chunk->Lines) {
 			bool foundPosition = false;
 
-			for (int offset = 0; offset < chunk->Count;) {
+			for (size_t offset = 0; offset < chunk->Count;) {
 				int line = chunk->Lines[offset] & 0xFFFF;
 				if (line == lineNum) {
 					position = (Uint32)offset;

@@ -28,7 +28,7 @@ public:
 	IModel(const char* filename);
 	static bool IsFile(Stream* stream);
 	bool Load(Stream* stream, const char* filename);
-	size_t FindMaterial(const char* name);
+	int FindMaterial(const char* name);
 	size_t AddMaterial(Material* material);
 	size_t AddUniqueMaterial(Material* material);
 	bool HasMaterials();

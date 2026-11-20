@@ -57,7 +57,7 @@ bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 
 		index = string->Length + index;
 	}
 
-	if (index >= string->Length) {
+	if (index >= (int)string->Length) {
 		THROW_ERROR("Index %d is out of bounds of string of length %d.",
 			index,
 			(int)string->Length);

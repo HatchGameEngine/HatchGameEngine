@@ -193,7 +193,14 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			Graphics::MaxTextureHeight);
 	}
 
-	Uint32 textureFormat = paletteColors ? TextureFormat_INDEXED : Graphics::TextureFormat;
+	int textureFormat;
+	if (paletteColors != nullptr) {
+		textureFormat = TextureFormat_INDEXED;
+	}
+	else {
+		textureFormat = Graphics::TextureFormat;
+	}
+
 	unsigned bpp = Texture::GetFormatBytesPerPixel(textureFormat);
 	Texture* texture = Graphics::CreateTextureFromPixels(
 		textureFormat, width, height, data, width * bpp);

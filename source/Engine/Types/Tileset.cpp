@@ -85,7 +85,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 		int otherTileID = tileIDs[i];
 		size_t sheetID = 0;
 
-		if (otherTileID >= StartTile + TileCount) {
+		if (otherTileID > 0 && (size_t)otherTileID >= StartTile + TileCount) {
 			Tileset* otherTileset = Scene::GetTileset(otherTileID);
 			ISprite* otherTileSprite = otherTileset->Sprite;
 			if (otherTileSprite && otherTileSprite->Spritesheets.size() > 0) {
