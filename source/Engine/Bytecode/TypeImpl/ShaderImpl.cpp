@@ -23,13 +23,9 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 
 ObjClass* ShaderImpl::Class = nullptr;
 
-Uint32 Hash_Uniforms = 0;
-
 void ShaderImpl::Init() {
 	Class = NewClass(CLASS_SHADER);
 	Class->NewFn = Constructor;
-
-	Hash_Uniforms = Murmur::EncryptString("Uniforms");
 
 	ScriptManager::DefineNative(Class, "HasStage", VM_HasStage);
 	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
@@ -39,6 +35,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
+	ScriptManager::DefineNative(Class, "GetUniformNames", VM_GetUniformNames);
 	ScriptManager::DefineNative(Class, "HasUniform", VM_HasUniform);
 	ScriptManager::DefineNative(Class, "GetUniformType", VM_GetUniformType);
 	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
@@ -53,38 +50,6 @@ void ShaderImpl::Init() {
 	if (ptr == nullptr) { \
 		throw ScriptException("Shader has been deleted!"); \
 	}
-
-bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	ObjShader* objShader = (ObjShader*)object;
-	if (objShader == nullptr) {
-		return false;
-	}
-
-	Shader* shader = (Shader*)objShader->ShaderPtr;
-	CHECK_EXISTS(shader);
-
-	if (hash == Hash_Uniforms) {
-		if (!shader->WasCompiled()) {
-			throw ScriptException("Cannot access this field before compilation!");
-		}
-
-		if (ScriptManager::Lock()) {
-			ObjArray* array = NewArray();
-
-			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end();
-				it++) {
-				ObjString* name = CopyString(it->first.c_str());
-				array->Values->push_back(OBJECT_VAL(name));
-			}
-
-			*result = OBJECT_VAL(array);
-			ScriptManager::Unlock();
-			return true;
-		}
-	}
-
-	return false;
-}
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
@@ -107,7 +72,6 @@ ObjShader* ShaderImpl::New(void* shaderPtr) {
 	ObjShader* shader = (ObjShader*)NewNativeInstance(sizeof(ObjShader));
 	Memory::Track(shader, "NewShader");
 	shader->Object.Class = Class;
-	shader->InstanceObj.PropertyGet = VM_PropertyGet;
 	shader->InstanceObj.Destructor = Dispose;
 	shader->ShaderPtr = shaderPtr;
 	return shader;
@@ -192,14 +156,16 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method AddStage
- * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
+ * \desc Adds a stage to the shader program.<br/>\
+This should not be called multiple times for the same stage.
  * \param stage (<ref SHADERSTAGE_*>): The shader stage.
  * \param shader (string): Filename of the resource containing shader code.
  * \ns Shader
  */
 /***
  * \method AddStage
- * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
+ * \desc Adds a stage to the shader program.<br/>\
+This should not be called multiple times for the same stage.
  * \param stage (<ref SHADERSTAGE_*>): The shader stage.
  * \param shader (stream): A stream containing shader code.
  * \ns Shader
@@ -269,7 +235,8 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method AddStageFromString
- * \desc Adds a stage to the shader program, from a String containing the shader code. This should not be called multiple times for the same stage.
+ * \desc Adds a stage to the shader program, from a String containing the shader code.<br/>\
+This should not be called multiple times for the same stage.
  * \param stage (<ref SHADERSTAGE_*>): The shader stage.
  * \param shader (string): A String that contains shader code.
  * \ns Shader
@@ -310,7 +277,8 @@ VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 th
 }
 /***
  * \method AssignTextureUnit
- * \desc Assigns a texture unit to a texture uniform. This is safe to call multiple times for the same uniform name.
+ * \desc Assigns a texture unit to a texture uniform.<br/>\
+This is safe to call multiple times for the same uniform name. This cannot be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \ns Shader
  */
@@ -337,7 +305,8 @@ VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 thr
 }
 /***
  * \method GetTextureUnit
- * \desc Gets the texture unit assigned to a texture uniform.
+ * \desc Gets the texture unit assigned to a texture uniform.<br/>\
+This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \return integer Returns an integer value, or `null` if no texture unit was assigned.
  * \ns Shader
@@ -404,8 +373,43 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(success);
 }
 /***
+ * \method GetUniformNames
+ * \desc Gets a list of uniform names.<br/>\
+This can only be called after the shader has been compiled.
+ * \return array Returns an array of string values.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_GetUniformNames(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjShader* objShader = AS_SHADER(args[0]);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+
+	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot get uniform names before compilation!");
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjArray* array = NewArray();
+
+		for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end();
+			it++) {
+			ObjString* name = CopyString(it->first.c_str());
+			array->Values->push_back(OBJECT_VAL(name));
+		}
+
+		ScriptManager::Unlock();
+		return OBJECT_VAL(array);
+	}
+
+	return NULL_VAL;
+}
+/***
  * \method HasUniform
- * \desc Checks if the shader has an uniform with the given name. This can only be called after the shader has been compiled.
+ * \desc Checks if the shader has an uniform with the given name.<br/>\
+This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \return boolean Returns whether there is an uniform with the given name.
  * \ns Shader
@@ -427,7 +431,8 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * \method GetUniformType
- * \desc Gets the type of the uniform with the given name. This can only be called after the shader has been compiled.
+ * \desc Gets the type of the uniform with the given name.<br/>\
+This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \return <ref SHADERSTAGE_*> Returns the data type of the uniform, or `null` if there is no uniform with that name.
  * \ns Shader
@@ -454,7 +459,9 @@ VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * \method SetUniform
- * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
+ * \desc Sets the value of an uniform variable.<br/>\
+The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid.<br/>\
+This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \param value (number): The value.
  * \paramOpt dataType (<ref SHADERDATATYPE_*>): The data type of the value being sent. This is required if the value being passed is an array.
@@ -462,7 +469,9 @@ VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 thread
  */
 /***
  * \method SetUniform
- * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
+ * \desc Sets the value of an uniform variable.<br/>\
+The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid.<br/>\
+This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
  * \param value (array): The value.
  * \paramOpt dataType (<ref SHADERDATATYPE_*>): The data type of the value being sent. This is required if the value being passed is an array.
@@ -921,7 +930,8 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 }
 /***
  * \method SetTexture
- * \desc Assigns an Image to a specific texture unit linked to an uniform variable. The texture unit must have been defined using <ref Shader.AssignTextureUnit> for this function to succeed.
+ * \desc Assigns an Image to a specific texture unit linked to an uniform variable.<br/>\
+The texture unit must have been defined using <ref Shader.AssignTextureUnit> for this function to succeed.
  * \param uniform (string): The name of the uniform.
  * \param image (integer): The image index to bind to the uniform.
  * \ns Shader
