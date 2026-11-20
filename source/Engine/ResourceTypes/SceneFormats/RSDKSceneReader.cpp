@@ -223,7 +223,7 @@ void RSDKSceneReader::LoadPropertyList() {
 		nameHead++;
 	}
 	PropertyHashes->Put(nameStart, nameStart);
-	FilterHash = PropertyHashes->HashFunction("filter", 6);
+	FilterHash = PropertyHashes->HashFunction(ENTITY_FILTER_PROPERTY_NAME, strlen(ENTITY_FILTER_PROPERTY_NAME));
 
 	r->Close();
 }
@@ -422,10 +422,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		// Read all properties
 		// No need to allocate the HashMap if the entity won't be added.
 		// We still have to keep reading the stream though.
-		HashMap<Property>* properties = nullptr;
+		PropertyMap* properties = nullptr;
 
 		if (doAdd) {
-			properties = new HashMap<Property>();
+			properties = new PropertyMap();
 
 			for (int a = 1; a < argumentCount; a++) {
 				Property val = Property::MakeNull();
@@ -559,7 +559,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		// Determine whether to spawn the entity
 		int filter = 0xFF;
 		if (PropertyHashes->Exists(FilterHash)) {
-			Property prop = properties->Get("filter");
+			Property prop = properties->Get(ENTITY_FILTER_PROPERTY_NAME);
 			if (prop.Type == PROPERTY_INTEGER) {
 				filter = prop.as.Integer;
 			}
@@ -571,9 +571,6 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 		// Can't spawn in this scene
 		if (!(filter & Scene::Filter)) {
-			properties->ForAll([](Uint32, Property property) -> void {
-				Property::Delete(property);
-			});
 			delete properties;
 			continue;
 		}
@@ -594,9 +591,6 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			}
 		}
 		else {
-			properties->ForAll([](Uint32, Property property) -> void {
-				Property::Delete(property);
-			});
 			delete properties;
 		}
 	}

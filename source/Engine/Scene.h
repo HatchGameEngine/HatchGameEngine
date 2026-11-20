@@ -24,6 +24,7 @@ class DrawGroupList;
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/ObjectList.h>
 #include <Engine/Types/ObjectRegistry.h>
+#include <Engine/Types/PropertyMap.h>
 #include <Engine/Types/Tileset.h>
 
 class Scene {
@@ -57,7 +58,7 @@ public:
 	static int ShowTileCollisionFlag;
 	static int ShowObjectRegions;
 	static bool UseRenderRegions;
-	static HashMap<Property>* Properties;
+	static PropertyMap* Properties;
 	static OrderedHashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
 	static ObjectRegistry* AllObjects;

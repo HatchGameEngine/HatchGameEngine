@@ -54,7 +54,7 @@ int Scene::ShowObjectRegions = 0;
 bool Scene::UseRenderRegions = true;
 
 // Property variables
-HashMap<Property>* Scene::Properties = NULL;
+PropertyMap* Scene::Properties = NULL;
 
 // Object variables
 OrderedHashMap<ObjectList*>* Scene::ObjectLists = NULL;
@@ -2151,9 +2151,6 @@ void Scene::Unload() {
 
 	// Dispose of properties
 	if (Scene::Properties) {
-		Scene::Properties->ForAll([](Uint32, Property property) -> void {
-			Property::Delete(property);
-		});
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
@@ -3797,9 +3794,6 @@ void Scene::Dispose() {
 
 	// Dispose of properties
 	if (Scene::Properties) {
-		Scene::Properties->ForAll([](Uint32, Property property) -> void {
-			Property::Delete(property);
-		});
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;

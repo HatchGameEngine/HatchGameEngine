@@ -494,7 +494,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 
 		// Add "filter" property
 		obj->Filter = filter;
-		obj->Properties->Put("filter", Property::MakeInteger(filter));
+		obj->Properties->Put(ENTITY_FILTER_PROPERTY_NAME, Property::MakeInteger(filter));
 
 		// Add all properties
 		for (Uint8 j = 0; j < numProps; j++) {
