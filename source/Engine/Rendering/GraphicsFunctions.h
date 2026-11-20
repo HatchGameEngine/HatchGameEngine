@@ -3,6 +3,8 @@
 
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 
 struct GraphicsFunctions {
 	void (*Init)();
@@ -134,6 +136,34 @@ struct GraphicsFunctions {
 		float rotation,
 		int paletteID);
 
+	void (*BeginTextureBatching)();
+	void (*BatchRectangleFill)(float x, float y, float w, float h, float r, float g, float b, float a);
+	void (*BatchSprite)(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*BatchSpritePart)(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*FinishTextureBatching)();
+
 	void (*DrawPolygon3D)(void* data,
 		int vertexCount,
 		int vertexFlag,
@@ -169,6 +199,14 @@ struct GraphicsFunctions {
 	void (*DeleteVertexBuffer)(void* vtxBuf);
 	void (*MakeFrameBufferID)(ISprite* sprite);
 	void (*DeleteFrameBufferID)(ISprite* sprite);
+
+	void (*DrawBufferedTileLayer)(TileLayer* layer);
+	void (*MakeLayerTileBuffers)(TileLayer* layer);
+	void (*DeleteLayerTileBuffers)(TileLayer* layer);
+	void (*RefreshTileBuffersForTileset)(TileLayer* layer, size_t tilesetIndex);
+	void (*DeleteTileBuffersForTileset)(TileLayer* layer, size_t tilesetIndex);
+	void (*UpdateBufferedLayerTile)(TileLayer* layer, int x, int y);
+	void (*RefreshLayerTileAnimations)(TileLayer *layer);
 
 	void (*SetStencilEnabled)(bool enabled);
 	void (*SetStencilTestFunc)(int stencilTest);

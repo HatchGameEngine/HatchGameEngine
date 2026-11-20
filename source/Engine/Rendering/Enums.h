@@ -1,7 +1,7 @@
 #ifndef ENGINE_RENDERING_ENUMS
 #define ENGINE_RENDERING_ENUMS
 
-#include "Engine/Includes/Standard.h"
+#include <Engine/Includes/Standard.h>
 
 enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888, PixelFormat_RGB888, PixelFormat_BGR888 };
 
@@ -150,6 +150,13 @@ enum {
 };
 
 enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
+
+enum {
+	ASPECTMODE_NONE,
+	ASPECTMODE_STRETCH,
+	ASPECTMODE_FIT,
+	ASPECTMODE_FILL
+};
 
 struct TileScanLine {
 	Sint64 SrcX;

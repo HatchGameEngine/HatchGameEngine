@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <numeric>
 #include <string>
 #include <vector>

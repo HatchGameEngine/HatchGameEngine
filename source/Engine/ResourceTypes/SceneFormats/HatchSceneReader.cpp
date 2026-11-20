@@ -9,6 +9,7 @@
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 #include <Engine/Types/Entity.h>
 
 Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
@@ -19,7 +20,8 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_COLLB_MASK 0x00030000U
 #define HSCN_FLIPX_MASK 0x00001000U
 #define HSCN_FLIPY_MASK 0x00002000U
-#define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
+#define HSCN_IDENT_MASK 0x00000FFFU // Max. 4096 tiles
+#define HSCN_FXYID_MASK (HSCN_FLIPY_MASK | HSCN_FLIPY_MASK | HSCN_IDENT_MASK)
 
 bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
@@ -76,20 +78,19 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	// Read layers
 	Uint8 numLayers = r->ReadByte();
-	Scene::Layers.resize(numLayers);
 	for (Uint32 i = 0; i < numLayers; i++) {
-		SceneLayer layer = HatchSceneReader::ReadLayer(r);
+		TileLayer* layer = HatchSceneReader::ReadLayer(r);
 
 #ifdef HSCN_READER_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
 			"Layer %d (%s): %dx%d",
 			i,
-			layer.Name,
-			layer.Width,
-			layer.Height);
+			layer->Name,
+			layer->Width,
+			layer->Height);
 #endif
 
-		Scene::Layers[i] = layer;
+		Scene::AddLayer(layer);
 	}
 
 	// Read classes and entities
@@ -102,7 +103,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	return true;
 }
 
-SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
+TileLayer* HatchSceneReader::ReadLayer(Stream* r) {
 	char* name = r->ReadHeaderedString();
 	Uint8 drawBehavior = r->ReadByte();
 	Uint8 drawGroup = r->ReadByte();
@@ -111,54 +112,53 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	Uint16 relativeY = r->ReadInt16();
 	Uint16 constantY = r->ReadInt16();
 
-	SceneLayer layer(width, height);
+	TileLayer* layer = new TileLayer(width, height);
+	layer->Name = name;
+	layer->Flags = SceneLayer::FLAGS_COLLIDEABLE;
+	layer->Visible = true;
 
-	layer.Name = name;
-	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	layer.Visible = true;
-
-	// Set draw group and behavior
+	// Set draw group and draw behavior
 	if (drawGroup & 0x10) {
 		drawGroup &= 0xF;
-		layer.Visible = false;
+		layer->Visible = false;
 	}
 
-	layer.DrawGroup = drawGroup;
-	layer.DrawBehavior = drawBehavior;
+	layer->DrawGroup = drawGroup;
+	layer->DrawBehavior = drawBehavior;
 
-	layer.RelativeY = (float)relativeY / 0x100;
-	layer.ConstantY = (float)constantY / 0x100;
+	layer->RelativeY = (float)relativeY / 0x100;
+	layer->ConstantY = (float)constantY / 0x100;
 
-	layer.ScrollInfoCount = r->ReadUInt16();
+	layer->ScrollInfoCount = r->ReadUInt16();
 
-	if (layer.ScrollInfoCount > 0) {
-		layer.ScrollInfos = (ScrollingInfo*)Memory::Malloc(
-			layer.ScrollInfoCount * sizeof(ScrollingInfo));
+	if (layer->ScrollInfoCount > 0) {
+		layer->ScrollInfos = (ScrollingInfo*)Memory::Malloc(
+			layer->ScrollInfoCount * sizeof(ScrollingInfo));
 
-		if (!layer.ScrollInfos) {
+		if (!layer->ScrollInfos) {
 			Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
 		}
 
-		layer.UsingScrollIndexes = true;
+		layer->UsingScrollIndexes = true;
 	}
 	else {
-		layer.ScrollInfos = nullptr;
-		layer.UsingScrollIndexes = false;
+		layer->ScrollInfos = nullptr;
+		layer->UsingScrollIndexes = false;
 	}
 
 	// Read scroll data
-	HatchSceneReader::ReadScrollData(r, &layer);
+	HatchSceneReader::ReadScrollData(r, layer);
 
 	// Read and convert tile data
-	HatchSceneReader::ReadTileData(r, &layer);
-	HatchSceneReader::ConvertTileData(&layer);
+	HatchSceneReader::ReadTileData(r, layer);
+	HatchSceneReader::ConvertTileData(layer);
 
-	memcpy(layer.TilesBackup, layer.Tiles, layer.DataSize);
+	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
 
 	return layer;
 }
 
-void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
+void HatchSceneReader::ReadTileData(Stream* r, TileLayer* layer) {
 	size_t streamPos = r->Position();
 
 	r->ReadUInt32(); // compressed size
@@ -177,15 +177,15 @@ void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
 	r->ReadCompressed(layer->Tiles, dataSize);
 }
 
-void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
-	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
+void HatchSceneReader::ConvertTileData(TileLayer* layer) {
+	for (size_t i = 0; i < (size_t)layer->WidthData * layer->HeightData; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
 		}
 
 		Uint32 tileID = (layer->Tiles[i] & HSCN_FXYID_MASK);
-		Uint32 tile = (tileID & TILE_IDENT_MASK);
+		Uint32 tile = tileID & 0xFFF;
 		if (tile >= Scene::TileSpriteInfos.size()) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
@@ -208,7 +208,7 @@ void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
 	}
 }
 
-void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
+void HatchSceneReader::ReadScrollData(Stream* r, TileLayer* layer) {
 	for (int i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
@@ -218,6 +218,8 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
 		info->RelativeParallax = (float)relativeParallax / 0x100;
 		info->ConstantParallax = (float)constantParallax / 0x100;
 		info->CanDeform = (bool)r->ReadByte();
+
+		info->Offset = 0.0f;
 
 		r->ReadByte(); // ?
 	}
@@ -237,6 +239,7 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
 			dataSize);
 	}
 
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(dataSize);
 	r->ReadCompressed(layer->ScrollIndexes, dataSize);
 }
 
@@ -424,8 +427,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		classHash.C = r->ReadUInt32();
 		classHash.D = r->ReadUInt32();
 
-		float posX = r->ReadUInt32() / 65536.0;
-		float posY = r->ReadUInt32() / 65536.0;
+		float posX = r->ReadInt32() / 65536.0;
+		float posY = r->ReadInt32() / 65536.0;
 		Uint8 filter = r->ReadByte();
 		Uint8 numProps = r->ReadByte();
 

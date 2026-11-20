@@ -78,14 +78,14 @@ public:
 		if (Keys.size() > 0) {
 			return Keys[0];
 		}
-		return 0;
+		return 0xFFFFFFFF;
 	}
 	Uint32 GetNextKey(Uint32 key) {
 		auto it = std::find(Keys.begin(), Keys.end(), key);
 		if (it != Keys.end() && it + 1 != Keys.end()) {
 			return *(it + 1);
 		}
-		return 0;
+		return 0xFFFFFFFF;
 	}
 
 	~OrderedHashMap<T>() {

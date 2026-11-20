@@ -3,9 +3,7 @@
 #include <Engine/Application.h>
 
 void ObjectRegistry::Add(Entity* obj) {
-	if (!Contains(obj)) {
-		List.push_back(obj);
-	}
+	List.push_back(obj);
 }
 bool ObjectRegistry::Contains(Entity* obj) {
 	return std::find(List.begin(), List.end(), obj) != List.end();

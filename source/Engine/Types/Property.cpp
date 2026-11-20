@@ -50,6 +50,27 @@ Property Property::MakeArray(PropertyArray value) {
 	return val;
 }
 
+Property Property::Duplicate(Property property) {
+	Property copy = property;
+
+	switch (property.Type) {
+	case PROPERTY_STRING:
+		copy.as.String = StringUtils::Duplicate(property.as.String);
+		break;
+	case PROPERTY_ARRAY: {
+		Property* destData = (Property*)Memory::Malloc(property.as.Array.Count * sizeof(Property));
+		Property* srcData = (Property*)property.as.Array.Data;
+		for (size_t i = 0; i < property.as.Array.Count; i++) {
+			destData[i] = Property::Duplicate(srcData[i]);
+		}
+		copy.as.Array.Data = destData;
+		break;
+	}
+	}
+
+	return copy;
+}
+
 void Property::Delete(Property property) {
 	switch (property.Type) {
 	case PROPERTY_STRING:

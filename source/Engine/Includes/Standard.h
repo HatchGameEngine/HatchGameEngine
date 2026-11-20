@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <csetjmp>
+#include <cmath>
 #include <deque>
 #include <filesystem>
 #include <map>
@@ -61,29 +62,14 @@ enum class KeyBind {
 	DevTileCol,
 	DevObjectRegions,
 	DevViewHitboxes,
+	DevPaletteViewer,
+	DevPreviousScene,
+	DevNextScene,
 	DevMenuToggle,
 	DevScriptDebugger,
 	DevQuit,
 
 	Max
-};
-
-struct DeveloperMenu {
-	void (*State)();
-	int Selection;
-	int SubSelection;
-	int ScrollPos;
-	int SubScrollPos;
-	double Timer;
-	bool Fullscreen;
-	int SceneState;
-	int ListPos;
-	int WindowScale;
-	bool WindowBorderless;
-	int CurrentWindowWidth;
-	int CurrentWindowHeight;
-	int PlayerListPos;
-	bool MusicPausedStore;
 };
 
 #define DEFAULT_TARGET_FRAMERATE 60
@@ -102,6 +88,7 @@ struct DeveloperMenu {
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+#define SCOPE_GROUP 2 // SCOPE_GROUP is intentionally 2 for Hatch backwards compatibility, but behaves as a midpoint of SCOPE_SCENE and SCOPE_GAME.
 
 #define PALETTE_INDEX_TABLE_ID -1
 
@@ -130,6 +117,8 @@ typedef int64_t Sint64;
 #define HITBOX_BOTTOM 3
 #define NUM_HITBOX_SIDES 4
 
+#define PARENT_DIRECTORY ".."
+
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)
 #else
@@ -138,6 +127,10 @@ typedef int64_t Sint64;
 
 #if defined(__unix__) && !defined(UNIX)
 #define UNIX __unix__
+#endif
+
+#if defined(SWITCH) || defined(PLAYSTATION) || defined(XBOX)
+#define CONSOLE_PLATFORM
 #endif
 
 #endif // STANDARDLIBS_H

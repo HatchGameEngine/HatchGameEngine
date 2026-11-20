@@ -26,6 +26,7 @@ int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
 bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
+bool Graphics::LayerTileBufferingEnabled = true;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
@@ -65,6 +66,12 @@ bool Graphics::StencilEnabled = false;
 int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
+
+Uint16 Graphics::DotPatternX = 0;
+Uint16 Graphics::DotPatternY = 0;
+
+int Graphics::DotPatternOffsetX = 0;
+int Graphics::DotPatternOffsetY = 0;
 
 Texture* Graphics::FramebufferTexture = NULL;
 int Graphics::FramebufferWidth = 0;
@@ -256,6 +263,10 @@ void Graphics::Reset() {
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
 	Graphics::StencilOpFail = StencilOp_Keep;
+
+	SetDotPattern(0);
+	SetDotPatternOffsetX(0);
+	SetDotPatternOffsetY(0);
 }
 void Graphics::Dispose() {
 	Graphics::UnloadData();
@@ -917,7 +928,7 @@ void Graphics::DoScreenPostProcess() {
 	Graphics::UpdateOrthoFlipped(ww, wh);
 	Graphics::SetDepthTesting(false);
 	Graphics::SetBlendMode(BlendMode_NORMAL);
-	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 	Graphics::TextureBlend = false;
 
 	Graphics::SetUserShader(Graphics::PostProcessShader);
@@ -928,8 +939,8 @@ void Graphics::DoScreenPostProcess() {
 		Graphics::FramebufferTexture->Height,
 		0.0,
 		0.0,
-		Application::WindowWidth,
-		Application::WindowHeight);
+		ww,
+		wh);
 	Graphics::SetUserShader(nullptr);
 }
 void Graphics::CopyFramebuffer(int sourceX,
@@ -1386,7 +1397,7 @@ void Graphics::DrawTriangle(Texture* texture,
 	float* tu,
 	float* tv,
 	int* colors) {
-	if (Graphics::GfxFunctions->DrawQuad) {
+	if (Graphics::GfxFunctions->DrawTriangle) {
 		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
 	}
 }
@@ -1613,8 +1624,8 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			glyph,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * baseline),
 			false,
 			false,
 			1.0f,
@@ -2148,8 +2159,8 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x - lineWidths[line] * params->Align,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x - lineWidths[line] * params->Align),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2240,10 +2251,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 					Graphics::DrawSprite(sprite,
 						0,
 						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								params->Baseline,
+						std::floor(x),
+						std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 						false,
 						false,
 						1.0f,
@@ -2315,8 +2324,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 		Graphics::DrawSprite(sprite,
 			0,
 			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			std::floor(x),
+			std::floor(y - sprite->Animations[0].AnimationSpeed * params->Baseline),
 			false,
 			false,
 			1.0f,
@@ -2472,11 +2481,12 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 	}
 }
 
-Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
+Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
-	float relative) {
-	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
+	float relative,
+	float lineOffset) {
+	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX + lineOffset);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		int layerWidth = layer->Width * Scene::TileWidth;
@@ -2490,7 +2500,7 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
 
 	return position;
 }
-void Graphics::CalcScanlineDeforms(SceneLayer* layer,
+void Graphics::CalcScanlineDeforms(TileLayer* layer,
 	int start,
 	int end,
 	float viewX,
@@ -2504,8 +2514,9 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 		end = MAX_FRAMEBUFFER_HEIGHT - 1;
 	}
 
+	int deformLine = scrollLine + deformOffset;
 	// Iterate lines
-	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+	for (int i = start; i < end; i++, scrollLine++, deformLine++, scanLine++) {
 		if (i < 0) {
 			continue;
 		}
@@ -2520,14 +2531,12 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
 			scanLine->SrcX = info->Position;
 			if (info->CanDeform) {
-				int deformTableOffset = scrollLine + deformOffset;
-				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
-				scanLine->SrcX += deformValues[deformTableOffset];
+				scanLine->SrcX += deformValues[deformLine & ((MAX_DEFORM_LINES >> 1) - 1)];
 			}
 		}
 		else {
 			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, layer->ConstantX, layer->RelativeX);
+				layer, viewX, layer->ConstantX, layer->RelativeX, 0.0f);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2537,7 +2546,7 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 	}
 }
 
-void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView) {
 	int layerHeight = layer->Height * Scene::TileHeight;
 	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2551,8 +2560,9 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				layer->ConstantX * info->ConstantParallax,
-				layer->RelativeX * info->RelativeParallax);
+				layer->ConstantX + info->ConstantParallax,
+				layer->RelativeX * info->RelativeParallax,
+				info->Offset);
 		}
 
 		// Create scanlines
@@ -2589,6 +2599,60 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 		break;
 	}
 	case DrawBehavior_VerticalParallax: {
+		int layerWidth = layer->Width * Scene::TileWidth;
+		int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
+		if (viewWidth > MAX_FRAMEBUFFER_HEIGHT) {
+			viewWidth = MAX_FRAMEBUFFER_HEIGHT;
+		}
+
+		for (int i = 0; i < layer->ScrollInfoCount; i++) {
+			ScrollingInfo* info = &layer->ScrollInfos[i];
+			Sint64 position = (Sint64)((Scene::Frame * info->ConstantParallax) + (currentView->Y * info->RelativeParallax) + layer->OffsetY + info->Offset) % layerHeight;
+			if (position < 0) {
+				position += layerHeight;
+			}
+			info->Position = position;
+		}
+
+		Sint64 scrollPos = (Sint64)((Scene::Frame * layer->ConstantY) + (currentView->X * layer->RelativeY) + layer->OffsetX) % layerWidth;
+		if (scrollPos < 0) {
+			scrollPos += layerWidth;
+		}
+
+		Sint64 defaultPosY = (Sint64)(currentView->Y + layer->OffsetY) % layerHeight;
+		if (defaultPosY < 0) {
+			defaultPosY += layerHeight;
+		}
+
+		int scrollIndexCount = layer->ScrollIndexCount * 16;
+
+		TileScanLine* scanLine = TileScanLineBuffer;
+		for (int i = 0; i < viewWidth; i++) {
+			Sint64 srcY = defaultPosY;
+			if (layer->ScrollInfoCount) {
+				int index = 0;
+				if (layer->UsingScrollIndexes && scrollPos < scrollIndexCount) {
+					index = layer->ScrollIndexes[scrollPos];
+				}
+				if (index >= layer->ScrollInfoCount) {
+					index = 0;
+				}
+				srcY = (Sint64)layer->ScrollInfos[index].Position;
+			}
+
+			scanLine->SrcX = scrollPos << 16;
+			scanLine->SrcY = srcY << 16;
+			scanLine->DeltaX = 0;
+			scanLine->DeltaY = 0x10000;
+			scanLine->Opacity = 0xFF;
+			scanLine->MaxHorzCells = 0;
+			scanLine->MaxVertCells = 0;
+
+			if (++scrollPos == layerWidth) {
+				scrollPos = 0;
+			}
+			scanLine++;
+		}
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
@@ -2619,8 +2683,10 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 	}
 }
 
-void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+void Graphics::DrawTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
+	if (!Graphics::GfxFunctions->DrawSprite) {
+		return;
+	}
 
 	int paletteID;
 	if (usePaletteIndexLines) {
@@ -2642,7 +2708,7 @@ void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool use
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawTilePart(int tile,
+void Graphics::DrawTilePart(TileSpriteInfo& info,
 	int sx,
 	int sy,
 	int sw,
@@ -2652,7 +2718,9 @@ void Graphics::DrawTilePart(int tile,
 	bool flipX,
 	bool flipY,
 	bool usePaletteIndexLines) {
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+	if (!Graphics::GfxFunctions->DrawSpritePart) {
+		return;
+	}
 
 	int paletteID;
 	if (usePaletteIndexLines) {
@@ -2678,7 +2746,7 @@ void Graphics::DrawTilePart(int tile,
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated, int drawTileCollision) {
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
@@ -2734,6 +2802,22 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
+	TileConfig* baseTileCfg = nullptr;
+
+	if (drawTileCollision != 0) {
+		size_t collisionPlane = drawTileCollision - 1;
+		if (collisionPlane < Scene::TileCfg.size()) {
+			baseTileCfg = Scene::TileCfg[collisionPlane];
+		}
+
+		// No tile config?
+		if (baseTileCfg == nullptr) {
+			return;
+		}
+	}
+
+	Graphics::BeginTextureBatching();
+
 	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
 		if (srcY < 0 || srcY >= layerHeightInPixels) {
 			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_Y) == 0) {
@@ -2775,10 +2859,86 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				continue;
 			}
 
+			// drawTileCollision != 0 means to exclusively draw tile collision data for this layer
+			if (drawTileCollision != 0) {
+				Uint32 collision = 0;
+
+				if (drawTileCollision == 1) {
+					collision = (tile & TILE_COLLA_MASK) >> 28;
+				}
+				else {
+					collision = (tile & TILE_COLLB_MASK) >> 26;
+				}
+
+				if (collision == 0) {
+					continue;
+				}
+
+				float colorR = 0.0, colorG = 0.0, colorB = 0.0;
+
+				switch (collision) {
+				case 1:
+					colorR = 0.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				case 2:
+					colorR = 0.0;
+					colorG = 0.0;
+					colorB = 1.0;
+					break;
+				case 3:
+					colorR = 1.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				}
+
+				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
+
+				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
+				int xx = viewX + (dst_x - (srcX % tileWidth));
+				int yy = viewY + (dst_y - (srcY % tileHeight));
+
+				if (baseTileCfg[tileID].IsCeiling) {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionBottom[gg];
+						if (col < 0xF0) {
+							col++;
+							BatchRectangleFill(xx, yy, 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+				else {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionTop[gg];
+						if (col < 0xF0) {
+							col = tileHeight - col;
+							BatchRectangleFill(xx, yy + (tileHeight - col), 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+
+				continue;
+			}
+
+			if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				continue;
+			}
+
+			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+			if (onlyAnimated && !info.IsAnimated) {
+				continue;
+			}
+
 			int srcTX = srcX % tileWidth;
 			int srcTY = srcY % tileHeight;
 
-			Graphics::DrawTile(tileID,
+			Graphics::BatchTile(info,
 				viewX + ((dst_x - srcTX) + tileWidthHalf),
 				viewY + ((dst_y - srcTY) + tileHeightHalf),
 				(tile & TILE_FLIPX_MASK) != 0,
@@ -2786,8 +2946,10 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				usePaletteIndexLines);
 		}
 	}
+
+	Graphics::FinishTextureBatching();
 }
-void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView) {
 	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
 	int max_y = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2800,6 +2962,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 	int layerWidthInPixels = layer->Width * tileWidth;
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	Graphics::BeginTextureBatching();
 
 	TileScanLine* scanLine = TileScanLineBuffer;
 	for (int dst_y = 0; dst_y < max_y;) {
@@ -2846,6 +3010,12 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 
 			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
+				if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
+					continue;
+				}
+
+				TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
@@ -2857,7 +3027,7 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					textureSrcTY = tileHeight - srcTY - tileDrawHeight;
 				}
 
-				Graphics::DrawTilePart(tileID,
+				Graphics::BatchTilePart(info,
 					0,
 					textureSrcTY,
 					tileWidth,
@@ -2873,19 +3043,42 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 		scanLine += tileDrawHeight;
 		dst_y += tileDrawHeight;
 	}
+
+	Graphics::FinishTextureBatching();
+}
+bool Graphics::CanDrawBufferedTileLayer(TileLayer* layer) {
+	if (!Graphics::GfxFunctions->DrawBufferedTileLayer) {
+		return false;
+	}
+
+	if (!layer->UsingTileBuffers || layer->UsingScrollIndexes) {
+		return false;
+	}
+
+	if ((layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y)) != 0) {
+		return false;
+	}
+
+	return true;
+}
+void Graphics::DrawBufferedTileLayer(TileLayer* layer, View* currentView) {
+	Graphics::GfxFunctions->DrawBufferedTileLayer(layer);
+
+	Graphics::DrawTileLayer_HorizontalParallax(layer, currentView, true);
 }
 void Graphics::DrawSceneLayer(SceneLayer* layer,
 	View* currentView,
 	int layerIndex,
 	bool useCustomFunction) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
+	if (layer->UsingCustomRenderFunction && useCustomFunction) {
+		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
 		return;
 	}
 
-	if (layer->UsingCustomRenderFunction && useCustomFunction) {
-		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+	// If possible, uses optimized software-renderer call instead.
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions &&
+		layer->Type == SceneLayer::TYPE_TILE) {
+		SoftwareRenderer::DrawTileLayer((TileLayer*)layer, layerIndex, currentView);
 		return;
 	}
 
@@ -2894,16 +3087,220 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		Graphics::SetUserShader(shader);
 	}
 
-	if (layer->UsingScrollIndexes) {
-		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
-		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
-	}
-	else {
-		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+	switch (layer->Type) {
+	case SceneLayer::TYPE_TILE:
+		DrawTileLayer((TileLayer*)layer, currentView);
+		break;
+	case SceneLayer::TYPE_IMAGE:
+		DrawImageLayer((ImageLayer*)layer, currentView);
+		break;
 	}
 
 	if (shader) {
 		Graphics::SetUserShader(nullptr);
+	}
+}
+void Graphics::DrawTileLayer(TileLayer* layer, View* currentView) {
+	if (Scene::Tilesets.size() == 0) {
+		return;
+	}
+
+	if (Graphics::CanDrawBufferedTileLayer(layer)) {
+		bool updateViewMatrix = layer->RelativeX != 1.0f || layer->RelativeY != 1.0f ||
+			layer->ConstantX != 0.0f || layer->ConstantX != 0.0f ||
+			layer->OffsetX != 0.0f || layer->OffsetY != 0.0f;
+		if (updateViewMatrix) {
+			float constantScrollH = Scene::Frame * layer->ConstantX;
+			float constantScrollV = Scene::Frame * layer->ConstantY;
+
+			float viewX = (int)(constantScrollH + (currentView->X * layer->RelativeX) +
+				layer->OffsetX);
+			float viewY = (int)(constantScrollV + (currentView->Y * layer->RelativeY) +
+				layer->OffsetY);
+
+			Graphics::Save();
+			Scene::SetupViewMatrices(currentView, viewX, viewY, currentView->Z);
+		}
+
+		Graphics::DrawBufferedTileLayer(layer, currentView);
+
+		if (updateViewMatrix) {
+			Graphics::Restore();
+		}
+	}
+	else if (layer->UsingScrollIndexes) {
+		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawTileLayer_HorizontalScrollIndexes(layer, currentView);
+	}
+	else {
+		Graphics::DrawTileLayer_HorizontalParallax(layer, currentView, false);
+	}
+
+	if ((layer->Flags & SceneLayer::FLAGS_COLLIDEABLE) != 0 && Scene::ShowTileCollisionFlag != 0) {
+		DrawTileLayer_HorizontalParallax(layer, currentView, false, Scene::ShowTileCollisionFlag);
+	}
+}
+void Graphics::DrawImageLayer(ImageLayer* layer, View* currentView) {
+	Image* image = layer->ImagePtr;
+	if (!image || !image->TexturePtr) {
+		return;
+	}
+
+	float viewX = currentView->X;
+	float viewY = currentView->Y;
+
+	float constantScrollH = Scene::Frame * layer->ConstantX;
+	float constantScrollV = Scene::Frame * layer->ConstantY;
+
+	float x = -(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
+	float y = -(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
+
+	Uint32 repeatFlags =
+		layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
+	if (repeatFlags == 0) {
+		Graphics::DrawTexture(image->TexturePtr,
+			0,
+			0,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			viewX + x,
+			viewY + y,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			0);
+		return;
+	}
+
+	float viewWidth, viewHeight;
+
+	Translate(viewX, viewY, 0.0f);
+
+	switch (repeatFlags) {
+	case SceneLayer::FLAGS_REPEAT_X:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		DrawTextureLoopHorizontal(image->TexturePtr, x, y, viewWidth);
+		break;
+	case SceneLayer::FLAGS_REPEAT_Y:
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopVertical(image->TexturePtr, x, y, viewHeight);
+		break;
+	case SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopHV(image->TexturePtr, x, y, viewWidth, viewHeight);
+		break;
+	}
+
+	Translate(-viewX, -viewY, 0.0f);
+}
+void Graphics::DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth) {
+	int max = std::ceil(maxWidth / texture->Width) + 1;
+
+	if (x > 0) {
+		x = fmod(x, texture->Width);
+		x -= texture->Width;
+	}
+	else {
+		x = fmod(x, texture->Width);
+	}
+
+	for (int i = 0; i < max; i++) {
+		if (x > maxWidth) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		x += texture->Width;
+	}
+}
+void Graphics::DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight) {
+	int max = std::ceil(maxHeight / texture->Height) + 1;
+
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
+
+	for (int i = 0; i < max; i++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		y += texture->Height;
+	}
+}
+void Graphics::DrawTextureLoopHV(Texture* texture,
+	float x,
+	float y,
+	float maxWidth,
+	float maxHeight) {
+	int maxW = std::ceil(maxWidth / texture->Width) + 1;
+	int maxH = std::ceil(maxHeight / texture->Height) + 1;
+
+	float xStart = fmod(x, texture->Width);
+	if (x > 0) {
+		xStart -= texture->Width;
+	}
+
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
+
+	for (int ly = 0; ly < maxH; ly++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		float x = xStart;
+
+		for (int lx = 0; lx < maxW; lx++) {
+			if (x > maxWidth) {
+				break;
+			}
+
+			Graphics::DrawTexture(texture,
+				0,
+				0,
+				texture->Width,
+				texture->Height,
+				x,
+				y,
+				texture->Width,
+				texture->Height,
+				0);
+
+			x += texture->Width;
+		}
+
+		y += texture->Height;
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
@@ -2914,6 +3311,114 @@ void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 	else {
 		thread->Push(INTEGER_VAL(layerIndex));
 		thread->RunEntityFunction(func, 1);
+	}
+}
+
+void Graphics::BeginTextureBatching() {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BeginTextureBatching) {
+		Graphics::GfxFunctions->BeginTextureBatching();
+	}
+}
+void Graphics::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchRectangleFill) {
+		Graphics::GfxFunctions->BatchRectangleFill(x, y, w, h, r, g, b, a);
+	}
+	else if (Graphics::GfxFunctions->FillRectangle) {
+		SetBlendColor(r, g, b, a);
+
+		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+	}
+}
+void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSprite) {
+		Graphics::GfxFunctions->BatchSprite(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			(int)paletteID);
+	}
+	else if (Graphics::GfxFunctions->DrawSprite) {
+		Graphics::GfxFunctions->DrawSprite(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			0.0f,
+			(int)paletteID);
+	}
+}
+void Graphics::BatchTilePart(TileSpriteInfo& info,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	int x,
+	int y,
+	bool flipX,
+	bool flipY,
+	bool usePaletteIndexLines) {
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSpritePart) {
+		Graphics::GfxFunctions->BatchSpritePart(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			(int)paletteID);
+	}
+	else {
+		Graphics::GfxFunctions->DrawSpritePart(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			0.0f,
+			(int)paletteID);
+	}
+}
+void Graphics::FinishTextureBatching() {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->FinishTextureBatching) {
+		Graphics::GfxFunctions->FinishTextureBatching();
 	}
 }
 
@@ -3137,37 +3642,45 @@ void Graphics::MakeSpritePolygonUVs(VertexAttribute data[4],
 	int uv_top = frameY;
 	int uv_bottom = frameY + frameH;
 
-	int left_u, right_u, top_v, bottom_v;
+	Sint64 insetU = FP16_DIVIDE(FP16_TO(1), textureWidth) >> 2;
+	Sint64 insetV = FP16_DIVIDE(FP16_TO(1), textureHeight) >> 2;
+
+	Sint64 frameLeft = FP16_DIVIDE(FP16_TO(uv_left), textureWidth) + insetU;
+	Sint64 frameRight = FP16_DIVIDE(FP16_TO(uv_right), textureWidth) - insetU;
+	Sint64 frameTop = FP16_DIVIDE(FP16_TO(uv_top), textureHeight) + insetV;
+	Sint64 frameBottom = FP16_DIVIDE(FP16_TO(uv_bottom), textureHeight) - insetV;
+
+	Sint64 left_u, right_u, top_v, bottom_v;
 
 	if (flipX) {
-		left_u = uv_right;
-		right_u = uv_left;
+		left_u = frameRight;
+		right_u = frameLeft;
 	}
 	else {
-		left_u = uv_left;
-		right_u = uv_right;
+		left_u = frameLeft;
+		right_u = frameRight;
 	}
 
 	if (flipY) {
-		top_v = uv_bottom;
-		bottom_v = uv_top;
+		top_v = frameBottom;
+		bottom_v = frameTop;
 	}
 	else {
-		top_v = uv_top;
-		bottom_v = uv_bottom;
+		top_v = frameTop;
+		bottom_v = frameBottom;
 	}
 
-	data[3].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
-	data[3].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+	data[3].UV.X = left_u;
+	data[3].UV.Y = bottom_v;
 
-	data[2].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
-	data[2].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+	data[2].UV.X = right_u;
+	data[2].UV.Y = bottom_v;
 
-	data[1].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
-	data[1].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+	data[1].UV.X = right_u;
+	data[1].UV.Y = top_v;
 
-	data[0].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
-	data[0].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+	data[0].UV.X = left_u;
+	data[0].UV.Y = top_v;
 }
 
 void Graphics::MakeFrameBufferID(ISprite* sprite) {
@@ -3179,6 +3692,96 @@ void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 	if (Graphics::GfxFunctions->DeleteFrameBufferID) {
 		Graphics::GfxFunctions->DeleteFrameBufferID(sprite);
 	}
+}
+
+bool Graphics::CanBuildLayerTileBuffers(TileLayer* layer) {
+	if (Scene::Tilesets.size() == 0) {
+		return false;
+	}
+
+	if (layer->UsingScrollIndexes) {
+		return false;
+	}
+
+	if ((layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y)) != 0) {
+		return false;
+	}
+
+	return true;
+}
+
+void Graphics::MakeLayerTileBuffers(SceneLayer* layer) {
+	if (!Graphics::GfxFunctions->MakeLayerTileBuffers) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	if (!Graphics::CanBuildLayerTileBuffers((TileLayer*)layer)) {
+		return;
+	}
+
+	if (Graphics::GfxFunctions->MakeLayerTileBuffers) {
+		Graphics::GfxFunctions->MakeLayerTileBuffers((TileLayer*)layer);
+	}
+}
+void Graphics::DeleteLayerTileBuffers(SceneLayer* layer) {
+	if (!Graphics::GfxFunctions->DeleteLayerTileBuffers) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->DeleteLayerTileBuffers((TileLayer*)layer);
+}
+
+void Graphics::RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+	if (!Graphics::GfxFunctions->RefreshTileBuffersForTileset) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->RefreshTileBuffersForTileset((TileLayer*)layer, tilesetIndex);
+}
+void Graphics::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+	if (!Graphics::GfxFunctions->DeleteTileBuffersForTileset) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->DeleteTileBuffersForTileset((TileLayer*)layer, tilesetIndex);
+}
+void Graphics::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
+	if (!Graphics::GfxFunctions->UpdateBufferedLayerTile) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->UpdateBufferedLayerTile((TileLayer*)layer, x, y);
+}
+void Graphics::RefreshLayerTileAnimations(SceneLayer* layer) {
+	if (!Graphics::GfxFunctions->RefreshLayerTileAnimations) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->RefreshLayerTileAnimations((TileLayer*)layer);
 }
 
 void Graphics::SetDepthTesting(bool enabled) {
@@ -3275,4 +3878,28 @@ void Graphics::ClearStencil() {
 	if (Graphics::GfxFunctions->ClearStencil) {
 		Graphics::GfxFunctions->ClearStencil();
 	}
+}
+void Graphics::SetDotPattern(int mask) {
+	SetDotPatternX(mask);
+	SetDotPatternY(mask);
+}
+void Graphics::SetDotPatternX(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternX = mask;
+}
+void Graphics::SetDotPatternY(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternY = mask;
+}
+void Graphics::SetDotPatternOffsetX(int offset) {
+	DotPatternOffsetX = offset;
+}
+void Graphics::SetDotPatternOffsetY(int offset) {
+	DotPatternOffsetY = offset;
 }

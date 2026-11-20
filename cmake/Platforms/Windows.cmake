@@ -41,7 +41,10 @@ target_link_libraries(${PROJECT_NAME}
   Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
 
 if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
-  target_link_libraries(${PROJECT_NAME} -mwindows)
+  set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)
+  target_link_options(${PROJECT_NAME} PRIVATE "LINKER:/ENTRY:mainCRTStartup")
+else()
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DWINDOWS_CONSOLE_APP)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DSDL_MAIN_HANDLED)

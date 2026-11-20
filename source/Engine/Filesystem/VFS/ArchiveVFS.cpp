@@ -2,6 +2,8 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
+#include <set>
+
 bool ArchiveVFS::AddEntry(VFSEntry* entry) {
 	// This adds the entry directly, without doing any filename transformation
 	// or modifying the entry name.
@@ -121,7 +123,7 @@ bool ArchiveVFS::EraseFile(const char* filename) {
 	return false;
 }
 
-VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
+VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path, VFSEnumerationOptions options) {
 	VFSEnumeration enumeration;
 
 	if (NumEntries == 0) {
@@ -129,11 +131,37 @@ VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
 		return enumeration;
 	}
 
+	bool hasStartingPath = path != nullptr && path[0] != '\0';
+	size_t startingPathLength = hasStartingPath ? strlen(path) : 0;
+
+	std::set<std::string> dirs;
+
 	for (size_t i = 0; i < NumEntries; i++) {
 		std::string entryName = EntryNames[i];
-		if (path != nullptr && path[0] != '\0' &&
-			!StringUtils::StartsWith(entryName.c_str(), path)) {
+		if (hasStartingPath && !StringUtils::StartsWith(entryName.c_str(), path)) {
 			continue;
+		}
+
+		if (options.OnlyCurrentDirectory) {
+			const char* relPath = entryName.c_str();
+
+			relPath += startingPathLength;
+
+			if (relPath[0] == '/') {
+				relPath++;
+			}
+
+			entryName = std::string(relPath);
+
+			const char* sep = strchr(relPath, '/');
+			if (sep) {
+				entryName = entryName.substr(0, sep - relPath);
+				if (!dirs.count(entryName)) {
+					enumeration.Entries.push_back(entryName + "/");
+					dirs.insert(entryName);
+				}
+				continue;
+			}
 		}
 
 		enumeration.Entries.push_back(entryName);

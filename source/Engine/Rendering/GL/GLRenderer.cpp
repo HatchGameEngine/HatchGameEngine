@@ -63,6 +63,12 @@ PolygonRenderer polyRenderer;
 // TARGET_TEXTURES), and drawing functions should scale based on the
 // current render target.
 
+struct GL_TextureBatchState {
+	Texture* TexturePtr;
+	int PaletteID;
+	std::vector<GL_AnimFrameVert> Data;
+};
+
 struct GL_VertexBufferEntry {
 	float X, Y, Z;
 	float TextureU, TextureV;
@@ -134,6 +140,9 @@ GLenum GL_ActiveCullMode;
 bool GL_ClippingEnabled;
 
 int GL_CurrentTextureUnit = 0;
+
+bool GL_TextureBatchingEnabled = false;
+GL_TextureBatchState GL_CurrentTextureBatch;
 
 void GL_PrepareScreenTexture();
 void GL_MakeYUVShader();
@@ -462,6 +471,12 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
+#ifdef GL_HAVE_YUV
+	if (isYUV) {
+		return;
+	}
+#endif
+
 	if (Graphics::TextureBlend || !texture) {
 		features |= SHADER_FEATURE_BLENDING;
 	}
@@ -493,16 +508,44 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
-#ifdef GL_HAVE_YUV
-	if (isYUV) {
-		return;
+	if (Graphics::DotPatternX) {
+		features |= SHADER_FEATURE_DOT_PATTERN_X;
 	}
-#endif
+	if (Graphics::DotPatternY) {
+		features |= SHADER_FEATURE_DOT_PATTERN_Y;
+	}
 
 	GL_SetShapeShader(features);
 
+	GLShader* shader = GLRenderer::CurrentShader;
+
 	if (Graphics::UsePalettes) {
-		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+		GL_PreparePaletteShader(shader, texture, paletteID);
+	}
+
+	if (shader->LocDotPatternX != -1) {
+		if (shader->CachedDotPatternX != Graphics::DotPatternX) {
+			glUniform1i(shader->LocDotPatternX, Graphics::DotPatternX);
+			shader->CachedDotPatternX = Graphics::DotPatternX;
+		}
+	}
+	if (shader->LocDotPatternOffsetX != -1) {
+		if (shader->CachedDotPatternOffsetX != Graphics::DotPatternOffsetX) {
+			glUniform1i(shader->LocDotPatternOffsetX, Graphics::DotPatternOffsetX);
+			shader->CachedDotPatternOffsetX = Graphics::DotPatternOffsetX;
+		}
+	}
+	if (shader->LocDotPatternY != -1) {
+		if (shader->CachedDotPatternY != Graphics::DotPatternY) {
+			glUniform1i(shader->LocDotPatternY, Graphics::DotPatternY);
+			shader->CachedDotPatternY = Graphics::DotPatternY;
+		}
+	}
+	if (shader->LocDotPatternOffsetY != -1) {
+		if (shader->CachedDotPatternOffsetY != Graphics::DotPatternOffsetY) {
+			glUniform1i(shader->LocDotPatternOffsetY, Graphics::DotPatternOffsetY);
+			shader->CachedDotPatternOffsetY = Graphics::DotPatternOffsetY;
+		}
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
@@ -1634,6 +1677,13 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.DrawSprite = GLRenderer::DrawSprite;
 	Graphics::Internal.DrawSpritePart = GLRenderer::DrawSpritePart;
 
+	// Texture batching functions
+	Graphics::Internal.BeginTextureBatching = GLRenderer::BeginTextureBatching;
+	Graphics::Internal.BatchRectangleFill = GLRenderer::BatchRectangleFill;
+	Graphics::Internal.BatchSprite = GLRenderer::BatchSprite;
+	Graphics::Internal.BatchSpritePart = GLRenderer::BatchSpritePart;
+	Graphics::Internal.FinishTextureBatching = GLRenderer::FinishTextureBatching;
+
 	// 3D drawing functions
 	Graphics::Internal.DrawPolygon3D = GLRenderer::DrawPolygon3D;
 	Graphics::Internal.DrawSceneLayer3D = GLRenderer::DrawSceneLayer3D;
@@ -1645,10 +1695,20 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.ClearScene3D = GLRenderer::ClearScene3D;
 	Graphics::Internal.DrawScene3D = GLRenderer::DrawScene3D;
 
+	// Buffer functions
 	Graphics::Internal.CreateVertexBuffer = GLRenderer::CreateVertexBuffer;
 	Graphics::Internal.DeleteVertexBuffer = GLRenderer::DeleteVertexBuffer;
 	Graphics::Internal.MakeFrameBufferID = GLRenderer::MakeFrameBufferID;
 	Graphics::Internal.DeleteFrameBufferID = GLRenderer::DeleteFrameBufferID;
+
+	// Layer batching functions
+	Graphics::Internal.DrawBufferedTileLayer = GLRenderer::DrawBufferedTileLayer;
+	Graphics::Internal.MakeLayerTileBuffers = GLRenderer::MakeLayerTileBuffers;
+	Graphics::Internal.DeleteLayerTileBuffers = GLRenderer::DeleteLayerTileBuffers;
+	Graphics::Internal.RefreshTileBuffersForTileset = GLRenderer::RefreshTileBuffersForTileset;
+	Graphics::Internal.DeleteTileBuffersForTileset = GLRenderer::DeleteTileBuffersForTileset;
+	Graphics::Internal.UpdateBufferedLayerTile = GLRenderer::UpdateBufferedLayerTile;
+	Graphics::Internal.RefreshLayerTileAnimations = GLRenderer::RefreshLayerTileAnimations;
 
 	Graphics::Internal.SetDepthTesting = GLRenderer::SetDepthTesting;
 }
@@ -2730,7 +2790,15 @@ void GLRenderer::ClearStencil() {
 }
 
 // Primitive drawing functions
-void GL_StrokeLine(float x1, float y1, float x2, float y2) {
+void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL);
+
 	float v[6];
 	v[0] = x1;
 	v[1] = y1;
@@ -2743,17 +2811,6 @@ void GL_StrokeLine(float x1, float y1, float x2, float y2) {
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_LINES, 0, 2);
 	CHECK_GL();
-}
-void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
-	}
-#endif
-
-	GL_Predraw(NULL);
-
-	GL_StrokeLine(x1, y1, x2, y2);
 
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothStroke) {
@@ -2804,25 +2861,37 @@ void GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
 #endif
 }
 void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
+	w--;
+	h--;
+
+	if (w <= 0.0 || h <= 0.0) {
+		return;
 	}
-#endif
 
 	GL_Predraw(NULL);
 
-	GL_StrokeLine(x, y, x + w, y);
-	GL_StrokeLine(x, y + h, x + w, y + h);
+#define MAKE_QUAD_SHAPE_WITH_TRIS(v, x1, y1, x2, y2) { \
+	(v)[0] = GL_Vec2{x1, y1}; \
+	(v)[1] = GL_Vec2{x2, y1}; \
+	(v)[2] = GL_Vec2{x1, y2}; \
+	(v)[3] = GL_Vec2{x2, y1}; \
+	(v)[4] = GL_Vec2{x1, y2}; \
+	(v)[5] = GL_Vec2{x2, y2}; \
+}
 
-	GL_StrokeLine(x, y, x, y + h);
-	GL_StrokeLine(x + w, y, x + w, y + h);
+	GL_Vec2 v[24];
 
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glDisable(GL_LINE_SMOOTH);
-	}
-#endif
+	MAKE_QUAD_SHAPE_WITH_TRIS(v, x, y, x + w, y + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 6, x + w, y, x + w + 1, y + h + 1); // +1 in the last arg is intentional
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 12, x, y + h, x + w, y + h + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 18, x, y + 1, x + 1, y + h); // +1 in the third arg is intentional
+
+#undef MAKE_QUAD_SHAPE_WITH_TRIS
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLES, 0, 24);
+	CHECK_GL();
 }
 void GLRenderer::FillCircle(float x, float y, float rad) {
 #ifdef GL_SUPPORTS_SMOOTHING
@@ -3036,7 +3105,7 @@ void GLRenderer::DrawTriangle(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
@@ -3086,7 +3155,7 @@ void GLRenderer::DrawQuad(Texture* texture,
 	}
 #endif
 
-	GL_Predraw(texture, 0, true);
+	GL_Predraw(texture, Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
@@ -3261,6 +3330,187 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 
 	Graphics::Restore();
 }
+
+// Texture batching functions
+void GLRenderer::BeginTextureBatching() {
+	GL_TextureBatchingEnabled = true;
+
+	GL_CurrentTextureBatch.TexturePtr = nullptr;
+	GL_CurrentTextureBatch.PaletteID = 0;
+	GL_CurrentTextureBatch.Data.clear();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void GL_DrawTextureBatch() {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+	if (batch->Data.size() == 0) {
+		return;
+	}
+
+	void* data = batch->Data.data();
+
+	GL_Predraw(batch->TexturePtr, batch->PaletteID, false);
+
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(GL_AnimFrameVert),
+		data);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(GL_AnimFrameVert),
+		(char*)data + offsetof(GL_AnimFrameVert, u));
+
+	glDrawArrays(GL_TRIANGLES, 0, batch->Data.size());
+
+	batch->Data.clear();
+}
+void GL_BatchTexture(Texture* texture,
+	float sx,
+	float sy,
+	float sw,
+	float sh,
+	float x,
+	float y,
+	float w,
+	float h,
+	int paletteID) {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+	if (batch->TexturePtr != texture || batch->PaletteID != paletteID) {
+		GL_DrawTextureBatch();
+
+		batch->TexturePtr = texture;
+		batch->PaletteID = paletteID;
+	}
+
+	float ffU0 = sx / (float)texture->Width;
+	float ffV0 = sy / (float)texture->Height;
+	float ffU1 = (sx + sw) / (float)texture->Width;
+	float ffV1 = (sy + sh) / (float)texture->Height;
+
+	batch->Data.push_back(GL_AnimFrameVert{x, y, ffU0, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, ffU1, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
+
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, ffU1, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, ffU1, ffV1});
+}
+void GLRenderer::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+
+	bool change = batch->TexturePtr != nullptr;
+	if (r != Graphics::BlendColors[0]) {
+		change = true;
+	}
+	if (g != Graphics::BlendColors[1]) {
+		change = true;
+	}
+	if (b != Graphics::BlendColors[2]) {
+		change = true;
+	}
+	if (a != Graphics::BlendColors[3]) {
+		change = true;
+	}
+
+	if (change) {
+		GL_DrawTextureBatch();
+
+		Graphics::BlendColors[0] = r;
+		Graphics::BlendColors[1] = g;
+		Graphics::BlendColors[2] = b;
+		Graphics::BlendColors[3] = a;
+
+		batch->TexturePtr = nullptr;
+		batch->PaletteID = 0;
+	}
+
+	batch->Data.push_back(GL_AnimFrameVert{x, y, 0.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, 1.0, 1.0});
+}
+void GLRenderer::BatchSprite(ISprite* sprite,
+	int animation,
+	int frame,
+	float x,
+	float y,
+	bool flipX,
+	bool flipY,
+	float scaleW,
+	float scaleH,
+	int paletteID) {
+	float fX = flipX ? -1.0 : 1.0;
+	float fY = flipY ? -1.0 : 1.0;
+
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
+	GL_BatchTexture(sprite->Spritesheets[animframe.SheetNumber],
+		animframe.X,
+		animframe.Y,
+		animframe.Width,
+		animframe.Height,
+		x + (fX * animframe.OffsetX),
+		y + (fY * animframe.OffsetY),
+		fX * animframe.Width * scaleW,
+		fY * animframe.Height * scaleH,
+		paletteID);
+}
+void GLRenderer::BatchSpritePart(ISprite* sprite,
+	int animation,
+	int frame,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	float x,
+	float y,
+	bool flipX,
+	bool flipY,
+	float scaleW,
+	float scaleH,
+	int paletteID) {
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
+	if (sx == animframe.Width) {
+		return;
+	}
+	if (sy == animframe.Height) {
+		return;
+	}
+
+	float fX = flipX ? -1.0 : 1.0;
+	float fY = flipY ? -1.0 : 1.0;
+	if (sw >= animframe.Width - sx) {
+		sw = animframe.Width - sx;
+	}
+	if (sh >= animframe.Height - sy) {
+		sh = animframe.Height - sy;
+	}
+
+	GL_BatchTexture(sprite->Spritesheets[animframe.SheetNumber],
+		animframe.X + sx,
+		animframe.Y + sy,
+		sw,
+		sh,
+		x + (fX * (sx + animframe.OffsetX)),
+		y + (fY * (sy + animframe.OffsetY)),
+		fX * sw * scaleW,
+		fY * sh * scaleH,
+		paletteID);
+}
+void GLRenderer::FinishTextureBatching() {
+	if (GL_TextureBatchingEnabled) {
+		GL_DrawTextureBatch();
+	}
+
+	GL_TextureBatchingEnabled = false;
+}
+
 // 3D drawing functions
 void GLRenderer::DrawPolygon3D(void* data,
 	int vertexCount,
@@ -3286,7 +3536,7 @@ void GLRenderer::DrawSceneLayer3D(void* layer,
 	if (renderer != nullptr) {
 		renderer->ModelMatrix = modelMatrix;
 		renderer->NormalMatrix = normalMatrix;
-		renderer->DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+		renderer->DrawSceneLayer3D((TileLayer*)layer, sx, sy, sw, sh);
 	}
 }
 void GLRenderer::DrawModel(void* inModel,
@@ -3685,13 +3935,20 @@ void GLRenderer::MakeFrameBufferID(ISprite* sprite) {
 				continue;
 			}
 
-			float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
-			float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
+			float ffU0 = 0.0f;
+			float ffV0 = 0.0f;
+			float ffU1 = 0.0f;
+			float ffV1 = 0.0f;
 
-			float ffU0 = frame->X / texWidth;
-			float ffV0 = frame->Y / texHeight;
-			float ffU1 = (frame->X + frame->Width) / texWidth;
-			float ffV1 = (frame->Y + frame->Height) / texHeight;
+			if (sprite->Spritesheets[frame->SheetNumber] != nullptr) {
+				float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
+				float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
+
+				ffU0 = frame->X / texWidth;
+				ffV0 = frame->Y / texHeight;
+				ffU1 = (frame->X + frame->Width) / texWidth;
+				ffV1 = (frame->Y + frame->Height) / texHeight;
+			}
 
 			float _fX, _fY, ffX0, ffY0, ffX1, ffY1;
 			for (int f = 0; f < 4; f++) {
@@ -3722,6 +3979,405 @@ void GLRenderer::DeleteFrameBufferID(ISprite* sprite) {
 		sprite->ID = 0;
 	}
 }
+void GLRenderer::DrawBufferedTileLayer(TileLayer* layer) {
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	if (layer->RemakeTileBuffers) {
+		MakeLayerTileBuffers(layer);
+		layer->RemakeTileBuffers = false;
+	}
+
+	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
+		LayerTileBuffers* batch = layer->TileBuffers[i];
+
+		int paletteID;
+		if (usePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
+		else {
+			paletteID = Scene::Tilesets[i].PaletteID;
+		}
+
+		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+			it != batch->TextureBatches.end();
+			it++) {
+			GL_Predraw(it->first, paletteID, false);
+
+			glBindBuffer(GL_ARRAY_BUFFER, it->second.BufferID);
+			glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition,
+				2,
+				GL_FLOAT,
+				GL_FALSE,
+				sizeof(GL_AnimFrameVert),
+				nullptr);
+			glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord,
+				2,
+				GL_FLOAT,
+				GL_FALSE,
+				sizeof(GL_AnimFrameVert),
+				(void*)(offsetof(GL_AnimFrameVert, u)));
+
+			glDrawArrays(GL_TRIANGLES, 0, it->second.NumTiles * 6);
+			CHECK_GL();
+		}
+	}
+}
+
+static void GL_MakeBatchedTileData(GL_AnimFrameVert* vert, AnimFrame* frame, float tileX, float tileY, bool flipX, bool flipY, float textureWidth, float textureHeight) {
+	float ffU0 = frame->X / textureWidth;
+	float ffV0 = frame->Y / textureHeight;
+	float ffU1 = (frame->X + frame->Width) / textureWidth;
+	float ffV1 = (frame->Y + frame->Height) / textureHeight;
+
+	float fX = flipX ? -1.0 : 1.0;
+	float fY = flipY ? -1.0 : 1.0;
+
+	float ffX0 = tileX + (frame->OffsetX * fX);
+	float ffY0 = tileY + (frame->OffsetY * fY);
+	float ffX1 = tileX + ((frame->OffsetX + frame->Width) * fX);
+	float ffY1 = tileY + ((frame->OffsetY + frame->Height) * fY);
+
+	vert[0] = GL_AnimFrameVert{ffX0, ffY0, ffU0, ffV0};
+	vert[1] = GL_AnimFrameVert{ffX1, ffY0, ffU1, ffV0};
+	vert[2] = GL_AnimFrameVert{ffX0, ffY1, ffU0, ffV1};
+	vert[3] = GL_AnimFrameVert{ffX1, ffY0, ffU1, ffV0};
+	vert[4] = GL_AnimFrameVert{ffX0, ffY1, ffU0, ffV1};
+	vert[5] = GL_AnimFrameVert{ffX1, ffY1, ffU1, ffV1};
+}
+
+void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
+	DeleteLayerTileBuffers(layer);
+
+	layer->TileBufferIndexes = (size_t*)Memory::Malloc(layer->WidthData * layer->HeightData * sizeof(size_t));
+	if (!layer->TileBufferIndexes) {
+		return;
+	}
+
+	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
+		layer->TileBuffers.push_back(new LayerTileBuffers());
+	}
+
+	for (int yy = 0; yy < layer->Height; yy++) {
+		for (int xx = 0; xx < layer->Width; xx++) {
+			size_t tileIndex = xx + (yy << layer->WidthInBits);
+			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
+				continue;
+			}
+
+			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			if (info.IsAnimated) {
+				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
+				continue;
+			}
+
+			int animIndex = info.AnimationIndex;
+			int frameIndex = info.FrameIndex;
+			ISprite* sprite = info.Sprite;
+			AnimFrame& frame = sprite->Animations[animIndex].Frames[frameIndex];
+			Texture* texture = sprite->Spritesheets[frame.SheetNumber];
+
+			LayerTileBuffers* batch = layer->TileBuffers[info.TilesetID];
+			if (batch->TextureBatches.count(texture) == 0) {
+				LayerTextureBatch texBatch;
+				glGenBuffers(1, (GLuint*)&texBatch.BufferID);
+				batch->TextureBatches[texture] = texBatch;
+			}
+
+			layer->TileBufferIndexes[tileIndex] = batch->TextureBatches[texture].NumTiles;
+			batch->TextureBatches[texture].NumTiles++;
+		}
+	}
+
+#define VERT_BUF_SIZE(numTiles) ((numTiles) * sizeof(GL_AnimFrameVert) * 6)
+
+	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
+		LayerTileBuffers* batch = layer->TileBuffers[i];
+
+		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+			it != batch->TextureBatches.end();
+			it++) {
+			GL_AnimFrameVert* data = (GL_AnimFrameVert*)Memory::Malloc(VERT_BUF_SIZE(it->second.NumTiles));
+			if (!data) {
+				DeleteLayerTileBuffers(layer);
+				return;
+			}
+
+			it->second.Data = data;
+			it->second.NumTiles = 0;
+		}
+	}
+
+	Uint32 lastBoundBuffer = 0;
+
+	for (int yy = 0; yy < layer->Height; yy++) {
+		for (int xx = 0; xx < layer->Width; xx++) {
+			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				continue;
+			}
+
+			float tileX = (xx * Scene::TileWidth) + (Scene::TileWidth / 2);
+			float tileY = (yy * Scene::TileHeight) + (Scene::TileHeight / 2);
+
+			bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+			bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+
+			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			if (info.IsAnimated) {
+				continue;
+			}
+
+			ISprite* sprite = info.Sprite;
+			int animIndex = info.AnimationIndex;
+			int frameIndex = info.FrameIndex;
+
+			AnimFrame* frame = &sprite->Animations[animIndex].Frames[frameIndex];
+			Texture* texture = sprite->Spritesheets[frame->SheetNumber];
+
+			LayerTileBuffers* batch = layer->TileBuffers[info.TilesetID];
+			LayerTextureBatch& texBatch = batch->TextureBatches[texture];
+
+			GL_AnimFrameVert* data = (GL_AnimFrameVert*)texBatch.Data;
+			GL_AnimFrameVert* vert = &data[texBatch.NumTiles * 6];
+			GL_MakeBatchedTileData(vert, frame, tileX, tileY, flipX, flipY, texture->Width, texture->Height);
+
+			if (texBatch.BufferID != lastBoundBuffer) {
+				glBindBuffer(GL_ARRAY_BUFFER, texBatch.BufferID);
+				lastBoundBuffer = texBatch.BufferID;
+			}
+
+			texBatch.NumTiles++;
+		}
+	}
+
+	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
+		LayerTileBuffers* batch = layer->TileBuffers[i];
+
+		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+			it != batch->TextureBatches.end();
+			it++) {
+			glBindBuffer(GL_ARRAY_BUFFER, it->second.BufferID);
+			glBufferData(GL_ARRAY_BUFFER, VERT_BUF_SIZE(it->second.NumTiles), it->second.Data, GL_DYNAMIC_DRAW);
+
+			Memory::Free(it->second.Data);
+			it->second.Data = nullptr;
+		}
+	}
+
+#undef VERT_BUF_SIZE
+
+	CHECK_GL();
+
+	layer->UsingTileBuffers = true;
+}
+void GLRenderer::DeleteLayerTileBuffers(TileLayer* layer) {
+	if (!layer->UsingTileBuffers) {
+		return;
+	}
+
+	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
+		LayerTileBuffers* batch = layer->TileBuffers[i];
+		if (batch) {
+			for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+				it != batch->TextureBatches.end();
+				it++) {
+				glDeleteBuffers(1, (GLuint*)&it->second.BufferID);
+				Memory::Free(it->second.Data);
+			}
+
+			delete batch;
+		}
+	}
+
+	layer->TileBuffers.clear();
+	layer->UsingTileBuffers = false;
+
+	Memory::Free(layer->TileBufferIndexes);
+	layer->TileBufferIndexes = nullptr;
+}
+
+void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex) {
+	GL_AnimFrameVert vert[6];
+
+	if (!layer->UsingTileBuffers) {
+		return;
+	}
+
+	LayerTileBuffers* batch = nullptr;
+	if (tilesetIndex >= layer->TileBuffers.size()) {
+		batch = new LayerTileBuffers();
+		layer->TileBuffers.resize(Scene::Tilesets.size(), nullptr);
+		layer->TileBuffers[tilesetIndex] = batch;
+	}
+	else {
+		batch = layer->TileBuffers[tilesetIndex];
+		batch->TextureBatches.clear();
+	}
+
+	for (int yy = 0; yy < layer->Height; yy++) {
+		for (int xx = 0; xx < layer->Width; xx++) {
+			size_t tileIndex = xx + (yy << layer->WidthInBits);
+			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
+				continue;
+			}
+
+			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			if (info.TilesetID != tilesetIndex || info.IsAnimated) {
+				continue;
+			}
+
+			int animIndex = info.AnimationIndex;
+			int frameIndex = info.FrameIndex;
+			ISprite* sprite = info.Sprite;
+			AnimFrame& frame = sprite->Animations[animIndex].Frames[frameIndex];
+			Texture* texture = sprite->Spritesheets[frame.SheetNumber];
+
+			if (batch->TextureBatches.count(texture) == 0) {
+				LayerTextureBatch texBatch;
+				glGenBuffers(1, (GLuint*)&texBatch.BufferID);
+				batch->TextureBatches[texture] = texBatch;
+			}
+
+			layer->TileBufferIndexes[tileIndex] = batch->TextureBatches[texture].NumTiles;
+			batch->TextureBatches[texture].NumTiles++;
+		}
+	}
+
+	for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+		it != batch->TextureBatches.end();
+		it++) {
+		glBindBuffer(GL_ARRAY_BUFFER, it->second.BufferID);
+		glBufferData(GL_ARRAY_BUFFER, it->second.NumTiles * sizeof(vert), NULL, GL_DYNAMIC_DRAW);
+		CHECK_GL();
+
+		it->second.NumTiles = 0;
+	}
+
+	Uint32 lastBoundBuffer = 0;
+
+	for (int yy = 0; yy < layer->Height; yy++) {
+		for (int xx = 0; xx < layer->Width; xx++) {
+			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				continue;
+			}
+
+			float tileX = (xx * Scene::TileWidth) + (Scene::TileWidth / 2);
+			float tileY = (yy * Scene::TileHeight) + (Scene::TileHeight / 2);
+
+			bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+			bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+
+			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			if (info.TilesetID != tilesetIndex || info.IsAnimated) {
+				continue;
+			}
+
+			ISprite* sprite = info.Sprite;
+			int animIndex = info.AnimationIndex;
+			int frameIndex = info.FrameIndex;
+
+			AnimFrame* frame = &sprite->Animations[animIndex].Frames[frameIndex];
+			Texture* texture = sprite->Spritesheets[frame->SheetNumber];
+			LayerTextureBatch& texBatch = batch->TextureBatches[texture];
+
+			GL_MakeBatchedTileData(vert, frame, tileX, tileY, flipX, flipY, texture->Width, texture->Height);
+
+			if (texBatch.BufferID != lastBoundBuffer) {
+				glBindBuffer(GL_ARRAY_BUFFER, texBatch.BufferID);
+				lastBoundBuffer = texBatch.BufferID;
+			}
+
+			glBufferSubData(GL_ARRAY_BUFFER, texBatch.NumTiles * sizeof(vert), sizeof(vert), vert);
+			texBatch.NumTiles++;
+		}
+	}
+
+	CHECK_GL();
+}
+void GLRenderer::DeleteTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex) {
+	if (!layer->UsingTileBuffers || tilesetIndex >= layer->TileBuffers.size()) {
+		return;
+	}
+
+	LayerTileBuffers* batch = layer->TileBuffers[tilesetIndex];
+	if (batch) {
+		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+			it != batch->TextureBatches.end();
+			it++) {
+			glDeleteBuffers(1, (GLuint*)&it->second.BufferID);
+		}
+
+		delete batch;
+	}
+
+	layer->TileBuffers[tilesetIndex] = nullptr;
+}
+
+void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
+	if (!layer->UsingTileBuffers || layer->RemakeTileBuffers) {
+		return;
+	}
+
+	size_t tileIndex = x + (y << layer->WidthInBits);
+	int tile = layer->Tiles[tileIndex];
+	if ((size_t)tile >= Scene::TileSpriteInfos.size()) {
+		return;
+	}
+
+	TileSpriteInfo info = Scene::TileSpriteInfos[tile & TILE_IDENT_MASK];
+	if (info.IsAnimated) {
+		return;
+	}
+
+	// If replacing a tile with EmptyTile, remake the tile buffers
+	if (tile == Scene::EmptyTile) {
+		layer->RemakeTileBuffers = true;
+		return;
+	}
+
+	// If there is currently no tile in this position, remake the tile buffers
+	size_t tileBufferIndex = layer->TileBufferIndexes[tileIndex];
+	if (tileBufferIndex == SIZE_MAX) {
+		layer->RemakeTileBuffers = true;
+		return;
+	}
+
+	ISprite* sprite = info.Sprite;
+	int animIndex = info.AnimationIndex;
+	int frameIndex = info.FrameIndex;
+
+	AnimFrame* frame = &sprite->Animations[animIndex].Frames[frameIndex];
+	Texture* texture = sprite->Spritesheets[frame->SheetNumber];
+
+	GL_AnimFrameVert vert[6];
+
+	float tileX = (x * Scene::TileWidth) + (Scene::TileWidth / 2);
+	float tileY = (y * Scene::TileHeight) + (Scene::TileHeight / 2);
+
+	bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+	bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+
+	GL_MakeBatchedTileData(vert, frame, tileX, tileY, flipX, flipY, texture->Width, texture->Height);
+
+	LayerTileBuffers* batch = layer->TileBuffers[info.TilesetID];
+	LayerTextureBatch& texBatch = batch->TextureBatches[texture];
+
+	glBindBuffer(GL_ARRAY_BUFFER, texBatch.BufferID);
+	glBufferSubData(GL_ARRAY_BUFFER, tileBufferIndex * sizeof(vert), sizeof(vert), vert);
+
+	CHECK_GL();
+}
+void GLRenderer::RefreshLayerTileAnimations(TileLayer* layer) {
+	MakeLayerTileBuffers(layer);
+}
+
 void GLRenderer::SetDepthTesting(bool enable) {
 	if (UseDepthTesting) {
 		if (enable) {

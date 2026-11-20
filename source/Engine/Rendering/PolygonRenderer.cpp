@@ -158,7 +158,7 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 	vertexBuffer->VertexCount += vertexCount;
 	vertexBuffer->FaceCount++;
 }
-void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
+void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw, int sh) {
 	static vector<AnimFrame> animFrames;
 	static vector<Texture*> textureSources;
 	animFrames.clear();
@@ -528,26 +528,29 @@ int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper,
 	return numOutVertices;
 }
 bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
-	int numBehind[3] = {0, 0, 0};
+	int numLeft = 0, numRight = 0, numTop = 0, numBottom = 0, numBehind = 0;
 	int numVertices = vertexCount;
 	while (numVertices--) {
-		if (vertex->Position.X < -vertex->Position.W ||
-			vertex->Position.X > vertex->Position.W) {
-			numBehind[0]++;
+		if (vertex->Position.X < -vertex->Position.W) {
+			numLeft++;
 		}
-		if (vertex->Position.Y < -vertex->Position.W ||
-			vertex->Position.Y > vertex->Position.W) {
-			numBehind[1]++;
+		else if (vertex->Position.X > vertex->Position.W) {
+			numRight++;
+		}
+		if (vertex->Position.Y < -vertex->Position.W) {
+			numTop++;
+		}
+		else if (vertex->Position.Y > vertex->Position.W) {
+			numBottom++;
 		}
 		if (vertex->Position.Z <= 0) {
-			numBehind[2]++;
+			numBehind++;
 		}
 
 		vertex++;
 	}
 
-	if (numBehind[0] == vertexCount || numBehind[1] == vertexCount ||
-		numBehind[2] == vertexCount) {
+	if (numLeft == vertexCount || numRight == vertexCount || numTop == vertexCount || numBottom == vertexCount || numBehind == vertexCount) {
 		return false;
 	}
 

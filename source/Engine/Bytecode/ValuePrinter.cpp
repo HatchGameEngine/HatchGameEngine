@@ -67,6 +67,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_FUNCTION:
 	case OBJ_MODULE:
 	case OBJ_NAMESPACE:
+	case OBJ_ENUM:
 		if (IsJSON) {
 			buffer_printf(Buffer,
 				"\"%s %s\"",
@@ -177,7 +178,28 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 
 		hash = map->Values->Keys[i];
 		value = map->Values->Data[hash];
-		buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
+
+		VMValue keyValue = map->Keys->Get(hash);
+		if (IS_STRING(keyValue)) {
+			buffer_printf(Buffer, "\"%s\": ", AS_CSTRING(keyValue));
+		}
+		else {
+			if (IsJSON) {
+				buffer_printf(Buffer, "\"");
+			}
+			if (IS_OBJECT(keyValue)) {
+				buffer_printf(Buffer, "<%s 0x%x>",
+					Value::GetObjectTypeName(keyValue),
+					AS_OBJECT(keyValue));
+			}
+			else {
+				PrintValue(keyValue, indent + 1);
+			}
+			if (IsJSON) {
+				buffer_printf(Buffer, "\"");
+			}
+			buffer_printf(Buffer, ": ");
+		}
 		PrintValue(value, indent + 1);
 	}
 	if (PrettyPrint) {

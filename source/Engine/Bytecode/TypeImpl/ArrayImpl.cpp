@@ -3,23 +3,61 @@
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Array
+* \desc A resizable list of values.
+*/
+
 ObjClass* ArrayImpl::Class = nullptr;
 
 void ArrayImpl::Init() {
-	Class = NewClass(CLASS_ARRAY);
+	Class = NewClass("Array");
+	Class->NewFn = Constructor;
+	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(Class);
 }
 
-Obj* ArrayImpl::New() {
+Obj* ArrayImpl::Constructor() {
 	ObjArray* array = (ObjArray*)AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
 	Memory::Track(array, "NewArray");
 	array->Object.Class = Class;
 	array->Values = new vector<VMValue>();
 	return (Obj*)array;
+}
+
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+
+/***
+ * \constructor
+ * \desc Creates an array.
+ * \paramOpt size (integer): Size of the array.
+ * \paramOpt initialValue (value): Initial value to set the array elements to.
+ * \ns Array
+ */
+VMValue ArrayImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
+	ObjArray* array = AS_ARRAY(args[0]);
+
+	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
+
+	int length = 0;
+	VMValue initialValue = NULL_VAL;
+	if (argCount >= 2) {
+		length = GET_ARG(1, GetInteger);
+	}
+	if (argCount >= 3) {
+		initialValue = args[2];
+	}
+
+	for (int i = 0; i < length; i++) {
+		array->Values->push_back(initialValue);
+	}
+
+	return OBJECT_VAL(array);
 }
 
 void ArrayImpl::Dispose(Obj* object) {
@@ -30,8 +68,6 @@ void ArrayImpl::Dispose(Obj* object) {
 
 	delete array->Values;
 }
-
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
 VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);

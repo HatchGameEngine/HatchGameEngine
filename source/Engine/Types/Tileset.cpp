@@ -22,6 +22,7 @@ Tileset::Tileset(ISprite* sprite,
 	StartTile = startTile;
 	FirstGlobalTileID = firstgid;
 	Filename = StringUtils::Duplicate(filename);
+	PropertiesPerTile.resize(TileCount);
 }
 
 void Tileset::RunAnimations() {
@@ -71,6 +72,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	if (!tileIDs.size()) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
@@ -111,7 +113,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 	TileAnimator animator(tileSpriteInfo, tileSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 void Tileset::AddTileAnimSequence(int tileID,
@@ -120,13 +126,18 @@ void Tileset::AddTileAnimSequence(int tileID,
 	int animID) {
 	if (animSprite == nullptr) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
 	TileAnimator animator(tileSpriteInfo, animSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 TileAnimator* Tileset::GetTileAnimSequence(int tileID) {
@@ -136,4 +147,24 @@ TileAnimator* Tileset::GetTileAnimSequence(int tileID) {
 	}
 
 	return &it->second;
+}
+
+void Tileset::Dispose() {
+	if (Sprite) {
+		delete Sprite;
+	}
+
+	if (Filename) {
+		Memory::Free(Filename);
+	}
+
+	for (size_t i = 0; i < TileCount; i++) {
+		HashMap<Property>* properties = PropertiesPerTile[i];
+		if (properties) {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
+		}
+	}
 }

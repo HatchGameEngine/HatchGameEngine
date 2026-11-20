@@ -35,8 +35,8 @@ bool ShouldEmitValue = false;
 struct VariableWarning {
 	int Line;
 	std::string VariableName;
-	bool IsUnused;
-	bool IsUnset;
+	bool IsUnused = false;
+	bool IsUnset = false;
 };
 
 // Order these by C/C++ precedence operators
@@ -824,6 +824,9 @@ void Compiler::ErrorAtCurrent(const char* message) {
 void Compiler::Warning(const char* message) {
 	ErrorAt(&parser.Current, message, false);
 }
+void Compiler::WarningAt(Token* token, const char* message) {
+	ErrorAt(token, message, false);
+}
 void Compiler::WarningInFunction(const char* format, ...) {
 	if (!CurrentSettings.ShowWarnings) {
 		return;
@@ -1297,8 +1300,18 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 		}
 	}
 	else {
+		// Look for a constant in this scope
+		for (int i = Constants.size() - 1; i >= 0; i--) {
+			Local* constLocal = &Constants[i];
+			if (IdentifiersEqual(&name, &constLocal->Name)) {
+				constLocal->Resolved = true;
+				EmitConstant(constLocal->ConstantVal);
+				return EXPRCONTEXT_VALUE;
+			}
+		}
+
+		// Resolve module local
 		arg = ResolveModuleLocal(&name, &local);
-		VMValue value;
 		if (arg != -1) {
 			if (emitValue) {
 				getOp = OP_GET_MODULE_LOCAL;
@@ -1313,15 +1326,31 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 				currentLocal.Index = arg;
 			}
 		}
-		else if (emitValue && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
-			EmitConstant(value);
-			return EXPRCONTEXT_VALUE;
-		}
-		else if (emitValue) {
-			getOp = OP_GET_GLOBAL;
-		}
 		else {
-			getOp = OP_LOCATION_GLOBAL;
+			// Look for a module constant
+			for (int i = ModuleConstants.size() - 1; i >= 0; i--) {
+				Local* constLocal = &ModuleConstants[i];
+				if (IdentifiersEqual(&name, &constLocal->Name)) {
+					constLocal->Resolved = true;
+					EmitConstant(constLocal->ConstantVal);
+					return EXPRCONTEXT_VALUE;
+				}
+			}
+
+			// Must be a StandardLibrary constant or a global
+			if (emitValue) {
+				VMValue value;
+				if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+					EmitConstant(value);
+					return EXPRCONTEXT_VALUE;
+				}
+				else {
+					getOp = OP_GET_GLOBAL;
+				}
+			}
+			else {
+				getOp = OP_LOCATION_GLOBAL;
+			}
 		}
 	}
 
@@ -1473,17 +1502,6 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Constants.size() - 1; i >= 0; i--) {
-		Local* local = &Constants[i];
-		if (IdentifiersEqual(name, &local->Name)) {
-			local->Resolved = true;
-			if (result) {
-				*result = *local;
-			}
-			return i;
-		}
-	}
-
 	return -1;
 }
 void Compiler::MarkLocalAsSet(Local& local) {
@@ -1528,17 +1546,6 @@ int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
-		Local& local = Compiler::ModuleConstants[i];
-		if (IdentifiersEqual(name, &local.Name)) {
-			local.Resolved = true;
-			if (result) {
-				*result = local;
-			}
-			return i;
-		}
-	}
-
 	return -1;
 }
 Uint8 Compiler::GetArgumentList() {
@@ -1553,7 +1560,7 @@ Uint8 Compiler::GetArgumentList() {
 		} while (MatchToken(TOKEN_COMMA));
 	}
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after arguments.");
 	return argumentCount;
 }
 
@@ -1579,7 +1586,7 @@ ExprContext Compiler::GetSuper(ExprContext context) {
 	InstanceToken = parser.Previous;
 	VariableLocal = Locals[0];
 	if (!CheckToken(TOKEN_DOT)) {
-		Error("Expect '.' after 'super'.");
+		Error("Expected '.' after 'super'.");
 	}
 
 	if (ShouldEmitValue) {
@@ -1595,7 +1602,7 @@ ExprContext Compiler::GetDot(ExprContext context) {
 	bool isSuper = InstanceToken.Type == TOKEN_SUPER;
 	InstanceToken.Type = -1;
 
-	ConsumeIdentifier("Expect property name after '.'.");
+	ConsumeIdentifier("Expected property name after '.'.");
 	Token nameToken = parser.Previous;
 
 	if (MatchToken(TOKEN_LEFT_PAREN)) {
@@ -1641,7 +1648,7 @@ ExprContext Compiler::GetElement(ExprContext context) {
 bool negateConstant = false;
 ExprContext Compiler::GetGrouping(ExprContext context) {
 	ExprContext result = GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 	return result;
 }
 ExprContext Compiler::GetLiteral(ExprContext context) {
@@ -1665,7 +1672,7 @@ ExprContext Compiler::GetInteger(ExprContext context) {
 	int value = 0;
 	char* start = parser.Previous.Start;
 	if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
-		value = (int)strtol(start + 2, NULL, 16);
+		value = (int)strtoul(start + 2, NULL, 16);
 	}
 	else {
 		value = (int)atof(start);
@@ -1826,7 +1833,7 @@ ExprContext Compiler::GetArray(ExprContext context) {
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected \"]\" at end of array.");
+			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected ']' at end of array.");
 			break;
 		}
 	}
@@ -1840,15 +1847,16 @@ ExprContext Compiler::GetMap(ExprContext context) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
-		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
-		GetString(EXPRCONTEXT_VALUE);
+		// Get key
+		GetExpression();
+		ConsumeToken(TOKEN_COLON, "Expected ':' after map key.");
 
-		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
+		// Get value
 		GetExpression();
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after map.");
+			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after map.");
 			break;
 		}
 	}
@@ -1895,7 +1903,7 @@ ExprContext Compiler::GetConditional(ExprContext context) {
 	ParsePrecedence(PREC_TERNARY);
 
 	int elseJump = EmitJump(OP_JUMP);
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after conditional condition.");
+	ConsumeToken(TOKEN_COLON, "Expected ':' after conditional condition.");
 
 	PatchJump(thenJump);
 	EmitByte(OP_POP);
@@ -1951,7 +1959,7 @@ ExprContext Compiler::GetNew(ExprContext context) {
 
 	Local local;
 
-	ConsumeIdentifier("Expect class name.");
+	ConsumeIdentifier("Expected class name.");
 	NamedVariable(parser.Previous, local, EXPRCONTEXT_VALUE);
 
 	uint8_t argCount = 0;
@@ -2137,7 +2145,7 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 }
 ExprContext Compiler::GetHas(ExprContext context) {
 	CONVERT_LVALUE_TO_RVALUE();
-	ConsumeIdentifier("Expect property name.");
+	ConsumeIdentifier("Expected property name.");
 	EmitByte(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
 	return EXPRCONTEXT_VALUE;
@@ -2180,12 +2188,12 @@ stack<int> ContinueScopeStack;
 stack<int> SwitchScopeStack;
 void Compiler::GetPrintStatement() {
 	GetExpression();
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after value.");
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
 	Token previousToken = parser.Previous;
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after 'breakpoint'.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'breakpoint'.");
 	AddBreakpoint(previousToken);
 }
 void Compiler::GetExpressionStatement() {
@@ -2198,7 +2206,7 @@ void Compiler::GetExpressionStatement() {
 
 	EmitByte(OP_POP);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after expression.");
 }
 void Compiler::GetContinueStatement() {
 	if (ContinueJumpListStack.size() == 0) {
@@ -2210,7 +2218,7 @@ void Compiler::GetContinueStatement() {
 	int jump = EmitJump(OP_JUMP);
 	ContinueJumpListStack.top()->push_back(jump);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after continue.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after continue.");
 }
 void Compiler::GetDoWhileStatement() {
 	// Set the start of the loop to before the condition
@@ -2270,29 +2278,29 @@ void Compiler::GetReturnStatement() {
 		}
 
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after return value.");
 		EmitByte(OP_RETURN);
 	}
 }
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'repeat'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'repeat'.");
 	GetExpression();
 
 	Token variableToken = {TOKEN_ERROR};
 	int remaining = 0;
 
 	if (MatchToken(TOKEN_COMMA)) {
-		ConsumeIdentifier("Expect variable name.");
+		ConsumeIdentifier("Expected variable name.");
 		variableToken = parser.Previous;
 		if (MatchToken(TOKEN_COMMA)) {
-			ConsumeIdentifier("Expect variable name.");
+			ConsumeIdentifier("Expected variable name.");
 			remaining = AddLocal(parser.Previous);
 			MarkInitialized();
 		}
 	}
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	if (!remaining) {
 		remaining = AddHiddenLocal(" remaining", 11);
@@ -2361,11 +2369,11 @@ void Compiler::GetSwitchStatement() {
 	StartBreakpointList();
 
 	// Evaluate the condition
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'switch'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expected \"{\" before statements.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before statements.");
 
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
@@ -2495,7 +2503,7 @@ void Compiler::GetCaseStatement() {
 
 	GetExpression();
 
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"case\".");
+	ConsumeToken(TOKEN_COLON, "Expected ':' after 'case'.");
 
 	code_block_length = CodePointer() - code_block_start;
 
@@ -2525,8 +2533,6 @@ void Compiler::GetDefaultStatement() {
 		Error("Cannot use default label outside of switch statement.");
 	}
 
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
-
 	// Check if there already is a default clause, and prevent compilation if so.
 	vector<switch_case>* top = SwitchJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
@@ -2534,6 +2540,8 @@ void Compiler::GetDefaultStatement() {
 			Error("Cannot have multiple default clauses.");
 		}
 	}
+
+	ConsumeToken(TOKEN_COLON, "Expected ':' after 'default'.");
 
 	switch_case case_info;
 	case_info.IsDefault = true;
@@ -2546,9 +2554,9 @@ void Compiler::GetWhileStatement() {
 	int loopStart = CodePointer();
 
 	// Evaluate the condition
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2593,14 +2601,14 @@ void Compiler::GetBreakStatement() {
 	int jump = EmitJump(OP_JUMP);
 	BreakJumpListStack.top()->push_back(jump);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after break.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after break.");
 }
 void Compiler::GetBlockStatement() {
 	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		GetDeclaration();
 	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after block.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after block.");
 }
 void Compiler::GetWithStatement() {
 	enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED };
@@ -2637,10 +2645,10 @@ void Compiler::GetWithStatement() {
 	Token receiverName;
 
 	// With "expression"
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'with'.");
 	GetExpression();
 	if (MatchToken(TOKEN_AS)) {
-		ConsumeIdentifier("Expect receiver name.");
+		ConsumeIdentifier("Expected receiver name.");
 
 		receiverName = parser.Previous;
 
@@ -2657,7 +2665,7 @@ void Compiler::GetWithStatement() {
 		// zero
 		useOtherSlot = true;
 	}
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	// Rename "other" to "this" if the function doesn't have "this"
 	if (useOther && !hasThis) {
@@ -2729,7 +2737,7 @@ void Compiler::GetForStatement() {
 	// Start new scope
 	ScopeBegin();
 
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'for'.");
 
 	// Initializer (happens only once)
 	if (MatchToken(TOKEN_VAR)) {
@@ -2757,7 +2765,7 @@ void Compiler::GetForStatement() {
 	// Conditional
 	if (!MatchToken(TOKEN_SEMICOLON)) {
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after loop condition.");
 
 		// Jump out of the loop if the condition is false.
 		exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2771,7 +2779,7 @@ void Compiler::GetForStatement() {
 		int incrementStart = CurrentChunk()->Count;
 		GetExpression();
 		EmitByte(OP_POP);
-		ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+		ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after for clauses.");
 
 		EmitLoop(loopStart);
 		loopStart = incrementStart;
@@ -2810,7 +2818,7 @@ void Compiler::GetForEachStatement() {
 	// Start new scope
 	ScopeBegin();
 
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'foreach'.");
 
 	GetForEachBlock();
 
@@ -2819,11 +2827,11 @@ void Compiler::GetForEachStatement() {
 }
 void Compiler::GetForEachBlock() {
 	// Variable name
-	ConsumeIdentifier("Expect variable name.");
+	ConsumeIdentifier("Expected variable name.");
 
 	Token variableToken = parser.Previous;
 
-	ConsumeToken(TOKEN_IN, "Expect 'in' after variable name.");
+	ConsumeToken(TOKEN_IN, "Expected 'in' after variable name.");
 
 	// Iterator after 'in'
 	GetExpression();
@@ -2839,7 +2847,7 @@ void Compiler::GetForEachBlock() {
 
 	int iterValue = AddHiddenLocal(" iterValue", 10);
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 
 	int exitJump = -1;
 	int loopStart = CurrentChunk()->Count;
@@ -2900,9 +2908,9 @@ void Compiler::GetForEachBlock() {
 	EndBreakJumpList();
 }
 void Compiler::GetIfStatement() {
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'if'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
 	EmitByte(OP_POP);
@@ -2978,7 +2986,7 @@ void Compiler::GetStatement() {
 // Reading declarations
 void Compiler::CompileFunction() {
 	// Compile the parameter list.
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after function name.");
 
 	bool isOptional = false;
 	bool matchedLeftSquareBrace = false;
@@ -2993,7 +3001,7 @@ void Compiler::CompileFunction() {
 				matchedLeftSquareBrace = true;
 			}
 
-			ParseVariable("Expect parameter name.", false);
+			ParseVariable("Expected parameter name.", false);
 			DefineVariableToken(parser.Previous, false);
 			MarkResolved();
 
@@ -3023,10 +3031,10 @@ void Compiler::CompileFunction() {
 	Function->Arity = (Uint8)arity;
 	Function->MinArity = (Uint8)minArity;
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after parameters.");
 
 	// The body.
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before function body.");
 	GetBlockStatement();
 }
 int Compiler::GetFunction(int type, string className) {
@@ -3068,7 +3076,7 @@ int Compiler::GetFunction(int type) {
 	return GetFunction(type, "");
 }
 void Compiler::GetMethod(Token className) {
-	ConsumeIdentifier("Expect method name.");
+	ConsumeIdentifier("Expected method name.");
 	Token constantToken = parser.Previous;
 
 	// If the method has the same name as its class, it's an
@@ -3115,7 +3123,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		else {
 			if (constant) { // don't play nice
 				ErrorAtCurrent(
-					"\"const\" variables must have an explicit constant declaration.");
+					"'const' variables must have an explicit constant declaration.");
 			}
 
 			EmitByte(OP_NULL);
@@ -3137,7 +3145,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 			}
 		}
 		else if (constant) {
-			ErrorAtCurrent("\"const\" variables must be set to a constant.");
+			ErrorAtCurrent("'const' variables must be set to a constant.");
 		}
 
 		DefineVariableToken(token, constant);
@@ -3147,14 +3155,18 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after variable declaration.");
 }
 void Compiler::GetModuleVariableDeclaration() {
 	if (ScopeDepth > 0) {
 		Error("Cannot use local declaration outside of top-level code.");
 	}
 
-	if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
+	if (parser.Current.Type == TOKEN_ENUM) {
+		AdvanceToken();
+		GetEnumDeclaration(true);
+	}
+	else if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
 		bool constant = parser.Current.Type == TOKEN_CONST;
 		vector<Local>* vec = constant ? &ModuleConstants : &ModuleLocals;
 		AdvanceToken();
@@ -3175,7 +3187,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			else {
 				if (constant) { // don't play nice
 					ErrorAtCurrent(
-						"\"const\" variables must have an explicit constant declaration.");
+						"'const' variables must have an explicit constant declaration.");
 				}
 
 				EmitByte(OP_NULL);
@@ -3194,7 +3206,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 			else if (constant) {
 				ErrorAt(&token,
-					"\"const\" variables must be set to a constant.",
+					"'const' variables must be set to a constant.",
 					true);
 			}
 
@@ -3203,10 +3215,10 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 		} while (MatchToken(TOKEN_COMMA));
 
-		ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after variable declaration.");
 	}
 	else {
-		ErrorAtCurrent("Expected \"var\" or \"const\" after \"local\" declaration.");
+		ErrorAtCurrent("Expected 'var', 'const', or 'enum' after 'local' declaration.");
 	}
 }
 void Compiler::GetPropertyDeclaration(Token propertyName) {
@@ -3230,10 +3242,10 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 		EmitByte(OP_POP);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after property declaration.");
 }
 void Compiler::GetClassDeclaration() {
-	ConsumeIdentifier("Expect class name.");
+	ConsumeIdentifier("Expected class name.");
 
 	Token className = parser.Previous;
 	DeclareVariable(&className, false);
@@ -3254,7 +3266,7 @@ void Compiler::GetClassDeclaration() {
 	}
 
 	if (MatchToken(TOKEN_LESS)) {
-		ConsumeIdentifier("Expect base class name.");
+		ConsumeIdentifier("Expected base class name.");
 		Token superName = parser.Previous;
 
 		EmitByte(OP_INHERIT);
@@ -3263,7 +3275,7 @@ void Compiler::GetClassDeclaration() {
 
 	DefineVariableToken(className, false);
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before class body.");
 
 	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		Local local;
@@ -3280,27 +3292,34 @@ void Compiler::GetClassDeclaration() {
 		}
 	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after class body.");
 }
-void Compiler::GetEnumDeclaration() {
+void Compiler::GetEnumDeclaration(bool isLocal) {
 	Token enumName;
 	bool isNamed = false;
 
 	if (MatchToken(TOKEN_IDENTIFIER)) {
 		enumName = parser.Previous;
 		DeclareVariable(&enumName, false);
+		MarkInitialized();
 
 		EmitByte(OP_NEW_ENUM);
 		EmitStringHash(enumName);
 
-		DefineVariableToken(enumName, true);
+		if (isLocal) {
+			int index = DeclareModuleVariable(&enumName, false);
+			Compiler::DefineModuleVariable(index);
+		}
+		else {
+			DefineVariableToken(enumName, true);
+		}
 
 		isNamed = true;
 	}
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before enumeration body.");
 
-	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+	while (true) {
 		bool didStart = false;
 
 		VMValue current = INTEGER_VAL(0);
@@ -3309,12 +3328,21 @@ void Compiler::GetEnumDeclaration() {
 				break;
 			}
 
-			int variable = ParseVariable("Expected constant name.", true);
+			int variable;
+			if (isNamed) {
+				ConsumeIdentifier("Expected constant name.");
+			}
+			else if (isLocal) {
+				variable = ParseModuleVariable("Expected constant name.", true);
+			}
+			else {
+				variable = ParseVariable("Expected constant name.", true);
+			}
 
 			Token token = parser.Previous;
 
-			// Push the enum class to the stack
-			if (isNamed) {
+			// Push the enumeration to the stack if it's global
+			if (isNamed && ScopeDepth == 0) {
 				Local local;
 				NamedVariable(enumName, local, EXPRCONTEXT_VALUE);
 			}
@@ -3328,7 +3356,7 @@ void Compiler::GetEnumDeclaration() {
 						CodePointer() ||
 					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
 					ErrorAt(&token,
-						"Manual enum value must be constant.",
+						"Manual enumeration value must be constant.",
 						true);
 				}
 				EmitCopy(1);
@@ -3337,7 +3365,7 @@ void Compiler::GetEnumDeclaration() {
 			else {
 				if (didStart) {
 					if (IS_NOT_NUMBER(current)) {
-						Warning("Current enum base is a non-number, this enum value will be null!");
+						Warning("Current enumeration base is a non-number; this value will be null!");
 						current = NULL_VAL;
 					}
 					else if (IS_DECIMAL(current)) {
@@ -3362,25 +3390,36 @@ void Compiler::GetEnumDeclaration() {
 			if (isNamed) {
 				EmitByte(OP_ADD_ENUM);
 				EmitStringHash(token);
+
+				// Pop the enumeration from the stack if it's global
+				if (ScopeDepth == 0) {
+					EmitByte(OP_POP);
+				}
+			}
+			else if (isLocal) {
+				ModuleConstants[variable].ConstantVal = current;
+			}
+			else if (ScopeDepth > 0) {
+				Constants[variable].ConstantVal = current;
 			}
 			else {
 				DefineVariableToken(token, true);
-				if (variable == -1) {
-					// treat it as a module constant
-					ModuleConstants.push_back(
-						{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
-				}
+
+				// treat it as a module constant
+				ModuleConstants.push_back(
+					{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
 			}
 		} while (MatchToken(TOKEN_COMMA));
-	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
+		ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after enumeration body.");
+		break;
+	}
 }
 void Compiler::GetImportDeclaration() {
 	bool importModules = MatchToken(TOKEN_FROM);
 
 	do {
-		ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
+		ConsumeToken(TOKEN_STRING, "Expected string after 'import'.");
 
 		Token className = parser.Previous;
 		VMValue value = OBJECT_VAL(Compiler::MakeString(className));
@@ -3389,10 +3428,10 @@ void Compiler::GetImportDeclaration() {
 		EmitUint32(GetConstantIndex(value));
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'import' declaration.");
 }
 void Compiler::GetUsingDeclaration() {
-	ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_NAMESPACE, "Expected 'namespace' after 'using' declaration.");
 
 	if (ScopeDepth > 0) {
 		Error("Cannot use namespaces outside of top-level code.");
@@ -3405,7 +3444,7 @@ void Compiler::GetUsingDeclaration() {
 		EmitStringHash(nsName);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'using' declaration.");
 }
 void Compiler::GetEventDeclaration() {
 	ConsumeIdentifier("Expected event name.");
@@ -3442,7 +3481,7 @@ void Compiler::GetDeclaration() {
 		GetClassDeclaration();
 	}
 	else if (MatchToken(TOKEN_ENUM)) {
-		GetEnumDeclaration();
+		GetEnumDeclaration(false);
 	}
 	else if (MatchToken(TOKEN_IMPORT)) {
 		GetImportDeclaration();
@@ -4066,6 +4105,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 
 				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Division by zero will raise a runtime error!");
 					return preConstant;
 				}
 				out = DECIMAL_VAL(a_d / b_d);
@@ -4074,6 +4114,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 				int a_d = AS_INTEGER(a);
 				int b_d = AS_INTEGER(b);
 				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Division by zero will raise a runtime error!");
 					return preConstant;
 				}
 
@@ -4090,11 +4131,21 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
 				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
+
+				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Modulo by zero will raise a runtime error!");
+					return preConstant;
+				}
 				out = DECIMAL_VAL(fmod(a_d, b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
 				int b_d = AS_INTEGER(b);
+				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Modulo by zero will raise a runtime error!");
+					return preConstant;
+				}
+
 				out = INTEGER_VAL(a_d % b_d);
 			}
 

@@ -276,13 +276,8 @@ PNG_Load_Success:
 		png->Paletted = true;
 
 		for (size_t i = 0; i < png->NumPaletteColors; i++) {
-			png->Colors[i] = 0xFF000000U;
-			png->Colors[i] |= plte.entries[i].red << 16;
-			png->Colors[i] |= plte.entries[i].green << 8;
-			png->Colors[i] |= plte.entries[i].blue;
+			png->Colors[i] = ColorUtils::Make(plte.entries[i].red, plte.entries[i].green, plte.entries[i].blue, 0xFF, Graphics::PreferredPixelFormat);
 		}
-
-		Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
 	}
 	else {
 		png->ReadPixelData(pixelData, 4);

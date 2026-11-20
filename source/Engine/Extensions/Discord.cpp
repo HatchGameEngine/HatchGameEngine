@@ -477,6 +477,10 @@ void Discord::Unload() {
 		SDL_UnloadObject(library);
 		library = NULL;
 	}
+
+	_DiscordCreate = nullptr;
+
+	Discord::Initialized = false;
 }
 void Discord::Dispose() {
 	if (!Discord::Initialized) {
