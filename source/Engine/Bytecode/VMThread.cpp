@@ -737,7 +737,7 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 
 int VMThread::RunInstruction() {
 #if USING_VM_FUNCPTRS
-#define VM_START(ins) \
+#define VM_START() \
 	return RunOpcodeFunc(frame); \
 	}
 #define VM_END() \
