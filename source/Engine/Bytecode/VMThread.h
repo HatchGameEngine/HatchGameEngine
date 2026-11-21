@@ -30,7 +30,6 @@ private:
 	bool HasProperty(Obj* object, Uint32 hash, ValueGetFn getter);
 	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool HasProperty(ObjClass* klass, Uint32 hash);
-	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool CallForObject(VMValue callee, int argCount);
@@ -89,6 +88,7 @@ public:
 	bool HasProperty(VMValue object, Uint32 hash);
 	VMValue GetProperty(VMValue object, Uint32 hash);
 	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
+	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
 	void Push(VMValue value);
 	VMValue Pop();
 	void Pop(unsigned amount);

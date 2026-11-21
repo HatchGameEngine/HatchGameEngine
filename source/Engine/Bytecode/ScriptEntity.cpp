@@ -919,6 +919,40 @@ void ScriptEntity::CopyFields(ScriptEntity* other) {
 	CopyVMFields(other);
 }
 
+void ScriptEntity::CopyFieldsFromInstance(ObjInstance* instance, VMThread* thread) {
+	Table* srcFields = instance->Fields;
+	Table* destFields = Instance->InstanceObj.Fields;
+
+	// Clear our fields
+	destFields->Clear();
+
+	// Link the built-in fields again, since they have been removed
+	LinkFields();
+
+	// Also re-add Entity's methods
+	AddEntityClassMethods();
+
+	// Copy the fields from the source
+	ValueSetFn setter = Instance->InstanceObj.PropertySet;
+
+	srcFields->WithAll([this, destFields, setter, thread](Uint32 hash, VMValue value) -> void {
+		VMValue field;
+
+		// If the field is already in the entity, it must be a linked field. So call SetProperty.
+		if (destFields->GetIfExists(hash, &field)) {
+			thread->SetProperty(destFields, hash, field, value);
+		}
+		// Else, call the setter, if it exists.
+		else if (setter && setter((Obj*)Instance, hash, value, thread->ID)) {
+			// Handled
+		}
+		// Else, put the field directly.
+		else {
+			destFields->Put(hash, value);
+		}
+	});
+}
+
 void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 	Table* srcFields = Instance->InstanceObj.Fields;
 	Table* destFields = other->Instance->InstanceObj.Fields;

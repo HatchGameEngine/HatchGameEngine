@@ -291,7 +291,7 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 #define SET_COLOR(type, col, idx) \
 	{ \
 		if (hash == Hash_##type##col) { \
-			if (ScriptManager::DoDecimalConversion(value, threadID)) \
+			if (ScriptManager::DoDecimalConversion(value, hash, threadID)) \
 				material->Color##type[idx] = AS_DECIMAL(value); \
 			return true; \
 		} \
@@ -328,7 +328,7 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 			if (IS_NULL(value)) { \
 				DoTextureRemoval(&material->Texture##type); \
 			} \
-			else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
+			else if (ScriptManager::DoIntegerConversion(value, hash, threadID)) { \
 				DoTextureReplacement( \
 					AS_INTEGER(value), &material->Texture##type, threadID); \
 			} \
