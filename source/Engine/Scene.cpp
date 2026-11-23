@@ -3899,8 +3899,8 @@ int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* a
 		x = probeXOG;
 		y = probeYOG;
 
-		x -= layer->OffsetX;
-		y -= layer->OffsetY;
+		x += layer->OffsetX;
+		y += layer->OffsetY;
 
 		// Check Layer Width
 		temp = layer->Width << 4;
@@ -4723,8 +4723,8 @@ bool Scene::CheckTileCollision(Entity* entity,
 			continue;
 		}
 
-		int colX = posX - layer->OffsetX;
-		int colY = posY - layer->OffsetY;
+		int colX = posX + layer->OffsetX;
+		int colY = posY + layer->OffsetY;
 
 		int mainCoord = isVertical ? colY : colX;
 		int crossCoord = isVertical ? colX : colY;
@@ -4801,15 +4801,15 @@ bool Scene::CheckTileCollision(Entity* entity,
 
 		if (setPos && collided) {
 			if (isVertical) {
-				entity->Y = (float)(colY + layer->OffsetY) - yOffset;
+				entity->Y = (float)(colY - layer->OffsetY) - yOffset;
 			}
 			else {
-				entity->X = (float)(colX + layer->OffsetX) - xOffset;
+				entity->X = (float)(colX - layer->OffsetX) - xOffset;
 			}
 		}
 
-		posX = layer->OffsetX + colX;
-		posY = layer->OffsetY + colY;
+		posX = colX - layer->OffsetX;
+		posY = colY - layer->OffsetY;
 	}
 	return collided;
 }
@@ -4849,8 +4849,8 @@ bool Scene::CheckTileGrip(Entity* entity,
 			continue;
 		}
 
-		int colX = posX - layer->OffsetX;
-		int colY = posY - layer->OffsetY;
+		int colX = posX + layer->OffsetX;
+		int colY = posY + layer->OffsetY;
 
 		int mainCoord = isVertical ? colY : colX;
 		int crossCoord = isVertical ? colX : colY;
@@ -4922,15 +4922,15 @@ bool Scene::CheckTileGrip(Entity* entity,
 
 		if (collided) {
 			if (isVertical) {
-				entity->Y = (float)(colY + layer->OffsetY) - yOffset;
+				entity->Y = (float)(colY - layer->OffsetY) - yOffset;
 			}
 			else {
-				entity->X = (float)(colX + layer->OffsetX) - xOffset;
+				entity->X = (float)(colX - layer->OffsetX) - xOffset;
 			}
 		}
 
-		posX = layer->OffsetX + colX;
-		posY = layer->OffsetY + colY;
+		posX = colX - layer->OffsetX;
+		posY = colY - layer->OffsetY;
 	}
 	return collided;
 }
@@ -5671,8 +5671,8 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 				continue;
 			}
 
-			int colX = posX - layer->OffsetX;
-			int colY = posY - layer->OffsetY;
+			int colX = posX + layer->OffsetX;
+			int colY = posY + layer->OffsetY;
 			int cy = isFloor ? ((colY & -TileHeight) - TileHeight)
 					 : ((colY & -TileHeight) + TileHeight);
 			int step = isFloor ? TileHeight : -TileHeight;
@@ -5712,8 +5712,8 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 
 							if (mask < 0xFF) {
 								if (!sensor->Collided ||
-									(isFloor ? startY >= ty + layer->OffsetY
-										 : startY <= ty + layer->OffsetY)) {
+									(isFloor ? startY >= ty - layer->OffsetY
+										 : startY <= ty - layer->OffsetY)) {
 									if (abs(colY - ty) <=
 										CollisionTolerance) {
 										bool angleValid =
@@ -5743,9 +5743,9 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 												true;
 											sensor->Angle =
 												tileAngle;
-											sensor->Y = (float)(ty +
+											sensor->Y = (float)(ty -
 												layer->OffsetY);
-											startY = ty + layer->OffsetY;
+											startY = ty - layer->OffsetY;
 											i = 3;
 										}
 									}
@@ -5784,8 +5784,8 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 				continue;
 			}
 
-			int colX = posX - layer->OffsetX;
-			int colY = posY - layer->OffsetY;
+			int colX = posX + layer->OffsetX;
+			int colY = posY + layer->OffsetY;
 			int cx = isLeft ? ((colX & -TileWidth) - TileWidth)
 					: ((colX & -TileWidth) + TileWidth);
 			int step = isLeft ? TileWidth : -TileWidth;
@@ -5826,8 +5826,8 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 
 							if (mask < 0xFF) {
 								if (!sensor->Collided ||
-									(isLeft ? startX >= tx + layer->OffsetX
-										: startX <= tx + layer->OffsetX)) {
+									(isLeft ? startX >= tx - layer->OffsetX
+										: startX <= tx - layer->OffsetX)) {
 									if (abs(colX - tx) <=
 											CollisionTolerance &&
 										abs(sensor->Angle -
@@ -5837,9 +5837,9 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 											true;
 										sensor->Angle =
 											tileAngle;
-										sensor->X = (float)(tx +
+										sensor->X = (float)(tx -
 											layer->OffsetX);
-										startX = tx + layer->OffsetX;
+										startX = tx - layer->OffsetX;
 										i = 3;
 									}
 								}
@@ -5879,8 +5879,8 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 			continue;
 		}
 
-		int colX = posX - layer->OffsetX;
-		int colY = posY - layer->OffsetY;
+		int colX = posX + layer->OffsetX;
+		int colY = posY + layer->OffsetY;
 		if (colX < 0 || colX >= TileWidth * layer->Width) {
 			continue;
 		}
@@ -5906,7 +5906,7 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 				continue;
 			}
 
-			int worldY = cy + mask + layer->OffsetY;
+			int worldY = cy + mask - layer->OffsetY;
 			float distance = sensor->Y - worldY;
 			bool isPast = isFloor ? (distance >= 0.0f) : (distance <= 0.0f);
 			if (!isPast || abs(distance) > CollisionMinimumDistance) {
@@ -5954,8 +5954,8 @@ void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
 			continue;
 		}
 
-		int colX = posX - layer->OffsetX;
-		int colY = posY - layer->OffsetY;
+		int colX = posX + layer->OffsetX;
+		int colY = posY + layer->OffsetY;
 		if (colY < 0 || colY >= TileHeight * layer->Height) {
 			continue;
 		}
@@ -5987,7 +5987,7 @@ void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
 				continue;
 			}
 
-			int worldX = tx + layer->OffsetX;
+			int worldX = tx - layer->OffsetX;
 			if (!found || (isLeft ? worldX < collidePos : worldX > collidePos)) {
 				found = true;
 				collidePos = worldX;
