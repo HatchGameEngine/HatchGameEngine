@@ -35,6 +35,7 @@ public:
 	static void LoadMods(bool newOnly);
 	static bool LoadMod(ModInfo* info, std::string modsPath, std::string folder, bool active);
 	static bool ScanModFolder(ModInfo* info);
+	static void RescanMods();
 	static void OpenPacks(ModInfo* info);
 	static void ClosePacks(ModInfo* info);
 	static void LoadModSettings();

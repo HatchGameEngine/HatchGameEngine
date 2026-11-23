@@ -212,6 +212,15 @@ bool ModLoader::ScanModFolder(ModInfo* info) {
 	return true;
 }
 
+// Picks up files added to or removed from the active mods since they were scanned
+void ModLoader::RescanMods() {
+	for (size_t i = 0; i < Mods.size(); i++) {
+		if (Mods[i].Active) {
+			ScanModFolder(&Mods[i]);
+		}
+	}
+}
+
 void ModLoader::OpenPacks(ModInfo* info) {
 	ClosePacks(info);
 

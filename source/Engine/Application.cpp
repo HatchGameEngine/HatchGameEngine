@@ -1669,6 +1669,11 @@ void Application::PollEvents() {
 						Scene::CurrentScene,
 						MAX_RESOURCE_PATH_LENGTH);
 
+					// Rescan the mods so files added while the game is running are found
+					ModLoader::RescanMods();
+
+					Application::StopAudioAndRumble();
+
 					Application::Restart(true);
 					Application::StartGame(lastScene);
 					if (Application::DevMenuActivated) {
