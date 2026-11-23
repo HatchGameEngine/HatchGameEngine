@@ -37,6 +37,10 @@ public:
 	int DrawGroup = 0;
 	Uint8 DrawBehavior = 0;
 
+	// Per-view overrides; -1 uses the layer's own value
+	int ViewVisible[MAX_SCENE_VIEWS];
+	int ViewDrawGroup[MAX_SCENE_VIEWS];
+
 	HashMap<Property>* Properties = NULL;
 
 	bool UseBlending = false;
@@ -49,8 +53,11 @@ public:
 	bool UsingCustomRenderFunction = false;
 	ObjFunction CustomRenderFunction;
 
+	SceneLayer();
 	bool PropertyExists(char* property);
 	Property PropertyGet(char* property);
+	bool IsVisibleInView(int viewIndex);
+	int GetDrawGroupInView(int viewIndex);
 	~SceneLayer();
 };
 
