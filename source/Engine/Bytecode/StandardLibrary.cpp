@@ -11714,7 +11714,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+	if (audio && loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
 	}
 
@@ -16626,7 +16626,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+	if (audio && loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
 	}
 
@@ -16757,7 +16757,7 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+	if (audio && loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
 	}
 
@@ -16806,7 +16806,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+	if (audio && loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
 	}
 
