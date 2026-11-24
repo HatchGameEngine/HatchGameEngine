@@ -6,6 +6,9 @@ Multiplatform engine powering projects and making ideas into reality.
 
 [Discord Server](https://discord.gg/ZSw23t2sSd)
 
+## Documentation
+The documentation is available at https://hatchgameengine.github.io/docs/. If you would like to contribute to it, check out the [docs](docs/) folder.
+
 ## Building
 ### Microsoft Windows
 Included in `/VisualC` is a Visual Studio 2019 solution. You'll need the
