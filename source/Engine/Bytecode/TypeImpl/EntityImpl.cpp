@@ -653,7 +653,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 			animationID);
 		return NULL_VAL;
 	}
-	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+	else if (!(hitboxID > -1 && (size_t)hitboxID < frame.Boxes.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,

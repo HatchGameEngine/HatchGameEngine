@@ -70,7 +70,7 @@ struct Polygon2D {
 			FVector2& a = Points[currPt];
 			FVector2& b = Points[prevPt];
 
-			if (a.Y > point.Y != b.Y > point.Y) {
+			if ((a.Y > point.Y) != (b.Y > point.Y)) {
 				if (point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X) {
 					isInside = !isInside;
 				}

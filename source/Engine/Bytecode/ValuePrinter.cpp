@@ -161,7 +161,7 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 	}
 
 	bool first = false;
-	for (int i = 0; i < map->Values->Count(); i++) {
+	for (size_t i = 0; i < map->Values->Count(); i++) {
 		if (!first) {
 			first = true;
 		}

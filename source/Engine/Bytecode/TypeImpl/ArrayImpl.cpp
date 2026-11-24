@@ -79,7 +79,7 @@ VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	else if (!IS_NULL(args[1])) {
 		int iteration = GET_ARG(1, GetInteger) + 1;
-		if (iteration >= 0 && iteration < array->Values->size()) {
+		if (iteration >= 0 && (size_t)iteration < array->Values->size()) {
 			return INTEGER_VAL(iteration);
 		}
 	}
@@ -92,7 +92,7 @@ VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID
 
 	ObjArray* array = GET_ARG(0, GetArray);
 	int index = GET_ARG(1, GetInteger);
-	if (index < 0 || (Uint32)index >= array->Values->size()) {
+	if (index < 0 || (size_t)index >= array->Values->size()) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Index %d is out of bounds of array of size %d.",
 			index,

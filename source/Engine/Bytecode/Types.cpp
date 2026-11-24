@@ -397,7 +397,7 @@ void Chunk::DeleteLocals(vector<ChunkLocal>* locals) {
 void Chunk::SetupOpfuncs() {
 	if (!OpcodeCount) {
 		// try to get it manually thru iterating it (for version <= 2 bytecode)
-		for (int offset = 0; offset < Count;) {
+		for (size_t offset = 0; offset < Count;) {
 			offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 			OpcodeCount++;
 		}
@@ -406,8 +406,8 @@ void Chunk::SetupOpfuncs() {
 	OpcodeFuncs = (OpcodeFunc*)Memory::TrackedMalloc(
 		"Chunk::OpcodeFuncs", sizeof(OpcodeFunc) * OpcodeCount);
 	IPToOpcode = (int*)Memory::TrackedMalloc("Chunk::IPToOpcode", sizeof(int) * Count);
-	int offset = 0;
-	for (int i = 0; i < OpcodeCount; i++) {
+	size_t offset = 0;
+	for (size_t i = 0; i < OpcodeCount; i++) {
 		Uint8 op = *(Code + offset);
 		IPToOpcode[offset] = i;
 		offset += Bytecode::GetTotalOpcodeSize(Code + offset);

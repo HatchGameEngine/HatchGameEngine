@@ -57,6 +57,10 @@ void Serializer::WriteValue(VMValue val) {
 				return;
 			}
 		}
+		else {
+			StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
+		}
+		return;
 	}
 	default:
 		StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
@@ -91,10 +95,10 @@ void Serializer::WriteObject(Obj* obj) {
 
 		ObjMap* map = (ObjMap*)obj;
 		StreamPtr->WriteUInt32(map->Keys->Count());
-		map->Keys->WithAll([this](Uint32 hash, VMValue mapKey) -> void {
+		map->Keys->WithAll([this](Uint32, VMValue mapKey) -> void {
 			WriteValue(mapKey);
 		});
-		map->Values->WithAll([this](Uint32 hash, VMValue mapVal) -> void {
+		map->Values->WithAll([this](Uint32, VMValue mapVal) -> void {
 			WriteValue(mapVal);
 		});
 		break;

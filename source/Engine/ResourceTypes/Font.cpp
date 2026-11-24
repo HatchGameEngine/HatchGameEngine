@@ -283,7 +283,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 	Memory::Free(rects);
 
 	if (!packedAll) {
-		int maxTextureSize =
+		unsigned maxTextureSize =
 			std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 		if (AtlasSize > maxTextureSize) {
 			return false;
@@ -630,9 +630,9 @@ FontGlyphRange* Font::GetRangeForNewGlyph() {
 		FontGlyphRange* range = GlyphRanges[numRanges - 1];
 
 		// Check if the texture is too large already
-		int maxTextureSize =
+		unsigned maxTextureSize =
 			std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
-		maxTextureSize = std::min(maxTextureSize, MAX_FONT_ATLAS_SIZE);
+		maxTextureSize = std::min(maxTextureSize, (unsigned)MAX_FONT_ATLAS_SIZE);
 		if (range->AtlasSize < maxTextureSize) {
 			return range;
 		}

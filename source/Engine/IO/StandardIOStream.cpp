@@ -45,10 +45,6 @@ StandardIOStream* StandardIOStream::New(const char* filename, Uint32 access) {
 	stream->CurrentAccess = access;
 
 	return stream;
-
-FREE:
-	delete stream;
-	return nullptr;
 }
 
 bool StandardIOStream::Reopen(Uint32 newAccess) {

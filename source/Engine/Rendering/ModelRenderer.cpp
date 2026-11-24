@@ -130,7 +130,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 	Matrix4x4& mvpMatrix) {
 	Material* material = nullptr;
 
-	if (mesh->MaterialIndex != -1 && mesh->MaterialIndex < model->Materials.size()) {
+	if (mesh->MaterialIndex != -1 && (size_t)mesh->MaterialIndex < model->Materials.size()) {
 		material = model->Materials[mesh->MaterialIndex];
 	}
 

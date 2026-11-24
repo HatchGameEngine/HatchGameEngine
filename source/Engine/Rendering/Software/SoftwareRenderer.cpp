@@ -196,15 +196,15 @@ void SoftwareRenderer::RenderEnd(int viewIndex) {}
 
 // Texture management functions
 Texture*
-SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+SoftwareRenderer::CreateTexture(int format, int access, Uint32 width, Uint32 height) {
 	if (Graphics::Internal.CreateTexture) {
 		return Graphics::Internal.CreateTexture(format, access, width, height);
 	}
 	return nullptr;
 }
 bool SoftwareRenderer::ReinitializeTexture(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	return false;
@@ -933,7 +933,7 @@ static int CalcVertexColor(Scene3D* scene, VertexAttribute* vertex, int normalY)
 void SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {}
 void SoftwareRenderer::UnbindVertexBuffer() {}
 void SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 
@@ -948,7 +948,7 @@ void SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
 	}
 }
 void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 
@@ -964,12 +964,6 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
-
-	Matrix4x4* out = Graphics::ModelMatrix;
-	int x = out->Values[12];
-	int y = out->Values[13];
-	x -= cx;
-	y -= cy;
 
 	bool doDepthTest = drawMode & DrawMode_DEPTH_TEST;
 	bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
@@ -1400,11 +1394,7 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 			SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
-			Vector3 polygonVertex[MAX_POLYGON_VERTICES];
-			Vector2 polygonUV[MAX_POLYGON_VERTICES];
 			int polygonVertColor[MAX_POLYGON_VERTICES];
-			Uint32 polygonVertexIndex = 0;
-			Uint32 numOutside = 0;
 			while (vertexCountPerFace--) {
 				int vertexZ = vertex->Position.Z;
 				if (usePerspective) {
@@ -1557,8 +1547,7 @@ void SoftwareRenderer::DrawModelSkinned(void* model,
 void SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	Matrix4x4* modelMatrix,
 	Matrix4x4* normalMatrix) {
-	if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 ||
-		vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+	if (Graphics::CurrentScene3D < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return;
 	}
 
@@ -4029,14 +4018,14 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 
 				bool flipY = !!(*tile & TILE_FLIPY_MASK);
 				bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
-				TileConfig* tile = (&baseTileCfg[tileID] + tileFlipOffset);
+				TileConfig* cfgTile = (&baseTileCfg[tileID] + tileFlipOffset);
 				for (int gg = c_pixelsOfTileRemaining; gg < 16; gg++) {
 					if ((flipY == isCeiling &&
-						    (srcY & 15) >= tile->CollisionTop[gg] &&
-						    tile->CollisionTop[gg] < 0xF0) ||
+						    (srcY & 15) >= cfgTile->CollisionTop[gg] &&
+						    cfgTile->CollisionTop[gg] < 0xF0) ||
 						(flipY != isCeiling &&
-							(srcY & 15) <= tile->CollisionBottom[gg] &&
-							tile->CollisionBottom[gg] < 0xF0)) {
+							(srcY & 15) <= cfgTile->CollisionBottom[gg] &&
+							cfgTile->CollisionBottom[gg] < 0xF0)) {
 						PixelNoFiltSetOpaque(&DRAW_COLLISION,
 							&dstPxLine[c_dst_x],
 							CurrentBlendState,
@@ -4229,15 +4218,15 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 
 					bool flipY = !!(*tile & TILE_FLIPY_MASK);
 					bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
-					TileConfig* tile = (&baseTileCfg[tileID] + tileFlipOffset);
+					TileConfig* cfgTile = (&baseTileCfg[tileID] + tileFlipOffset);
 					for (int gg = 0; gg < 16; gg++) {
 						if ((flipY == isCeiling &&
-							    (srcY & 15) >= tile->CollisionTop[gg] &&
-							    tile->CollisionTop[gg] < 0xF0) ||
+							    (srcY & 15) >= cfgTile->CollisionTop[gg] &&
+							    cfgTile->CollisionTop[gg] < 0xF0) ||
 							(flipY != isCeiling &&
 								(srcY & 15) <=
-									tile->CollisionBottom[gg] &&
-								tile->CollisionBottom[gg] < 0xF0)) {
+									cfgTile->CollisionBottom[gg] &&
+								cfgTile->CollisionBottom[gg] < 0xF0)) {
 							PixelNoFiltSetOpaque(&DRAW_COLLISION,
 								&dstPxLine[c_dst_x],
 								CurrentBlendState,
@@ -4383,14 +4372,14 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 
 				bool flipY = !!(*tile & TILE_FLIPY_MASK);
 				bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
-				TileConfig* tile = (&baseTileCfg[tileID] + tileFlipOffset);
+				TileConfig* cfgTile = (&baseTileCfg[tileID] + tileFlipOffset);
 				for (int gg = c_pixelsOfTileRemaining; gg < 16; gg++) {
 					if ((flipY == isCeiling &&
-						    (srcY & 15) >= tile->CollisionTop[gg] &&
-						    tile->CollisionTop[gg] < 0xF0) ||
+						    (srcY & 15) >= cfgTile->CollisionTop[gg] &&
+						    cfgTile->CollisionTop[gg] < 0xF0) ||
 						(flipY != isCeiling &&
-							(srcY & 15) <= tile->CollisionBottom[gg] &&
-							tile->CollisionBottom[gg] < 0xF0)) {
+							(srcY & 15) <= cfgTile->CollisionBottom[gg] &&
+							cfgTile->CollisionBottom[gg] < 0xF0)) {
 						PixelNoFiltSetOpaque(&DRAW_COLLISION,
 							&dstPxLine[c_dst_x],
 							CurrentBlendState,
@@ -4594,15 +4583,15 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 
 	if (Scene::TileWidth == 16 && Scene::TileHeight == 16) {
 		if (blendState.Mode == BlendFlag_OPAQUE) {
-			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer);
 		}
 		else {
-			DrawTileLayer_CustomTileScanLines_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_16x16(layer);
 		}
 		return;
 	}
 	else if (blendState.Mode == BlendFlag_OPAQUE) {
-		DrawTileLayer_CustomTileScanLines_Opaque(layer, currentView);
+		DrawTileLayer_CustomTileScanLines_Opaque(layer);
 		return;
 	}
 
@@ -4795,7 +4784,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4944,7 +4933,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -5140,7 +5129,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;

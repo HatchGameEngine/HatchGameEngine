@@ -819,7 +819,7 @@ bool IsArrayOfMatrices(ObjArray* array, size_t arrayLength, size_t expectedCount
 	return true;
 }
 void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values) {
-	char errorString[128];
+	char errorString[256];
 
 	VMValue element = (*array->Values)[arrIndex];
 	if (!IS_ARRAY(element)) {
@@ -868,7 +868,7 @@ void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, 
 	}
 }
 void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values) {
-	char errorString[128];
+	char errorString[256];
 
 	VMValue element = (*array->Values)[arrIndex];
 	if (!IS_ARRAY(element)) {

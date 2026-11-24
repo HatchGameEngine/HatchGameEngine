@@ -370,12 +370,10 @@ bool SceneInfo::Load(XMLNode* node) {
 			FillAttributesHashMap(&listElement->attributes, category->Properties);
 
 			for (size_t s = 0; s < listElement->children.size(); ++s) {
-				XMLNode* node = listElement->children[s];
-				if (XMLParser::MatchToken(node->name, "scene") ||
-					XMLParser::MatchToken(node->name,
-						"stage")) { // backwards
-					// compat
-					SceneListEntry entry = ParseEntry(node, s);
+				XMLNode* listElementNode = listElement->children[s];
+				if (XMLParser::MatchToken(listElementNode->name, "scene") ||
+					XMLParser::MatchToken(listElementNode->name, "stage")) { // backwards compat
+					SceneListEntry entry = ParseEntry(listElementNode, s);
 
 					category->Entries.push_back(entry);
 

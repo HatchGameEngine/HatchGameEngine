@@ -8,11 +8,10 @@
 class ModelImporter {
 private:
 	static Mesh* LoadMesh(IModel* imodel, struct aiMesh* amesh);
-	static Material* LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i);
+	static Material* LoadMaterial(struct aiMaterial* mat, unsigned i);
 	static ModelNode* LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode);
 	static Skeleton* LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
-	static SkeletalAnim*
-	LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim);
+	static SkeletalAnim* LoadAnimation(ModelAnim* parentAnim, struct aiAnimation* aanim);
 #ifdef USING_ASSIMP
 	static int GetConversionFlags();
 #endif

@@ -516,8 +516,8 @@ struct Armature {
 			// We need to point our new bones' global
 			// transforms to our new nodes' global
 			// transforms.
-			for (size_t i = 0; i < newSkeleton->NumBones; i++) {
-				MeshBone* bone = newSkeleton->Bones[i];
+			for (size_t j = 0; i < newSkeleton->NumBones; j++) {
+				MeshBone* bone = newSkeleton->Bones[j];
 				ModelNode* node = newArmature->RootNode->Search(bone->Name);
 				if (node) {
 					bone->GlobalTransform = node->GlobalTransform;

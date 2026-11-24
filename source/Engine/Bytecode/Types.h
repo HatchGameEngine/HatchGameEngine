@@ -86,8 +86,8 @@ struct ChunkLocal {
 };
 
 struct Chunk {
-	int Count;
-	int Capacity;
+	size_t Count;
+	size_t Capacity;
 	Uint8* Code;
 	Uint32* Breakpoints;
 	Uint16 BreakpointCount;
@@ -97,7 +97,7 @@ struct Chunk {
 	vector<ChunkLocal>* ModuleLocals;
 	bool OwnsMemory;
 
-	int OpcodeCount;
+	size_t OpcodeCount;
 #if USING_VM_FUNCPTRS
 	OpcodeFunc* OpcodeFuncs;
 	int* IPToOpcode;

@@ -171,9 +171,9 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	std::vector<bool> closeStream;
 
 #define FREE_STREAM_LIST \
-	for (size_t i = 0; i < streamList.size(); i++) { \
-		if (closeStream[i]) { \
-			streamList[i]->Close(); \
+	for (size_t s = 0; s < streamList.size(); s++) { \
+		if (closeStream[s]) { \
+			streamList[s]->Close(); \
 		} \
 	}
 
@@ -185,7 +185,7 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 		closeStream.push_back(close); \
 	} catch (const std::runtime_error& error) { \
 		FREE_STREAM_LIST \
-		throw; \
+		throw error; \
 	}
 
 	// No argument was passed, so this constructs the Font using the default font.

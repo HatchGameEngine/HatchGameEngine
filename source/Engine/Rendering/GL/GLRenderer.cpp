@@ -421,8 +421,8 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 #endif
 
 	if (texture) {
-		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 #ifdef GL_HAVE_YUV
+		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 		if (textureData && textureData->YUV) {
 			GLShader* shader = GLRenderer::ShaderYUV;
 			if (shader) {
@@ -1425,8 +1425,12 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 	}
 
 	polyRenderer.DrawMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->DrawMode : 0;
-	polyRenderer.FaceCullMode =
-		polyRenderer.ScenePtr ? polyRenderer.ScenePtr->FaceCullMode : FaceCull_None;
+	if (polyRenderer.ScenePtr != nullptr) {
+		polyRenderer.FaceCullMode = polyRenderer.ScenePtr->FaceCullMode;
+	}
+	else {
+		polyRenderer.FaceCullMode = FaceCull_None;
+	}
 	polyRenderer.CurrentColor = ColorUtils::ToRGBA(Graphics::BlendColors);
 
 	GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
@@ -2044,7 +2048,7 @@ bool GL_CreateTexture(Texture* texture) {
 
 	return true;
 }
-Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* GLRenderer::CreateTexture(int format, int access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
 	GL_CreateTexture(texture);
@@ -2054,8 +2058,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 	return texture;
 }
 bool GLRenderer::ReinitializeTexture(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	if (texture->DriverData != nullptr) {
@@ -2401,7 +2405,7 @@ void GL_PrepareScreenTexture() {
 		GL_ScreenTextureWidth = maxWidth;
 		GL_ScreenTextureHeight = maxHeight;
 	}
-	else if (maxWidth > GL_ScreenTextureWidth || maxHeight > GL_ScreenTextureHeight) {
+	else if ((unsigned)maxWidth > GL_ScreenTextureWidth || (unsigned)maxHeight > GL_ScreenTextureHeight) {
 		if (GL_ScreenTexture != nullptr) {
 			GLRenderer::DisposeTexture(GL_ScreenTexture);
 		}
@@ -3565,8 +3569,7 @@ void GLRenderer::DrawModelSkinned(void* inModel,
 void GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	Matrix4x4* modelMatrix,
 	Matrix4x4* normalMatrix) {
-	if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 ||
-		vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+	if (Graphics::CurrentScene3D < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
 		return;
 	}
 
@@ -3605,7 +3608,7 @@ void GLRenderer::ClearScene3D(Uint32 sceneIndex) {
 	driverData->Changed = true;
 }
 void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
-	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
+	if (sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
 

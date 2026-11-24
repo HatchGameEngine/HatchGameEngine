@@ -127,7 +127,7 @@ size_t base64_decode_block(const char* code_in, const int length_in, char* plain
 				fragment = (char)base64_decode_value(*codechar++);
 			} while (fragment < 0);
 			*plainchar = (fragment & 0x03f) << 2;
-
+			[[fallthrough]];
 		case 1:
 			do {
 				if (codechar >= code_in + length_in) {
@@ -139,7 +139,7 @@ size_t base64_decode_block(const char* code_in, const int length_in, char* plain
 			} while (fragment < 0);
 			*plainchar++ |= (fragment & 0x030) >> 4;
 			*plainchar = (fragment & 0x00f) << 4;
-
+			[[fallthrough]];
 		case 2:
 			do {
 				if (codechar >= code_in + length_in) {
@@ -151,7 +151,7 @@ size_t base64_decode_block(const char* code_in, const int length_in, char* plain
 			} while (fragment < 0);
 			*plainchar++ |= (fragment & 0x03c) >> 2;
 			*plainchar = (fragment & 0x003) << 6;
-
+			[[fallthrough]];
 		case 3:
 			do {
 				if (codechar >= code_in + length_in) {

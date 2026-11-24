@@ -269,7 +269,7 @@ const char* D3D_GetResultString(HRESULT result) {
 	}
 	return NULL;
 }
-D3DFORMAT D3D_PixelFormatToD3DFORMAT(Uint32 format) {
+D3DFORMAT D3D_PixelFormatToD3DFORMAT(int format) {
 	switch (format) {
 	case TextureFormat_ARGB8888:
 		return D3DFMT_A8R8G8B8;
@@ -1025,7 +1025,7 @@ void D3DRenderer::Dispose() {
 }
 
 // Texture management functions
-Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* D3DRenderer::CreateTexture(int format, int access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
 	if (!D3D_CreateTexture(texture)) {
@@ -1040,8 +1040,8 @@ Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, 
 	return texture;
 }
 bool D3DRenderer::ReinitializeTexture(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	if (texture->DriverData != nullptr) {

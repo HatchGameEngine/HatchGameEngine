@@ -7,14 +7,14 @@
 #include <Engine/Utilities/ColorUtils.h>
 #include <Libraries/ankerl/unordered_dense.h>
 
-Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* Texture::New(int format, int access, Uint32 width, Uint32 height) {
 	Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
 	Texture::Initialize(texture, format, access, width, height);
 	return texture;
 }
 bool Texture::Initialize(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	if (texture->Pixels) {
@@ -39,8 +39,8 @@ bool Texture::Initialize(Texture* texture,
 	return texture->Pixels != nullptr;
 }
 bool Texture::Reinitialize(Texture* texture,
-	Uint32 format,
-	Uint32 access,
+	int format,
+	int access,
 	Uint32 width,
 	Uint32 height) {
 	// Free palette if no longer indexed

@@ -347,7 +347,7 @@ void GLShader::Compile() {
 		glDeleteProgram(ProgramID);
 		ProgramID = 0;
 
-		throw;
+		throw error;
 	}
 
 	Compiled = true;
@@ -369,7 +369,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 		AddVertexShader(streamVS);
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 	streamVS->Close();
 
@@ -378,7 +378,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 		AddFragmentShader(streamFS);
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 	streamFS->Close();
 
@@ -391,7 +391,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 		Compile();
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 }
 GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
@@ -401,14 +401,14 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 		AddVertexShader(streamVS);
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 
 	try {
 		AddFragmentShader(streamFS);
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 
 #if GL_USING_ATTRIB_LOCATIONS
@@ -420,7 +420,7 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 		Compile();
 	} catch (const std::runtime_error& error) {
 		Delete();
-		throw;
+		throw error;
 	}
 }
 void GLShader::AttachAndLink() {

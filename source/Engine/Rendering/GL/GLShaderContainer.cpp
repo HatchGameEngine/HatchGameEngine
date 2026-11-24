@@ -194,7 +194,7 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 
 #undef REMOVE
 
-			throw;
+			throw error;
 		}
 	} while (true);
 }
@@ -282,7 +282,7 @@ GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
 
 	try {
 		shader = Compile(actualFeatures);
-	} catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error&) {
 		shader = CompileNoFeatures();
 		actualFeatures = 0;
 

@@ -125,7 +125,7 @@ void Log::Print(int sev, const char* format, ...) {
 	if (written_chars <= 0) {
 		return;
 	}
-	else if (written_chars + 1 >= BufferSize) {
+	else if ((size_t)written_chars + 1 >= BufferSize) {
 		if (!ResizeBuffer(written_chars)) {
 			return;
 		}
@@ -263,7 +263,7 @@ void Log::PrintSimple(const char* format, ...) {
 	if (written_chars <= 0) {
 		return;
 	}
-	else if (written_chars + 1 >= BufferSize) {
+	else if ((size_t)written_chars + 1 >= BufferSize) {
 		if (!ResizeBuffer(written_chars)) {
 			return;
 		}

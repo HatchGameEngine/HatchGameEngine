@@ -76,7 +76,7 @@ void Entity::Animate() {
 				OnAnimationFinish();
 
 				// Sprite may have changed after a call to OnAnimationFinish
-				ResourceType* resource = Scene::GetSpriteResource(Sprite);
+				resource = Scene::GetSpriteResource(Sprite);
 				if (resource) {
 					sprite = resource->AsSprite;
 				}
@@ -89,7 +89,7 @@ void Entity::Animate() {
 			// Update duration for the new frame
 			// Check range for strange loop points or if CurrentAnimation is now invalid
 			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-				&& CurrentAnimation < sprite->Animations.size()) {
+				&& (size_t)CurrentAnimation < sprite->Animations.size()) {
 				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 			}
 			else {
@@ -110,14 +110,14 @@ void Entity::Animate() {
 					OnAnimationFinish();
 
 					// Sprite may have changed after a call to OnAnimationFinish
-					ResourceType* resource = Scene::GetSpriteResource(Sprite);
+					resource = Scene::GetSpriteResource(Sprite);
 					sprite = resource ? resource->AsSprite : nullptr;
 				}
 
 				// Update duration for the new frame
 				// Check range for strange loop points or if CurrentAnimation is now invalid
 				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-					&& CurrentAnimation < sprite->Animations.size()) {
+					&& (size_t)CurrentAnimation < sprite->Animations.size()) {
 					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 				}
 				else {

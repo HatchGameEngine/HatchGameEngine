@@ -537,8 +537,8 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 			ws.opcode == opcode_type::BINARY_FRAME ||
 			ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
-				for (size_t i = 0; i != ws.N; i++) {
-					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
+				for (size_t j = 0; j != ws.N; j++) {
+					rxbuf[j + ws.header_size] ^= ws.masking_key[j & 0x3];
 				}
 			}
 
@@ -557,13 +557,13 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 		}
 		else if (ws.opcode == opcode_type::PING) {
 			if (ws.mask) {
-				for (size_t i = 0; i != ws.N; ++i) {
-					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
+				for (size_t j = 0; j != ws.N; ++j) {
+					rxbuf[j + ws.header_size] ^= ws.masking_key[j & 0x3];
 				}
 			}
-			std::string data(rxbuf.begin() + ws.header_size,
+			std::string pingData(rxbuf.begin() + ws.header_size,
 				rxbuf.begin() + ws.header_size + (size_t)ws.N);
-			SendData(opcode_type::PONG, data.data(), data.size());
+			SendData(opcode_type::PONG, pingData.data(), pingData.size());
 		}
 		else if (ws.opcode == opcode_type::PONG) {}
 		else if (ws.opcode == opcode_type::CLOSE) {
@@ -677,8 +677,8 @@ size_t WebSocketClient::BytesToRead() {
 			ws.opcode == opcode_type::BINARY_FRAME ||
 			ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
-				for (size_t i = 0; i != ws.N; i++) {
-					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
+				for (size_t j = 0; j != ws.N; j++) {
+					rxbuf[j + ws.header_size] ^= ws.masking_key[j & 0x3];
 				}
 			}
 
@@ -699,13 +699,13 @@ size_t WebSocketClient::BytesToRead() {
 		}
 		else if (ws.opcode == opcode_type::PING) {
 			if (ws.mask) {
-				for (size_t i = 0; i != ws.N; ++i) {
-					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
+				for (size_t j = 0; j != ws.N; ++j) {
+					rxbuf[j + ws.header_size] ^= ws.masking_key[j & 0x3];
 				}
 			}
-			std::string data(rxbuf.begin() + ws.header_size,
+			std::string pingData(rxbuf.begin() + ws.header_size,
 				rxbuf.begin() + ws.header_size + (size_t)ws.N);
-			SendData(opcode_type::PONG, data.data(), data.size());
+			SendData(opcode_type::PONG, pingData.data(), pingData.size());
 		}
 		else if (ws.opcode == opcode_type::PONG) {}
 		else if (ws.opcode == opcode_type::CLOSE) {
@@ -742,7 +742,6 @@ float WebSocketClient::ReadFloat() {
 }
 char* WebSocketClient::ReadString() {
 	char* data = (char*)receivedData.data();
-	char* dataStart = data;
 	char* dataEnd = data + receivedData.size();
 	size_t str_len = 0;
 	while (*data && data < dataEnd) {

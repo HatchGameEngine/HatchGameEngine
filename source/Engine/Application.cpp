@@ -859,7 +859,7 @@ void Application::GetPerformanceSnapshot() {
 		if (padding < 1) {
 			padding = 1;
 		}
-		for (int i = 0; i < padding; i++) {
+		for (int j = 0; j < padding; j++) {
 			padStr[i] = ' ';
 		}
 		padStr[padding] = '\0';
@@ -1924,9 +1924,9 @@ void Application::TakeScreenshot(const char* path, Operation operation) {
 		const char* extension = ".png";
 
 		std::string basePath = Application::GetFilenameForScreenshot();
-		std::string path = basePath + extension;
+		std::string finalPath = basePath + extension;
 
-		if (Screenshot::Exists(path)) {
+		if (Screenshot::Exists(finalPath)) {
 			int attempt = 0;
 			do {
 				attempt++;
@@ -1944,11 +1944,11 @@ void Application::TakeScreenshot(const char* path, Operation operation) {
 					return;
 				}
 
-				path = basePath + "-" + std::to_string(attempt) + extension;
-			} while (Screenshot::Exists(path));
+				finalPath = basePath + "-" + std::to_string(attempt) + extension;
+			} while (Screenshot::Exists(finalPath));
 		}
 
-		op.Path = path;
+		op.Path = finalPath;
 	}
 
 	op.OnFinish = operation;
@@ -3132,7 +3132,7 @@ void Application::DevMenu_DrawMainMenu() {
 	DrawRectangle(144, 82, Application::WindowWidth - 144, 124, 0x000000, 0xC0);
 
 	for (size_t i = 0, y = 109; i < std::size(selectionNames); ++i, y += 14) {
-		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
+		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, (size_t)DevMenu.Selection == i);
 	}
 }
 
@@ -3290,7 +3290,7 @@ void Application::DevMenu_CategorySelectMenu() {
 			160,
 			y,
 			ALIGN_LEFT,
-			(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
+			(size_t)(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
 	}
 
 	if (DevMenu_MoveSelection(DevMenu.SubSelection, (int)SceneInfo::Categories.size())) {
@@ -3457,7 +3457,7 @@ void Application::DevMenu_ResourcesBrowserMenu() {
 			160,
 			y,
 			ALIGN_LEFT,
-			(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
+			(size_t)(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
 	}
 
 	if (DevMenu_MoveSelection(DevMenu.SubSelection, (int)ResourcesBrowserEntries.size())) {
@@ -3524,7 +3524,7 @@ void Application::DevMenu_SceneSelectMenu() {
 			160,
 			y,
 			ALIGN_LEFT,
-			DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+			(size_t)(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
 	}
 
 	bool moveUp = DevMenu_IsActionRepeated("Up");
@@ -3613,7 +3613,7 @@ void Application::DevMenu_SettingsMenu() {
 			160,
 			y,
 			ALIGN_LEFT,
-			DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+			(size_t)(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
 	}
 
 	if (DevMenu_MoveSelection(DevMenu.SubSelection, (int)std::size(labels))) {
@@ -3681,19 +3681,19 @@ void Application::DevMenu_VideoMenu() {
 			(Application::WindowWidth / 2) - 124,
 			105 + (i * 16),
 			ALIGN_LEFT,
-			DevMenu.SubSelection == i);
+			(size_t)DevMenu.SubSelection == i);
 	}
 
 	DrawDevString("Confirm",
 		Application::WindowWidth / 2,
 		161,
 		ALIGN_CENTER,
-		DevMenu.SubSelection == std::size(labels));
+		(size_t)DevMenu.SubSelection == std::size(labels));
 	DrawDevString("Cancel",
 		Application::WindowWidth / 2,
 		177,
 		ALIGN_CENTER,
-		DevMenu.SubSelection == std::size(labels) + 1);
+		(size_t)DevMenu.SubSelection == std::size(labels) + 1);
 
 	char scale[2];
 	snprintf(scale, sizeof scale, "%d", DevMenu.WindowScale);
@@ -3767,21 +3767,35 @@ void Application::DevMenu_AudioMenu() {
 			(Application::WindowWidth / 2) - 124,
 			105 + (i * 16),
 			ALIGN_LEFT,
-			DevMenu.SubSelection == i);
+			(size_t)DevMenu.SubSelection == i);
 	}
 
 	DrawDevString("Confirm",
 		Application::WindowWidth / 2,
 		169,
 		ALIGN_CENTER,
-		DevMenu.SubSelection == std::size(labels));
+		(size_t)DevMenu.SubSelection == std::size(labels));
 
 	for (size_t i = 0, y = 105; i < std::size(labels); i++, y += 16) {
+		int volume;
+
+		switch (i) {
+		case 0:
+			volume = Application::MasterVolume;
+			break;
+		case 1:
+			volume = Application::MusicVolume;
+			break;
+		case 2:
+			volume = Application::SoundVolume;
+			break;
+		}
+
 		DrawRectangle(
 			(Application::WindowWidth / 2.0) + 22.0, y, 104.0, 15.0, 0x303030, 0xC0);
 		DrawRectangle((Application::WindowWidth / 2.0) + 24.0,
 			y + 2,
-			(float)((int*)&Application::MasterVolume)[i],
+			volume,
 			11.0,
 			0xFFFFFF,
 			0xC0);
@@ -3791,14 +3805,14 @@ void Application::DevMenu_AudioMenu() {
 
 	const char* volumeDirs[] = {"Left", "Right"};
 	for (const char* dir : volumeDirs) {
-		if (DevMenu.SubSelection < std::size(labels) && DevMenu_IsActionHeld(dir)) {
+		if ((size_t)DevMenu.SubSelection < std::size(labels) && DevMenu_IsActionHeld(dir)) {
 			int& volume = DevMenu.SubSelection == 0 ? Application::MasterVolume : DevMenu.SubSelection == 1 ? Application::MusicVolume : Application::SoundVolume;
 			volume = std::clamp(volume + (dir[0] == 'L' ? -1 : 1), 0, 100);
 			Application::Settings->SetInteger("audio", keys[DevMenu.SubSelection], volume);
 		}
 	}
 
-	if (DevMenu.SubSelection == std::size(labels) && DevMenu_IsConfirmPressed()) {
+	if ((size_t)DevMenu.SubSelection == std::size(labels) && DevMenu_IsConfirmPressed()) {
 		Application::LoadAudioSettings();
 		DevMenu.State = DevMenu_SettingsMenu;
 		DevMenu.SubSelection = 1;

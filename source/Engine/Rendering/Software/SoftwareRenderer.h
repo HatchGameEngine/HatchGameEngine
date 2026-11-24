@@ -65,9 +65,9 @@ public:
 	static void Dispose();
 	static void RenderStart(int viewIndex);
 	static void RenderEnd(int viewIndex);
-	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static Texture* CreateTexture(int format, int access, Uint32 width, Uint32 height);
 	static bool
-	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	ReinitializeTexture(Texture*, int format, int access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);
@@ -274,9 +274,9 @@ public:
 	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView);
-	static void DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView);
-	static void DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView);
-	static void DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView);
+	static void DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer);
+	static void DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer);
+	static void DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer);
 	static void DrawTileLayer(TileLayer* layer, int layerIndex, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,

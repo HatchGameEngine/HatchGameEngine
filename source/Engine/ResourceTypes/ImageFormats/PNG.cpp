@@ -136,7 +136,6 @@ PNG* PNG::Load(Stream* stream) {
 	free(row_pointers);
 
 	if (usePalette) {
-		Uint8* data = pixelData;
 		if (bit_depth != 8) {
 			png->ReadPixelBitstream(pixelData, bit_depth);
 		}
@@ -465,7 +464,7 @@ bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>*
 	row_bytes = texture->Width * sizeof(Uint32);
 	data_ptr = (png_bytep)texture->Pixels;
 
-	for (int y = 0; y < texture->Height; y++) {
+	for (Uint32 y = 0; y < texture->Height; y++) {
 		row_pointers[y] = data_ptr;
 		data_ptr += row_bytes;
 	}

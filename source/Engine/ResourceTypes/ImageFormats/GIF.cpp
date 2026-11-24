@@ -240,7 +240,7 @@ GIF* GIF::Load(Stream* stream) {
 
 	Uint16 width, height, paletteTableSize;
 	int bitsWidth, eighthHeight, quarterHeight, halfHeight;
-	Uint8 logicalScreenDesc, colorBitDepth, transparentColorIndex;
+	Uint8 logicalScreenDesc, transparentColorIndex;
 
 	width = stream->ReadUInt16();
 	height = stream->ReadUInt16();
@@ -248,14 +248,12 @@ GIF* GIF::Load(Stream* stream) {
 	logicalScreenDesc = stream->ReadByte();
 
 	transparentColorIndex = stream->ReadByte();
-	stream->Skip(1); // pixelAspectRatio = stream->ReadByte();
+	stream->Skip(1);
 
 	gif->Width = width;
 	gif->Height = height;
 	gif->BytesPerPixel = loadPalette ? sizeof(Uint8) : sizeof(Uint32);
 
-	colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
-	// sortFlag = (logicalScreenDesc & 0x8) != 0; // This is unneeded.
 	if ((logicalScreenDesc & 0x80) != 0) {
 		paletteTableSize = 2 << (logicalScreenDesc & 0x7);
 	}
