@@ -15034,7 +15034,7 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
 		Memory::Free(BufferedScrollLines);
 	}
 	TileLayer* layer = (TileLayer*)Scene::Layers[index];
-	BufferedScrollLinesMax = layer->HeightData * Scene::TileWidth;
+	BufferedScrollLinesMax = layer->HeightData * Scene::TileHeight;
 	BufferedScrollLines = (Uint8*)Memory::Malloc(BufferedScrollLinesMax);
 	BufferedScrollSetupLayer = index;
 	BufferedScrollInfos.clear();
@@ -15122,13 +15122,13 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		layer->ScrollInfos[g].Offset = 0.0f;
 	}
 
-	int length16 = layer->HeightData * 16;
+	int indicesLength = layer->HeightData * Scene::TileHeight;
 	if (layer->WidthData > layer->HeightData) {
-		length16 = layer->WidthData * 16;
+		indicesLength = layer->WidthData * Scene::TileWidth;
 	}
 
 	layer->UsingScrollIndexes = true;
-	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
+	layer->ScrollIndexes = (Uint8*)Memory::Calloc(indicesLength, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
 	// Cleanup
