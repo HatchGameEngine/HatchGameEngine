@@ -21,6 +21,8 @@ public:
 	Uint32 (*HashFunction)(const void*, size_t) = nullptr;
 
 	HashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = nullptr, int capacity = 16) {
+		Data.reserve(capacity);
+
 		HashFunction = hashFunc;
 		if (HashFunction == nullptr) {
 			HashFunction = Murmur::EncryptData;
